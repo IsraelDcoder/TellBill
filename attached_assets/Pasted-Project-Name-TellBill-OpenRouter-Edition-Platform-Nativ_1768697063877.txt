@@ -1,0 +1,205 @@
+Project Name: TellBill (OpenRouter Edition)
+Platform: Native Mobile (iOS & Android)
+Tech Stack: Flutter (Frontend), Supabase (Backend/Auth/DB/Storage), Node.js (Server), OpenRouter (AI), Stripe (Payments)
+
+Goal:
+Build a fully functional enterprise-grade contractor voice-first invoicing app that is monetizable from day one. No mock data. Everything must work, including AI, PDFs, payments, and subscription logic.
+
+---------------------------------------------------------------------
+1. DESIGN SYSTEM & UX (Enterprise-Level UI)
+---------------------------------------------------------------------
+- Brand: Industrial Premium
+- Color Palette: Slate Grey (#2D2E2E), Construction Gold (#FFB400), White (#FFFFFF)
+- High contrast UI, large tap targets (60px min), glassmorphism cards
+- Haptic feedback on all important actions (record, invoice generation, payment sent)
+- Navigation:
+  - Bottom navigation: Home, Projects, Invoices, Team, Profile
+  - Sidebar menu for “Coming Soon” features (locked)
+
+Dashboard (Command Center):
+- Hero section with a large header image
+- Big value statement: “Finished the job? Just tell Bill.”
+- KPI cards:
+  - Invoices sent
+  - Invoices paid
+  - Total revenue
+  - Avg time saved
+- Quick actions:
+  - Record voice
+  - Create invoice
+  - View history
+- Recent activity feed (real data)
+
+---------------------------------------------------------------------
+2. AUTHENTICATION & ORGANIZATION (RBAC)
+---------------------------------------------------------------------
+- Supabase Auth (email/password)
+- Organization model
+- Roles:
+  - Admin (owner)
+  - Worker (contractor)
+- Workers only see their own logs/invoices
+- Admin sees company-wide analytics and team activity
+
+---------------------------------------------------------------------
+3. OFFLINE-FIRST + SECURITY
+---------------------------------------------------------------------
+- Local storage via SQLite for offline usage
+- Sync when connection is stable
+- Conflict resolution (last write wins + merge)
+- AES-256 encryption for voice recordings before upload
+- Audit log: every invoice generation logged with timestamp + GPS
+
+---------------------------------------------------------------------
+4. AI PIPELINE (OpenRouter)
+---------------------------------------------------------------------
+Module A: Voice Recording
+- One-tap “Record” button
+- Save audio locally (encrypted)
+- Upload audio to server for transcription
+
+Module B: Transcription (OpenRouter)
+- Use open-source STT model through OpenRouter
+- Show live transcription
+- Noise suppression enabled
+
+Module C: Reasoning (OpenRouter LLM)
+- Send transcription to LLM via OpenRouter
+- Extract structured JSON:
+  - client_name
+  - materials_list (name, qty, unit price)
+  - labor_hours
+  - job_address (GPS)
+  - safety_notes
+  - payment_terms
+  - tax_rate
+- AI confidence score
+  - <85% -> highlight fields for manual correction
+
+---------------------------------------------------------------------
+5. CORE FEATURES (ALL FULLY BUILT)
+---------------------------------------------------------------------
+
+Feature 1: Voice-to-Invoice
+- Record voice
+- AI transcribes & extracts data
+- Draft invoice generated
+- User reviews & approves
+
+Feature 2: PDF Invoice Generator
+- Server-side PDF generation
+- Includes:
+  - logo
+  - invoice number
+  - date
+  - client info
+  - itemized materials
+  - labor
+  - tax
+  - total
+- Save PDF to Supabase Storage
+- Preview inside app
+
+Feature 3: Payment + Auto-Reminders (HIGH VALUE)
+- Send invoice via SMS/WhatsApp/email
+- Generate Stripe payment link
+- Payment options:
+  - Credit Card
+  - Apple Pay
+  - ACH (if available)
+- Auto reminders:
+  - 24 hours
+  - 3 days
+  - 7 days (late fee option)
+- Payment status updates in app
+
+Feature 4: Job Site Evidence Bundle (HIGH VALUE)
+- GPS + timestamp on invoice
+- Optional photos
+- Safety notes
+- Digital signature
+- Auto attach to invoice PDF
+
+Feature 5: Team Management (Team Plan)
+- Admin invites workers
+- Assign projects
+- Review worker invoices
+- Team performance analytics
+
+---------------------------------------------------------------------
+6. MONETIZATION (Real from Day One)
+---------------------------------------------------------------------
+Stripe Integration:
+- Stripe Connect for payments
+- Stripe subscriptions:
+  - Solo: $29/month
+  - Team: $99/month
+  - Enterprise: custom
+- Trial: 7 days
+
+Locked Features for Non-Paid Users:
+- Invoice generation
+- PDF export
+- Payment link generation
+- Auto reminders
+- Team management
+
+Paid users can access all features.
+
+Billing Page:
+- Plan status
+- Upgrade/downgrade
+- Cancel subscription
+- Payment history
+
+---------------------------------------------------------------------
+7. ADMIN DASHBOARD (Inside App)
+---------------------------------------------------------------------
+Admin can see:
+- Company revenue
+- Paid vs pending invoices
+- Team activity
+- GPS map of job locations
+- Analytics (time saved, average invoice value)
+
+---------------------------------------------------------------------
+8. “COMING SOON” (Visible but Locked)
+---------------------------------------------------------------------
+Show in sidebar:
+- Inventory management
+- QuickBooks integration
+- GPS verification audit
+- White-label enterprise
+Each shows “Building in progress – contact developer for early access.”
+
+---------------------------------------------------------------------
+9. ALL PAGES REQUIRED (FULL UI BUILT)
+---------------------------------------------------------------------
+- Onboarding (4 screens)
+- Login / Signup / Forgot Password
+- Home Dashboard
+- Voice Recording
+- Transcript Review
+- Invoice Draft
+- Invoice Preview (PDF)
+- Send Invoice
+- Payment Tracking
+- History
+- Projects
+- Team Management
+- Profile
+- Billing/Subscription
+- Settings
+- Coming Soon pages
+
+---------------------------------------------------------------------
+10. QUALITY REQUIREMENTS
+---------------------------------------------------------------------
+- No mock data anywhere
+- All data is real and persistent
+- All buttons have real logic
+- All features fully functional
+- Production-grade error handling
+- Real AI calls through OpenRouter
+- Real Stripe payments
+
