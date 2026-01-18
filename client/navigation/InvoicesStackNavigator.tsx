@@ -1,25 +1,25 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import ProfileScreen from "@/screens/ProfileScreen";
+import InvoicesScreen from "@/screens/InvoicesScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
-export type ProfileStackParamList = {
-  Profile: undefined;
+export type InvoicesStackParamList = {
+  Invoices: undefined;
 };
 
-const Stack = createNativeStackNavigator<ProfileStackParamList>();
+const Stack = createNativeStackNavigator<InvoicesStackParamList>();
 
-export default function ProfileStackNavigator() {
+export default function InvoicesStackNavigator() {
   const screenOptions = useScreenOptions();
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Invoices"
+        component={InvoicesScreen}
         options={{
-          headerTitle: "Profile",
+          headerTitle: "Invoices",
         }}
       />
     </Stack.Navigator>

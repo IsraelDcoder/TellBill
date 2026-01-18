@@ -1,26 +1,336 @@
+import React from "react";
+import { StyleSheet, View, Pressable, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Feather } from "@expo/vector-icons";
 
-import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
+import { ThemedText } from "@/components/ThemedText";
+import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing } from "@/constants/theme";
+import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface MenuItemProps {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  onPress: () => void;
+  showBadge?: boolean;
+  badgeText?: string;
+}
+
+function MenuItem({ icon, label, onPress, showBadge, badgeText }: MenuItemProps) {
+  const { theme, isDark } = useTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.menuItem,
+        {
+          backgroundColor: pressed
+            ? isDark
+              ? theme.backgroundSecondary
+              : theme.backgroundDefault
+            : "transparent",
+        },
+      ]}
+    >
+      <View style={styles.menuItemLeft}>
+        <View
+          style={[
+            styles.menuIconContainer,
+            { backgroundColor: `${BrandColors.constructionGold}15` },
+          ]}
+        >
+          <Feather name={icon} size={18} color={BrandColors.constructionGold} />
+        </View>
+        <ThemedText type="body">{label}</ThemedText>
+      </View>
+      <View style={styles.menuItemRight}>
+        {showBadge ? (
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: BrandColors.constructionGold },
+            ]}
+          >
+            <ThemedText
+              type="caption"
+              style={{ color: BrandColors.slateGrey, fontWeight: "600" }}
+            >
+              {badgeText}
+            </ThemedText>
+          </View>
+        ) : null}
+        <Feather name="chevron-right" size={18} color={theme.textSecondary} />
+      </View>
+    </Pressable>
+  );
+}
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
 
   return (
-    <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: theme.backgroundRoot }}
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
-        paddingTop: headerHeight + Spacing.xl,
+        paddingTop: headerHeight + Spacing.lg,
         paddingBottom: tabBarHeight + Spacing.xl,
-        paddingHorizontal: Spacing.lg,
       }}
       scrollIndicatorInsets={{ bottom: insets.bottom }}
-    />
+    >
+      <View style={styles.profileHeader}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: `${BrandColors.constructionGold}20` },
+          ]}
+        >
+          <ThemedText type="display" style={{ color: BrandColors.constructionGold }}>
+            JD
+          </ThemedText>
+        </View>
+        <ThemedText type="h2" style={styles.name}>
+          John Doe
+        </ThemedText>
+        <ThemedText type="body" style={{ color: theme.textSecondary }}>
+          john@acmecontractors.com
+        </ThemedText>
+        <View style={styles.companyBadge}>
+          <Feather name="briefcase" size={14} color={BrandColors.constructionGold} />
+          <ThemedText type="small" style={{ color: BrandColors.constructionGold }}>
+            Acme Contractors LLC
+          </ThemedText>
+        </View>
+      </View>
+
+      <GlassCard style={styles.statsCard}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+              47
+            </ThemedText>
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              Invoices Created
+            </ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+          <View style={styles.statItem}>
+            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+              $32K
+            </ThemedText>
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              Revenue Generated
+            </ThemedText>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+          <View style={styles.statItem}>
+            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+              12h
+            </ThemedText>
+            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+              Time Saved
+            </ThemedText>
+          </View>
+        </View>
+      </GlassCard>
+
+      <View style={styles.menuSection}>
+        <ThemedText type="small" style={[styles.menuLabel, { color: theme.textSecondary }]}>
+          ACCOUNT
+        </ThemedText>
+        <View
+          style={[
+            styles.menuContainer,
+            {
+              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <MenuItem
+            icon="credit-card"
+            label="Billing & Subscription"
+            onPress={() => navigation.navigate("Billing")}
+            showBadge
+            badgeText="Solo"
+          />
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuItem
+            icon="settings"
+            label="Settings"
+            onPress={() => navigation.navigate("Settings")}
+          />
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuItem
+            icon="help-circle"
+            label="Help & Support"
+            onPress={() => {}}
+          />
+        </View>
+      </View>
+
+      <View style={styles.menuSection}>
+        <ThemedText type="small" style={[styles.menuLabel, { color: theme.textSecondary }]}>
+          COMING SOON
+        </ThemedText>
+        <View
+          style={[
+            styles.menuContainer,
+            {
+              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <MenuItem
+            icon="package"
+            label="Inventory Management"
+            onPress={() => navigation.navigate("ComingSoon", { feature: "Inventory Management" })}
+          />
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuItem
+            icon="link"
+            label="QuickBooks Integration"
+            onPress={() => navigation.navigate("ComingSoon", { feature: "QuickBooks Integration" })}
+          />
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuItem
+            icon="map-pin"
+            label="GPS Verification Audit"
+            onPress={() => navigation.navigate("ComingSoon", { feature: "GPS Verification Audit" })}
+          />
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuItem
+            icon="star"
+            label="White-Label Enterprise"
+            onPress={() => navigation.navigate("ComingSoon", { feature: "White-Label Enterprise" })}
+          />
+        </View>
+      </View>
+
+      <Pressable style={styles.logoutButton}>
+        <Feather name="log-out" size={18} color={theme.error} />
+        <ThemedText type="body" style={{ color: theme.error }}>
+          Log Out
+        </ThemedText>
+      </Pressable>
+    </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  profileHeader: {
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing["2xl"],
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  name: {
+    marginBottom: Spacing.xs,
+  },
+  companyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: `${BrandColors.constructionGold}15`,
+  },
+  statsCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing["2xl"],
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+  },
+  statItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+  },
+  menuSection: {
+    marginBottom: Spacing["2xl"],
+  },
+  menuLabel: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    fontWeight: "600",
+    letterSpacing: 1,
+  },
+  menuContainer: {
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  menuItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuItemRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  badge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  menuDivider: {
+    height: 1,
+    marginLeft: Spacing.lg + 32 + Spacing.md,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing["2xl"],
+  },
+});

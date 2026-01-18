@@ -1,25 +1,25 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-import ProfileScreen from "@/screens/ProfileScreen";
+import TeamScreen from "@/screens/TeamScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
-export type ProfileStackParamList = {
-  Profile: undefined;
+export type TeamStackParamList = {
+  Team: undefined;
 };
 
-const Stack = createNativeStackNavigator<ProfileStackParamList>();
+const Stack = createNativeStackNavigator<TeamStackParamList>();
 
-export default function ProfileStackNavigator() {
+export default function TeamStackNavigator() {
   const screenOptions = useScreenOptions();
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
       <Stack.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Team"
+        component={TeamScreen}
         options={{
-          headerTitle: "Profile",
+          headerTitle: "Team",
         }}
       />
     </Stack.Navigator>
