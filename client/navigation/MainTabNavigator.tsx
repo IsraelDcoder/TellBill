@@ -8,6 +8,7 @@ import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import ProjectsStackNavigator from "@/navigation/ProjectsStackNavigator";
 import InvoicesStackNavigator from "@/navigation/InvoicesStackNavigator";
 import TeamStackNavigator from "@/navigation/TeamStackNavigator";
+import InventoryStackNavigator from "@/navigation/InventoryStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
@@ -17,6 +18,7 @@ export type MainTabParamList = {
   ProjectsTab: undefined;
   InvoicesTab: undefined;
   TeamTab: undefined;
+  InventoryTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -95,6 +97,16 @@ export default function MainTabNavigator() {
           title: "Team",
           tabBarIcon: ({ color, size }) => (
             <Feather name="users" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="InventoryTab"
+        component={InventoryStackNavigator}
+        options={{
+          title: "Inventory",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="box" size={size} color={color} />
           ),
         }}
       />

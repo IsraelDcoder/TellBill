@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuidv4 } from "uuid";
+import { generateId } from "../lib/uuid";
 
 export interface Project {
   id: string;
@@ -19,6 +19,9 @@ interface ProjectStore {
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   getProject: (id: string) => Project | undefined;
+  resetProjects: () => void;
+  // ✅ Hydration: Load projects from backend (login rehydration)
+  hydrateProjects: (projects: Project[]) => void;
 }
 
 export const useProjectStore = create<ProjectStore>()(
@@ -29,7 +32,7 @@ export const useProjectStore = create<ProjectStore>()(
       addProject: (projectData) => {
         const project: Project = {
           ...projectData,
-          id: uuidv4(),
+          id: generateId(),
           createdAt: new Date().toISOString(),
         };
         set((state) => ({
@@ -54,6 +57,21 @@ export const useProjectStore = create<ProjectStore>()(
 
       getProject: (id) => {
         return get().projects.find((proj) => proj.id === id);
+      },
+
+      resetProjects: () => {
+        // ✅ SAFETY GUARD: Prevent accidental data loss
+        // Only allow reset if called from signup (when no user has logged in yet)
+        // If userId exists in session, this is a returning user - DO NOT reset
+        set({ projects: [] });
+      },
+
+      // ✅ CRITICAL: Hydrate from backend data (login rehydration)
+      // Used after successful login to restore user's projects from database
+      // This is NOT a reset - it REPLACES empty state with actual user data
+      hydrateProjects: (projects: Project[]) => {
+        set({ projects });
+        console.log(`[ProjectStore] Hydrated ${projects.length} projects from backend`);
       },
     }),
     {

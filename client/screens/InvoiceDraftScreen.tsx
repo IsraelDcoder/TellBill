@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -14,10 +16,13 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { GlassCard } from "@/components/GlassCard";
+import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { PLAN_LIMITS } from "@/constants/planLimits";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoiceDraft">;
@@ -29,6 +34,12 @@ export default function InvoiceDraftScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { addInvoice } = useInvoiceStore();
+  const { currentPlan, invoicesCreated, incrementInvoices } = useSubscriptionStore();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Check if user has reached invoice creation limit
+  const invoiceLimit = PLAN_LIMITS[currentPlan].voiceRecordings;
+  const hasReachedLimit = invoicesCreated >= invoiceLimit;
 
   const invoiceData = route.params?.invoiceData || {
     clientName: "Sample Client",
@@ -59,21 +70,32 @@ export default function InvoiceDraftScreen() {
   };
 
   const handleApprove = () => {
+    // Check if user has reached invoice limit
+    if (hasReachedLimit) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const invoice = addInvoice(invoiceData);
+    incrementInvoices();
     navigation.navigate("InvoicePreview", { invoiceId: invoice.id });
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      contentContainerStyle={{
-        paddingTop: headerHeight + Spacing.lg,
-        paddingBottom: insets.bottom + Spacing["3xl"],
-        paddingHorizontal: Spacing.lg,
-      }}
-      showsVerticalScrollIndicator={false}
     >
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: headerHeight + Spacing.lg,
+          paddingBottom: insets.bottom + Spacing["3xl"],
+          paddingHorizontal: Spacing.lg,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <GlassCard style={styles.headerCard}>
         <View style={styles.headerRow}>
           <View>
@@ -273,7 +295,14 @@ export default function InvoiceDraftScreen() {
           Approve Invoice
         </Button>
       </View>
+
+      <UpgradeRequiredModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        type="invoice"
+      />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

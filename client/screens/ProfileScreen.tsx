@@ -1,15 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Pressable, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { GlassCard } from "@/components/GlassCard";
+import { LogoutConfirmation } from "@/components/LogoutConfirmation";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/context/AuthContext";
+import { useInvoiceStore } from "@/stores/invoiceStore";
+import { useProfileStore } from "@/stores/profileStore";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -79,6 +83,41 @@ export default function ProfileScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
+  const { getStats } = useInvoiceStore();
+  const { userProfile, companyInfo } = useProfileStore();
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [avatarInitials, setAvatarInitials] = useState("U");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Update display name from profileStore
+      const firstName = userProfile.firstName || user?.name?.split(" ")[0] || "";
+      const lastName = userProfile.lastName || user?.name?.split(" ").slice(1).join(" ") || "";
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      
+      setDisplayName(fullName || user?.name || "User");
+      
+      // Generate avatar initials
+      const initials = firstName 
+        ? firstName[0].toUpperCase()
+        : (user?.name?.[0] || "U").toUpperCase();
+      setAvatarInitials(initials);
+      
+      return () => {}; // cleanup function
+    }, [userProfile, user])
+  );
+
+  const stats = getStats();
+  const invoicesCreated = stats.sent + stats.paid + stats.pending + stats.overdue;
+  const revenueGenerated = stats.revenue;
+  const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
+  
+  // Format revenue as K (e.g., 32000 -> $32K, 5400 -> $5.4K)
+  const formattedRevenue = revenueGenerated >= 1000
+    ? `$${(revenueGenerated / 1000).toFixed(revenueGenerated % 1000 === 0 ? 0 : 1)}K`
+    : `$${revenueGenerated}`;
 
   return (
     <ScrollView
@@ -97,19 +136,19 @@ export default function ProfileScreen() {
           ]}
         >
           <ThemedText type="display" style={{ color: BrandColors.constructionGold }}>
-            JD
+            {avatarInitials}
           </ThemedText>
         </View>
         <ThemedText type="h2" style={styles.name}>
-          John Doe
+          {displayName}
         </ThemedText>
         <ThemedText type="body" style={{ color: theme.textSecondary }}>
-          john@acmecontractors.com
+          {user?.email || "email@example.com"}
         </ThemedText>
         <View style={styles.companyBadge}>
           <Feather name="briefcase" size={14} color={BrandColors.constructionGold} />
           <ThemedText type="small" style={{ color: BrandColors.constructionGold }}>
-            Acme Contractors LLC
+            {companyInfo.name}
           </ThemedText>
         </View>
       </View>
@@ -118,7 +157,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              47
+              {invoicesCreated}
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Invoices Created
@@ -127,7 +166,7 @@ export default function ProfileScreen() {
           <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              $32K
+              {formattedRevenue}
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Revenue Generated
@@ -136,7 +175,7 @@ export default function ProfileScreen() {
           <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              12h
+              {timeSavedHours}h
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Time Saved
@@ -175,7 +214,7 @@ export default function ProfileScreen() {
           <MenuItem
             icon="help-circle"
             label="Help & Support"
-            onPress={() => {}}
+            onPress={() => navigation.navigate("HelpSupport")}
           />
         </View>
       </View>
@@ -193,12 +232,6 @@ export default function ProfileScreen() {
             },
           ]}
         >
-          <MenuItem
-            icon="package"
-            label="Inventory Management"
-            onPress={() => navigation.navigate("ComingSoon", { feature: "Inventory Management" })}
-          />
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
           <MenuItem
             icon="link"
             label="QuickBooks Integration"
@@ -219,12 +252,20 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Pressable style={styles.logoutButton}>
+      <Pressable
+        style={styles.logoutButton}
+        onPress={() => setShowLogoutConfirmation(true)}
+      >
         <Feather name="log-out" size={18} color={theme.error} />
         <ThemedText type="body" style={{ color: theme.error }}>
           Log Out
         </ThemedText>
       </Pressable>
+
+      <LogoutConfirmation
+        isVisible={showLogoutConfirmation}
+        onDismiss={() => setShowLogoutConfirmation(false)}
+      />
     </ScrollView>
   );
 }

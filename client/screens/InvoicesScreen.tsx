@@ -4,6 +4,7 @@ import {
   View,
   FlatList,
   Pressable,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -36,13 +37,32 @@ export default function InvoicesScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { invoices } = useInvoiceStore();
+  const { invoices, deleteInvoice } = useInvoiceStore();
   const [activeFilter, setActiveFilter] = useState<ActivityStatus | "all">("all");
 
   const filteredInvoices =
     activeFilter === "all"
       ? invoices
       : invoices.filter((inv) => inv.status === activeFilter);
+
+  const handleLongPress = (invoiceId: string, invoiceNumber: string) => {
+    Alert.alert(
+      "Delete Invoice",
+      `Are you sure you want to delete invoice ${invoiceNumber}?`,
+      [
+        {
+          text: "Cancel",
+          onPress: () => {},
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => deleteInvoice(invoiceId),
+          style: "destructive",
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -105,13 +125,14 @@ export default function InvoicesScreen() {
             onPress={() =>
               navigation.navigate("InvoiceDetail", { invoiceId: item.id })
             }
+            onLongPress={() => handleLongPress(item.id, item.invoiceNumber)}
           />
         )}
         ListEmptyComponent={
           <EmptyState
-            image={require("../assets/images/empty_invoices_illustration.png")}
+            icon="invoice"
             title="No Invoices Yet"
-            description="Create your first invoice by recording a job or entering details manually."
+            description="Tell Bill what you did today. We'll handle the paperwork."
             actionLabel="Create Invoice"
             onAction={() => navigation.navigate("VoiceRecording")}
           />

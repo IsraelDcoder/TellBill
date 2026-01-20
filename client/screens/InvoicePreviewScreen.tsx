@@ -3,12 +3,16 @@ import {
   StyleSheet,
   View,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -28,6 +32,7 @@ export default function InvoicePreviewScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { getInvoice } = useInvoiceStore();
+  const [isDownloading, setIsDownloading] = React.useState(false);
 
   const invoice = getInvoice(route.params.invoiceId);
 
@@ -56,6 +61,159 @@ export default function InvoicePreviewScreen() {
     }).format(amount);
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      setIsDownloading(true);
+
+      // Generate HTML content for the invoice
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: white; }
+              .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; }
+              .company { }
+              .company h1 { margin: 0; font-size: 28px; color: #2D2E2E; }
+              .company p { margin: 0; font-size: 12px; color: #6B7280; }
+              .invoice-title { text-align: right; }
+              .invoice-title h2 { margin: 0; font-size: 24px; color: #FFB400; }
+              .invoice-title p { margin: 0; font-size: 12px; color: #6B7280; }
+              .addresses { display: flex; justify-content: space-between; margin-bottom: 30px; }
+              .address-block { }
+              .address-block h3 { margin: 0; font-size: 10px; color: #6B7280; font-weight: bold; }
+              .address-block p { margin: 5px 0; font-size: 12px; color: #2D2E2E; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+              th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: bold; border-bottom: 1px solid #e5e7eb; }
+              td { padding: 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+              .total-section { text-align: right; margin-top: 20px; }
+              .total-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+              .total-label { width: 150px; font-weight: bold; }
+              .total-value { width: 100px; text-align: right; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company">
+                <h1>TellBill</h1>
+                <p>Voice-First Invoicing</p>
+              </div>
+              <div class="invoice-title">
+                <h2>INVOICE</h2>
+                <p>${invoice.invoiceNumber}</p>
+              </div>
+            </div>
+
+            <div class="addresses">
+              <div class="address-block">
+                <h3>BILL TO</h3>
+                <p>${invoice.clientName}</p>
+                <p>${invoice.clientAddress}</p>
+              </div>
+              <div class="address-block">
+                <h3>DATE</h3>
+                <p>${new Date(invoice.createdAt).toLocaleDateString()}</p>
+                <p>Terms: ${invoice.paymentTerms}</p>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="flex: 2;">Description</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th style="text-align: right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoice.items
+                  .map(
+                    (item) => `
+                  <tr>
+                    <td style="flex: 2;">${item.description}</td>
+                    <td>${item.quantity}</td>
+                    <td>${formatCurrency(item.unitPrice)}</td>
+                    <td style="text-align: right;">${formatCurrency(item.total)}</td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+                ${
+                  invoice.laborHours > 0
+                    ? `
+                  <tr>
+                    <td style="flex: 2;">Labor</td>
+                    <td>${invoice.laborHours}h</td>
+                    <td>${formatCurrency(invoice.laborRate)}/hr</td>
+                    <td style="text-align: right;">${formatCurrency(invoice.laborTotal)}</td>
+                  </tr>
+                `
+                    : ""
+                }
+              </tbody>
+            </table>
+
+            <div class="total-section">
+              <div class="total-row">
+                <div class="total-label">Subtotal:</div>
+                <div class="total-value">${formatCurrency(invoice.subtotal)}</div>
+              </div>
+              ${
+                invoice.taxAmount > 0
+                  ? `
+                <div class="total-row">
+                  <div class="total-label">Tax (${(invoice.taxRate * 100).toFixed(0)}%):</div>
+                  <div class="total-value">${formatCurrency(invoice.taxAmount)}</div>
+                </div>
+              `
+                  : ""
+              }
+              <div class="total-row" style="border-top: 2px solid #2D2E2E; padding-top: 10px; margin-top: 10px; font-size: 14px; font-weight: bold;">
+                <div class="total-label">Total:</div>
+                <div class="total-value">${formatCurrency(invoice.total)}</div>
+              </div>
+            </div>
+
+            ${
+              invoice.safetyNotes && invoice.safetyNotes.length > 0
+                ? `
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                <h3 style="margin-top: 0; font-size: 12px;">SAFETY NOTES</h3>
+                <p style="font-size: 12px; color: #6B7280;">${invoice.safetyNotes}</p>
+              </div>
+            `
+                : ""
+            }
+          </body>
+        </html>
+      `;
+
+      // Create a filename with invoice number
+      const fileName = `Invoice_${invoice.invoiceNumber}_${Date.now()}.html`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      // Write the HTML file
+      await FileSystem.writeAsStringAsync(fileUri, htmlContent);
+
+      // Share the file
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "text/html",
+          dialogTitle: `Download Invoice ${invoice.invoiceNumber}`,
+        });
+      } else {
+        Alert.alert("Success", `Invoice saved to ${fileName}`);
+      }
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      Alert.alert("Error", "Failed to download invoice. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
@@ -80,7 +238,7 @@ export default function InvoicePreviewScreen() {
               <ThemedText type="h2" style={{ color: BrandColors.slateGrey }}>
                 TellBill
               </ThemedText>
-              <ThemedText type="caption" style={{ color: "#6B7280" }}>
+              <ThemedText type="small" style={{ color: "#6B7280" }}>
                 Voice-First Invoicing
               </ThemedText>
             </View>
@@ -102,7 +260,7 @@ export default function InvoicePreviewScreen() {
           <View style={styles.pdfAddresses}>
             <View style={styles.addressBlock}>
               <ThemedText
-                type="caption"
+                type="small"
                 style={{ color: "#6B7280", marginBottom: 4 }}
               >
                 BILL TO
@@ -116,7 +274,7 @@ export default function InvoicePreviewScreen() {
             </View>
             <View style={[styles.addressBlock, { alignItems: "flex-end" }]}>
               <ThemedText
-                type="caption"
+                type="small"
                 style={{ color: "#6B7280", marginBottom: 4 }}
               >
                 DATE
@@ -236,7 +394,7 @@ export default function InvoicePreviewScreen() {
           {invoice.safetyNotes.length > 0 ? (
             <View style={styles.pdfNotes}>
               <ThemedText
-                type="caption"
+                type="small"
                 style={{ color: "#6B7280", marginBottom: 4 }}
               >
                 SAFETY NOTES
@@ -261,13 +419,18 @@ export default function InvoicePreviewScreen() {
       >
         <Button
           variant="outline"
-          onPress={() => {}}
+          onPress={handleDownloadPDF}
+          disabled={isDownloading}
           style={styles.footerButton}
         >
           <View style={styles.buttonContent}>
-            <Feather name="download" size={18} color={BrandColors.constructionGold} />
-            <ThemedText style={{ color: BrandColors.constructionGold, fontWeight: "600" }}>
-              Download PDF
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={BrandColors.constructionGold} />
+            ) : (
+              <Feather name="download" size={18} color={BrandColors.constructionGold} />
+            )}
+            <ThemedText style={{ color: BrandColors.constructionGold, fontWeight: "600", marginLeft: isDownloading ? 8 : 0 }}>
+              {isDownloading ? "Downloading..." : "Download PDF"}
             </ThemedText>
           </View>
         </Button>

@@ -20,6 +20,7 @@ interface ActivityItemProps {
   status: ActivityStatus;
   date: string;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -34,6 +35,8 @@ const statusConfig: Record<
   overdue: { color: "#EF4444", icon: "alert-circle", label: "Overdue" },
 };
 
+const defaultStatusConfig = { color: "#6B7280", icon: "help-circle" as const, label: "Unknown" };
+
 export function ActivityItem({
   clientName,
   invoiceNumber,
@@ -41,10 +44,11 @@ export function ActivityItem({
   status,
   date,
   onPress,
+  onLongPress,
 }: ActivityItemProps) {
   const { theme, isDark } = useTheme();
   const scale = useSharedValue(1);
-  const config = statusConfig[status];
+  const config = statusConfig[status] || defaultStatusConfig;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -70,6 +74,7 @@ export function ActivityItem({
   return (
     <AnimatedPressable
       onPress={onPress}
+      onLongPress={onLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[
@@ -102,7 +107,7 @@ export function ActivityItem({
         </View>
         <View style={styles.bottomRow}>
           <ThemedText
-            type="caption"
+            type="small"
             style={[styles.invoiceNumber, { color: theme.textSecondary }]}
           >
             {invoiceNumber}
@@ -115,14 +120,14 @@ export function ActivityItem({
               ]}
             >
               <ThemedText
-                type="caption"
+                type="small"
                 style={[styles.statusText, { color: config.color }]}
               >
                 {config.label}
               </ThemedText>
             </View>
             <ThemedText
-              type="caption"
+              type="small"
               style={[styles.date, { color: theme.textSecondary }]}
             >
               {date}

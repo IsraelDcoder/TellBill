@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   TextInput,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -20,7 +21,9 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { EmptyState } from "@/components/EmptyState";
+import { FeatureLockOverlay } from "@/components/FeatureLockOverlay";
 import { useTheme } from "@/hooks/useTheme";
+import { useFeatureLock } from "@/hooks/useFeatureLock";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useProjectStore, Project } from "@/stores/projectStore";
@@ -34,7 +37,7 @@ const statusColors = {
   on_hold: "#F59E0B",
 };
 
-function ProjectCard({ project, onPress }: { project: Project; onPress: () => void }) {
+function ProjectCard({ project, onPress, onLongPress }: { project: Project; onPress: () => void; onLongPress?: () => void }) {
   const { theme, isDark } = useTheme();
   const scale = useSharedValue(1);
 
@@ -43,23 +46,28 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
   }));
 
   return (
-    <AnimatedPressable
+    <Pressable 
       onPress={onPress}
-      onPressIn={() => {
-        scale.value = withSpring(0.98, { damping: 15, stiffness: 200 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 15, stiffness: 200 });
-      }}
-      style={[
-        styles.projectCard,
-        {
-          backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-          borderColor: theme.border,
-        },
-        animatedStyle,
-      ]}
+      onLongPress={onLongPress}
+      delayLongPress={500}
+      style={{ flex: 1 }}
     >
+      <Animated.View
+        style={[
+          styles.projectCard,
+          {
+            backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
+            borderColor: theme.border,
+          },
+          animatedStyle,
+        ]}
+        onTouchStart={() => {
+          scale.value = withSpring(0.98, { damping: 15, stiffness: 200 });
+        }}
+        onTouchEnd={() => {
+          scale.value = withSpring(1, { damping: 15, stiffness: 200 });
+        }}
+      >
       <View style={styles.projectHeader}>
         <View
           style={[
@@ -115,7 +123,8 @@ function ProjectCard({ project, onPress }: { project: Project; onPress: () => vo
           ${project.budget.toLocaleString()}
         </ThemedText>
       </View>
-    </AnimatedPressable>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -125,8 +134,10 @@ export default function ProjectsScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { projects, addProject } = useProjectStore();
+  const { projects, addProject, deleteProject } = useProjectStore();
+  const { isLocked, requiredPlan } = useFeatureLock("projects");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showLockOverlay, setShowLockOverlay] = useState(false);
 
   const filteredProjects = projects.filter(
     (p) =>
@@ -134,7 +145,31 @@ export default function ProjectsScreen() {
       p.clientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleLongPress = (projectId: string, projectName: string) => {
+    Alert.alert(
+      "Delete Project",
+      `Are you sure you want to delete "${projectName}"?`,
+      [
+        {
+          text: "Cancel",
+          onPress: () => {},
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: () => deleteProject(projectId),
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   const handleAddProject = () => {
+    if (isLocked) {
+      setShowLockOverlay(true);
+      return;
+    }
+
     const newProject: Omit<Project, "id" | "createdAt"> = {
       name: `Project ${projects.length + 1}`,
       clientName: "New Client",
@@ -162,6 +197,7 @@ export default function ProjectsScreen() {
           placeholder="Search projects..."
           placeholderTextColor={theme.textSecondary}
           value={searchQuery}
+            onLongPress={() => handleLongPress(item.id, item.name)}
           onChangeText={setSearchQuery}
         />
       </View>
@@ -185,10 +221,10 @@ export default function ProjectsScreen() {
         )}
         ListEmptyComponent={
           <EmptyState
-            image={require("../assets/images/empty_projects_illustration.png")}
-            title="No Projects Yet"
-            description="Create your first project to organize your work and track progress."
-            actionLabel="Add Project"
+            icon="project"
+            title="Start Your First Project"
+            description="Tell Bill what you did today. We'll handle the paperwork."
+            actionLabel="New Project"
             onAction={handleAddProject}
           />
         }
@@ -204,6 +240,17 @@ export default function ProjectsScreen() {
       >
         <Feather name="plus" size={24} color={BrandColors.slateGrey} />
       </Pressable>
+
+      {/* Feature Lock Overlay */}
+      <FeatureLockOverlay
+        isLocked={showLockOverlay}
+        requiredPlan={requiredPlan as any}
+        feature="Projects"
+        onUpgradePress={() => {
+          setShowLockOverlay(false);
+          navigation.navigate("Pricing", { message: "Upgrade to create projects" });
+        }}
+      />
     </View>
   );
 }

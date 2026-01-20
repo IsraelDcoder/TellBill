@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -11,6 +11,23 @@ import { queryClient } from "@/lib/query-client";
 
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/context/AuthContext";
+import { AuthRootGuard } from "@/components/AuthRootGuard";
+import { useRevenueCatInitialization, useRevenueCatListener } from "@/hooks/useRevenueCat";
+
+function AppContent() {
+  // Initialize RevenueCat SDK on app start
+  useRevenueCatInitialization();
+
+  // Listen for RevenueCat subscription changes
+  useRevenueCatListener();
+
+  return (
+    <NavigationContainer>
+      <RootStackNavigator />
+    </NavigationContainer>
+  );
+}
 
 export default function App() {
   return (
@@ -19,9 +36,11 @@ export default function App() {
         <SafeAreaProvider>
           <GestureHandlerRootView style={styles.root}>
             <KeyboardProvider>
-              <NavigationContainer>
-                <RootStackNavigator />
-              </NavigationContainer>
+              <AuthProvider>
+                <AuthRootGuard>
+                  <AppContent />
+                </AuthRootGuard>
+              </AuthProvider>
               <StatusBar style="auto" />
             </KeyboardProvider>
           </GestureHandlerRootView>

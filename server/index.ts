@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -7,6 +8,13 @@ import * as path from "path";
 const app = express();
 const log = console.log;
 
+// Verify API key is loaded
+if (!process.env.OPENROUTER_API_KEY) {
+  console.warn(
+    "[WARNING] OPENROUTER_API_KEY not set. Transcription will fail. Check .env file."
+  );
+}
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -15,18 +23,6 @@ declare module "http" {
 
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
-    const origins = new Set<string>();
-
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-    }
-
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        origins.add(`https://${d.trim()}`);
-      });
-    }
-
     const origin = req.header("origin");
 
     // Allow localhost origins for Expo web development (any port)
@@ -34,7 +30,12 @@ function setupCors(app: express.Application) {
       origin?.startsWith("http://localhost:") ||
       origin?.startsWith("http://127.0.0.1:");
 
-    if (origin && (origins.has(origin) || isLocalhost)) {
+    // Allow requests from any local network IP for React Native/Expo development
+    const isLocalNetwork = origin?.startsWith("http://10.") ||
+      origin?.startsWith("http://172.") ||
+      origin?.startsWith("http://192.");
+
+    if (origin && (isLocalhost || isLocalNetwork)) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header(
         "Access-Control-Allow-Methods",
@@ -55,13 +56,14 @@ function setupCors(app: express.Application) {
 function setupBodyParsing(app: express.Application) {
   app.use(
     express.json({
+      limit: "50mb",
       verify: (req, _res, buf) => {
         req.rawBody = buf;
       },
     }),
   );
 
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 }
 
 function setupRequestLogging(app: express.Application) {
@@ -230,21 +232,15 @@ function setupErrorHandler(app: express.Application) {
   setupBodyParsing(app);
   setupRequestLogging(app);
 
-  configureExpoAndLanding(app);
-
+  // Register API routes BEFORE static middleware to avoid conflicts
   const server = await registerRoutes(app);
+
+  configureExpoAndLanding(app);
 
   setupErrorHandler(app);
 
-  const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`express server serving on port ${port}`);
-    },
-  );
+  const port = parseInt(process.env.PORT || "3000", 10);
+  server.listen(port, "0.0.0.0", () => {
+    log(`express server serving on port ${port}`);
+  });
 })();

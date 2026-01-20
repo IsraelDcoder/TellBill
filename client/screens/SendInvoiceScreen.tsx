@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { GlassCard } from "@/components/GlassCard";
+import { SendInvoiceModal } from "@/components/SendInvoiceModal";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -40,6 +41,7 @@ export default function SendInvoiceScreen() {
   const [includePaymentLink, setIncludePaymentLink] = useState(true);
   const [enableReminders, setEnableReminders] = useState(true);
   const [reminderSchedule, setReminderSchedule] = useState("3days");
+  const [showSendModal, setShowSendModal] = useState(false);
 
   if (!invoice) {
     return (
@@ -80,6 +82,10 @@ export default function SendInvoiceScreen() {
 
   const handleSend = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setShowSendModal(true);
+  };
+
+  const handleSendSuccess = () => {
     updateInvoice(invoice.id, {
       status: "sent",
       sentAt: new Date().toISOString(),
@@ -89,6 +95,16 @@ export default function SendInvoiceScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <SendInvoiceModal
+        visible={showSendModal}
+        method={sendMethod}
+        invoiceId={invoice.id}
+        clientName={invoice.clientName}
+        invoiceNumber={invoice.invoiceNumber}
+        total={invoice.total}
+        onClose={() => setShowSendModal(false)}
+        onSuccess={handleSendSuccess}
+      />
       <ScrollView
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.lg,

@@ -31,11 +31,23 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
 *.tsbuildinfo
 
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.idea/
+
+# Build output
+server_dist/
+static-build/
 app-example
 
 # generated native folders

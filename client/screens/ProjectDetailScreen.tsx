@@ -60,6 +60,27 @@ export default function ProjectDetailScreen() {
 
   const status = statusConfig[project.status];
 
+  if (!status) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.backgroundRoot,
+            paddingTop: headerHeight + Spacing.xl,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ThemedText type="h3">Invalid project status</ThemedText>
+        <Button onPress={() => navigation.goBack()} style={{ marginTop: Spacing.lg }}>
+          Go Back
+        </Button>
+      </View>
+    );
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

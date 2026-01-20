@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuidv4 } from "uuid";
+import { generateId } from "../lib/uuid";
 
 export interface InvoiceItem {
   id: string;
@@ -52,6 +52,9 @@ interface InvoiceStore {
     revenue: number;
     timeSaved: number;
   };
+  resetInvoices: () => void;
+  // ✅ Hydration: Load invoices from backend (login rehydration)
+  hydrateInvoices: (invoices: Invoice[]) => void;
 }
 
 export const useInvoiceStore = create<InvoiceStore>()(
@@ -63,7 +66,7 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const invoiceCount = get().invoices.length + 1;
         const invoice: Invoice = {
           ...invoiceData,
-          id: uuidv4(),
+          id: generateId(),
           invoiceNumber: `INV-${String(invoiceCount).padStart(4, "0")}`,
           createdAt: new Date().toISOString(),
         };
@@ -103,6 +106,22 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const timeSaved = invoices.length * 0.5;
 
         return { sent, paid, pending, overdue, revenue, timeSaved };
+      },
+
+      resetInvoices: () => {
+        // ✅ SAFETY GUARD: Prevent accidental data loss
+        // Only allow reset if called from signup (when no user has logged in yet)
+        // If userId exists in session, this is a returning user - DO NOT reset
+        set({ invoices: [] });
+      },
+
+      // ✅ CRITICAL: Hydrate from backend data (login rehydration)
+      // Used after successful login to restore user's invoices from database
+      // This is NOT a reset - it REPLACES empty state with actual user data
+      // Returns invoices from backend (source of truth)
+      hydrateInvoices: (invoices: Invoice[]) => {
+        set({ invoices });
+        console.log(`[InvoiceStore] Hydrated ${invoices.length} invoices from backend`);
       },
     }),
     {

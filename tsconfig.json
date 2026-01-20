@@ -1,14 +1,47 @@
 {
-  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
     "paths": {
-      "@/*": ["./client/*"],
-      "@shared/*": ["./shared/*"]
+      "@/*": [
+        "./client/*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ]
     },
-    "types": ["node"]
+    "types": [
+      "node",
+      "better-sqlite3"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "include": [
+    "client/**/*",
+    "server/**/*",
+    "shared/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    ".expo"
+  ],
+  "extends": "expo/tsconfig.base"
 }

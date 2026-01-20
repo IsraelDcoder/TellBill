@@ -4,6 +4,8 @@ import {
   View,
   Pressable,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -23,9 +25,14 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { PLAN_LIMITS } from "@/constants/planLimits";
+import { audioRecorderService, RecordingStatus } from "@/services/audioRecorderService";
+import { transcriptionService } from "@/services/transcriptionService";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -36,15 +43,62 @@ export default function VoiceRecordingScreen() {
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
+  const { currentPlan, voiceRecordingsUsed, incrementVoiceRecordings } = useSubscriptionStore();
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>({
+    isInitialized: false,
+    isRecording: false,
+    hasMicPermission: false,
+    error: null,
+  });
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const pulseScale = useSharedValue(1);
   const pulseOpacity = useSharedValue(0.5);
   const buttonScale = useSharedValue(1);
+
+  // Check if user has reached recording limit
+  const recordingLimit = PLAN_LIMITS[currentPlan].voiceRecordings;
+  const hasReachedLimit = voiceRecordingsUsed >= recordingLimit;
+
+  // Initialize audio system on component mount
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+
+    const initializeAudio = async () => {
+      try {
+        console.log("[VoiceRecording] Initializing audio service...");
+        await audioRecorderService.initialize();
+        console.log("[VoiceRecording] Audio service initialized successfully");
+        
+        // Subscribe to status changes
+        unsubscribe = audioRecorderService.onStatusChange((status) => {
+          console.log("[VoiceRecording] Audio status updated:", status);
+          setRecordingStatus(status);
+        });
+      } catch (error) {
+        console.error("[VoiceRecording] Failed to initialize audio:", error);
+        setRecordingStatus((prev) => ({
+          ...prev,
+          error: "Failed to initialize audio. Please restart the app.",
+        }));
+      }
+    };
+
+    initializeAudio();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      if (timerRef.current) clearInterval(timerRef.current);
+      audioRecorderService.cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     if (isRecording) {
@@ -87,30 +141,131 @@ export default function VoiceRecordingScreen() {
   };
 
   const handleRecordPress = async () => {
+    console.log("[AudioRecorder] Start button pressed");
+    console.log("[AudioRecorder] Current recording status:", recordingStatus);
+    
+    // Check recording status before allowing recording
+    if (!isRecording) {
+      // Check if audio system is initialized
+      if (!recordingStatus.isInitialized) {
+        console.log("[AudioRecorder] Audio not initialized, attempting initialization...");
+        try {
+          // Try to initialize again
+          await audioRecorderService.initialize();
+          const status = audioRecorderService.getStatus();
+          console.log("[AudioRecorder] Retry initialization status:", status);
+          setRecordingStatus(status);
+          
+          if (!status.isInitialized) {
+            Alert.alert(
+              "Initialization Failed",
+              "Could not initialize audio system. " + (status.error || "Unknown error")
+            );
+            return;
+          }
+        } catch (error) {
+          console.error("[AudioRecorder] Initialization retry failed:", error);
+          Alert.alert(
+            "Initialization Error",
+            error instanceof Error ? error.message : "Failed to initialize audio"
+          );
+          return;
+        }
+      }
+
+      // Check for microphone errors
+      if (recordingStatus.error) {
+        console.log("[AudioRecorder] Recording status has error:", recordingStatus.error);
+        if (recordingStatus.error.includes("permission")) {
+          Alert.alert(
+            "Microphone Access Required",
+            "TellBill needs microphone access to record your voice notes. Please enable it in your device settings.",
+            [{ text: "OK" }]
+          );
+        } else {
+          Alert.alert(
+            "Microphone Error",
+            recordingStatus.error,
+            [{ text: "Try Again" }]
+          );
+        }
+        return;
+      }
+
+      // Check if user has reached recording limit
+      if (hasReachedLimit) {
+        setShowUpgradeModal(true);
+        return;
+      }
+    }
+
     if (Platform.OS !== "web") {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
 
     if (isRecording) {
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+      // Stop recording
+      try {
+        setIsProcessing(true);
+        setIsRecording(false);
+        
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+
+        const recordingSession = await audioRecorderService.stopRecording();
+        
+        if (!recordingSession || !recordingSession.uri) {
+          Alert.alert("Recording Error", "Failed to save recording");
+          setIsProcessing(false);
+          return;
+        }
+
+        setAudioUri(recordingSession.uri);
+
+        // Transcribe audio
+        console.log("[VoiceRecording] Starting transcription...");
+        const result = await transcriptionService.transcribeAudio(
+          recordingSession.uri,
+          recordingSession.duration
+        );
+
+        setTranscript(result.text);
+        incrementVoiceRecordings();
+        
+        setIsProcessing(false);
+      } catch (error) {
+        setIsProcessing(false);
+        Alert.alert(
+          "Transcription Error",
+          error instanceof Error ? error.message : "Failed to transcribe audio"
+        );
+        console.error("Transcription error:", error);
       }
-      const sampleTranscript = `Client: ABC Construction
-Job Address: 1234 Main Street, Building A
-Materials: 50 bags of cement at $12 each, 100 rebar pieces at $8 each, 20 sheets of plywood at $45 each
-Labor: 8 hours of skilled labor
-Safety Notes: Hard hats required, scaffolding inspected
-Payment Terms: Net 30`;
-      setTranscript(sampleTranscript);
     } else {
-      setIsRecording(true);
-      setRecordingTime(0);
-      setTranscript("");
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+      // Start recording
+      try {
+        console.log("[AudioRecorder] Attempting to start recording...");
+        setIsRecording(true);
+        setRecordingTime(0);
+        setTranscript("");
+        setAudioUri(null);
+
+        await audioRecorderService.startRecording();
+        console.log("[AudioRecorder] Recording successfully started");
+
+        timerRef.current = setInterval(() => {
+          setRecordingTime((prev) => prev + 1);
+        }, 1000);
+      } catch (error) {
+        console.error("[AudioRecorder] Failed to start recording:", error);
+        setIsRecording(false);
+        Alert.alert(
+          "Recording Error",
+          error instanceof Error ? error.message : "Failed to start recording"
+        );
+      }
     }
   };
 
@@ -123,7 +278,11 @@ Payment Terms: Net 30`;
   };
 
   const handleContinue = () => {
-    navigation.navigate("TranscriptReview", { transcript });
+    navigation.navigate("TranscriptReview", { 
+      transcript,
+      audioUri,
+      recordingDuration: recordingTime,
+    });
   };
 
   return (
@@ -141,12 +300,25 @@ Payment Terms: Net 30`;
         <View style={styles.webNotice}>
           <Feather name="info" size={20} color={BrandColors.constructionGold} />
           <ThemedText type="body" style={styles.webNoticeText}>
-            Audio recording works best in the mobile app. Tap the record button to simulate.
+            Audio recording is only available on mobile devices.
           </ThemedText>
         </View>
       ) : null}
 
       <View style={styles.recordSection}>
+        {isProcessing && (
+          <View style={styles.processingOverlay}>
+            <ActivityIndicator 
+              size="large" 
+              color={BrandColors.constructionGold}
+              style={styles.spinner}
+            />
+            <ThemedText type="body" style={styles.processingText}>
+              Transcribing your voice...
+            </ThemedText>
+          </View>
+        )}
+
         <View style={styles.recordButtonContainer}>
           <Animated.View
             style={[
@@ -159,12 +331,16 @@ Payment Terms: Net 30`;
             onPress={handleRecordPress}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
+            disabled={isProcessing || recordingStatus.error !== null}
             style={[
               styles.recordButton,
               {
-                backgroundColor: isRecording
+                backgroundColor: recordingStatus.error
+                  ? theme.surfaceTertiary
+                  : isRecording
                   ? theme.error
                   : BrandColors.constructionGold,
+                opacity: isProcessing || recordingStatus.error ? 0.5 : 1,
               },
               Shadows.fab,
               buttonAnimatedStyle,
@@ -173,12 +349,32 @@ Payment Terms: Net 30`;
             <Feather
               name={isRecording ? "square" : "mic"}
               size={40}
-              color={isRecording ? "#fff" : BrandColors.slateGrey}
+              color={recordingStatus.error ? theme.textTertiary : isRecording ? "#fff" : BrandColors.slateGrey}
             />
           </AnimatedPressable>
+          {recordingStatus.error && (
+            <View style={styles.errorIndicator}>
+              <Feather name="alert-circle" size={16} color={theme.error} />
+              <ThemedText 
+                type="caption" 
+                style={[styles.errorText, { color: theme.error }]}
+              >
+                Mic Error
+              </ThemedText>
+            </View>
+          )}
         </View>
 
-        <ThemedText type="h2" style={styles.timerText}>
+        <ThemedText 
+          type="h2" 
+          style={[
+            styles.timerText,
+            {
+              color: isRecording ? theme.error : theme.textPrimary,
+              fontWeight: isRecording ? "bold" : "600",
+            }
+          ]}
+        >
           {formatTime(recordingTime)}
         </ThemedText>
 
@@ -186,8 +382,10 @@ Payment Terms: Net 30`;
           type="body"
           style={[styles.instruction, { color: theme.textSecondary }]}
         >
-          {isRecording
-            ? "Recording... Describe the job details"
+          {isProcessing
+            ? "Processing your recording..."
+            : isRecording
+            ? "🎤 Recording... Describe the job details"
             : "Tap to start recording"}
         </ThemedText>
       </View>
@@ -200,7 +398,7 @@ Payment Terms: Net 30`;
               size={18}
               color={BrandColors.constructionGold}
             />
-            <ThemedText type="h4">Live Transcript</ThemedText>
+            <ThemedText type="h4">Transcript</ThemedText>
           </View>
           <View
             style={[
@@ -217,11 +415,21 @@ Payment Terms: Net 30`;
             </ThemedText>
           </View>
 
-          <Button onPress={handleContinue} style={styles.continueButton}>
+          <Button 
+            onPress={handleContinue} 
+            style={styles.continueButton}
+            disabled={isProcessing}
+          >
             Review & Edit
           </Button>
         </View>
       ) : null}
+
+      <UpgradeRequiredModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        type="voice"
+      />
     </View>
   );
 }
@@ -248,12 +456,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  processingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  spinner: {
+    marginBottom: Spacing.lg,
+  },
+  processingText: {
+    marginTop: Spacing.md,
+  },
   recordButtonContainer: {
     width: 140,
     height: 140,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing["2xl"],
+    position: "relative",
   },
   pulse: {
     position: "absolute",
@@ -267,6 +492,16 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
+  },
+  errorIndicator: {
+    position: "absolute",
+    bottom: -35,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  errorText: {
+    fontWeight: "600",
   },
   timerText: {
     marginBottom: Spacing.md,

@@ -8,11 +8,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface SettingItemProps {
   icon: keyof typeof Feather.glyphMap;
@@ -82,6 +87,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
 
   const [notifications, setNotifications] = useState(true);
   const [haptics, setHaptics] = useState(true);
@@ -109,11 +115,11 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          <SettingItem icon="user" label="Edit Profile" onPress={() => {}} />
+          <SettingItem icon="user" label="Edit Profile" onPress={() => navigation.navigate("EditProfile")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="briefcase" label="Company Info" onPress={() => {}} />
+          <SettingItem icon="briefcase" label="Company Info" onPress={() => navigation.navigate("CompanyInfo")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="lock" label="Change Password" onPress={() => {}} />
+          <SettingItem icon="lock" label="Change Password" onPress={() => navigation.navigate("ChangePassword")} />
         </View>
       </View>
 
@@ -169,11 +175,11 @@ export default function SettingsScreen() {
             onToggle={setHaptics}
           />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="dollar-sign" label="Currency" value="USD" onPress={() => {}} />
+          <SettingItem icon="dollar-sign" label="Currency" value="USD" onPress={() => navigation.navigate("Currency")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="percent" label="Default Tax Rate" value="8%" onPress={() => {}} />
+          <SettingItem icon="percent" label="Default Tax Rate" value="8%" onPress={() => navigation.navigate("TaxRate")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="file-text" label="Invoice Template" value="Professional" onPress={() => {}} />
+          <SettingItem icon="file-text" label="Invoice Template" value="Professional" onPress={() => navigation.navigate("InvoiceTemplate")} />
         </View>
       </View>
 
@@ -190,9 +196,9 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          <SettingItem icon="help-circle" label="Help Center" onPress={() => {}} />
+          <SettingItem icon="help-circle" label="Help Center" onPress={() => navigation.navigate("HelpSupport")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="message-circle" label="Contact Support" onPress={() => {}} />
+          <SettingItem icon="message-circle" label="Contact Support" onPress={() => navigation.navigate("HelpSupport")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
           <SettingItem icon="star" label="Rate TellBill" onPress={() => {}} />
         </View>
@@ -211,9 +217,9 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          <SettingItem icon="file" label="Terms of Service" onPress={() => {}} />
+          <SettingItem icon="file" label="Terms of Service" onPress={() => navigation.navigate("TermsOfService")} />
           <View style={[styles.divider, { backgroundColor: theme.border }]} />
-          <SettingItem icon="shield" label="Privacy Policy" onPress={() => {}} />
+          <SettingItem icon="shield" label="Privacy Policy" onPress={() => navigation.navigate("PrivacyPolicy")} />
         </View>
       </View>
 
