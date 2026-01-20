@@ -1,0 +1,13 @@
+DATABASE_URL=file:bill-splitter.db
+OPENROUTER_API_KEY=sk-or-
+EXPO_PUBLIC_FLUTTERWAVE_PUBLIC_KEY=your_key
+FLUTTERWAVE_SECRET_KEY=your_secret
+EXPO_PUBLIC_BACKEND_IP=10.64.118.139
+
+# Email Service (Resend)
+RESEND_API_KEY=re_fvA7RLAM_HwQ8UUivGLcEcVqcqCX6rm2q
+RESEND_FROM_EMAIL=noreply@tellbill.com
+
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_web_client_id_here
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your_ios_client_id_here
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your_android_client_id_here
