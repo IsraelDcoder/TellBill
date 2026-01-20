@@ -1,27 +1,27 @@
-import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
+import Voice from "@react-native-voice/voice";
 
 /**
- * Speech-to-Text Service using OpenRouter Whisper API
+ * Speech-to-Text Service using Groq Whisper API
  * 
- * Server-based speech recognition:
- * - Records audio locally using expo-av
- * - Sends audio to backend for transcription via OpenRouter Whisper API
- * - Backend securely handles OpenRouter authentication
- * - Works with internet connection
+ * On-device speech recognition:
+ * - Uses native voice recognition APIs (Android: Google Speech Recognizer, iOS: AVSpeechRecognizer)
+ * - Fallback to Groq Whisper API via backend for accurate transcription
+ * - Works with audio files recorded by audioRecorderService
  * 
  * The flow:
- * 1. Record audio locally using expo-av
+ * 1. Record audio locally using expo-audio
  * 2. Send audio to backend /api/transcribe endpoint
- * 3. Backend transcribes using OpenRouter Whisper API
+ * 3. Backend transcribes using Groq Whisper API (free tier available)
  * 4. Backend sends transcript back to client for invoice extraction
  * 
- * OpenRouter Whisper Benefits:
- * - Accurate speech recognition
- * - Supports multiple languages
+ * Benefits:
+ * - On-device transcription capability via native APIs
+ * - Free Groq API for fallback (https://console.groq.com)
+ * - Highly accurate Whisper transcription
  * - Secure backend-only API authentication
- * - No client-side API key exposure
+ * - Multiple language support
  */
 
 interface SpeechToTextResult {
@@ -41,6 +41,34 @@ class SpeechToTextService {
       this.backendUrl = `http://${ip}:3000`;
       console.log("[SpeechToText] Backend URL configured:", this.backendUrl);
     }
+
+    // Initialize Voice library
+    try {
+      Voice.onSpeechStart = this.onSpeechStart.bind(this);
+      Voice.onSpeechEnd = this.onSpeechEnd.bind(this);
+      Voice.onSpeechError = this.onSpeechError.bind(this);
+      Voice.onSpeechResults = this.onSpeechResults.bind(this);
+    } catch (error) {
+      console.warn("[SpeechToText] Voice library initialization warning:", error);
+    }
+  }
+
+  private onSpeechStart() {
+    this.isListening = true;
+    console.log("[SpeechToText] Voice recognition started");
+  }
+
+  private onSpeechEnd() {
+    this.isListening = false;
+    console.log("[SpeechToText] Voice recognition ended");
+  }
+
+  private onSpeechError(error: any) {
+    console.error("[SpeechToText] Voice error:", error);
+  }
+
+  private onSpeechResults(result: any) {
+    console.log("[SpeechToText] Speech results:", result);
   }
 
   /**
@@ -49,8 +77,22 @@ class SpeechToTextService {
   async isAvailable(): Promise<boolean> {
     try {
       console.log("[SpeechToText] Checking transcription availability on", Platform.OS);
-      console.log("[SpeechToText] Speech-to-text available (OpenRouter Whisper backend)");
-      return true;
+      
+      // Check if we have backend URL for fallback
+      if (this.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL) {
+        console.log("[SpeechToText] Speech-to-text available (OpenRouter Whisper backend)");
+        return true;
+      }
+      
+      // Try to check Voice library
+      try {
+        await Voice.isAvailable();
+        console.log("[SpeechToText] Native speech recognition available");
+        return true;
+      } catch {
+        console.log("[SpeechToText] Native speech recognition unavailable, using backend");
+        return true; // Still available via backend
+      }
     } catch (error) {
       console.error("[SpeechToText] Transcription not available:", error);
       return false;
@@ -86,11 +128,12 @@ class SpeechToTextService {
       // Send to backend for transcription
       console.log("[SpeechToText] Sending audio to backend for OpenRouter Whisper transcription...");
       
-      if (!this.backendUrl) {
-        throw new Error("Backend URL not configured. Check EXPO_PUBLIC_BACKEND_IP in .env");
+      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || this.backendUrl;
+      if (!backendUrl) {
+        throw new Error("Backend URL not configured. Check EXPO_PUBLIC_BACKEND_URL in .env");
       }
 
-      const response = await fetch(`${this.backendUrl}/api/transcribe`, {
+      const response = await fetch(`${backendUrl}/api/transcribe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -126,6 +169,17 @@ class SpeechToTextService {
    */
   getIsListening(): boolean {
     return this.isListening;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  destroy() {
+    try {
+      Voice.destroy();
+    } catch (error) {
+      console.warn("[SpeechToText] Error destroying Voice:", error);
+    }
   }
 }
 

@@ -23,6 +23,11 @@ import { useInvoiceStore } from "@/stores/invoiceStore";
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoiceDetail">;
 
+// ✅ RULE 2: SAFE HELPERS (MANDATORY)
+const safeText = (value?: string | null): string => value ?? '';
+const safeArray = <T,>(value?: T[] | null): T[] => value ?? [];
+const safeNumber = (value?: number | null): number => value ?? 0;
+
 const statusConfig = {
   draft: { color: "#6B7280", icon: "edit-3" as const, label: "Draft" },
   sent: { color: "#3B82F6", icon: "send" as const, label: "Sent" },
@@ -214,12 +219,12 @@ export default function InvoiceDetailScreen() {
               },
             ]}
           >
-            {invoice.items.map((item, index) => (
+            {safeArray(invoice.items).map((item, index) => (
               <View
                 key={item.id}
                 style={[
                   styles.itemRow,
-                  index < invoice.items.length - 1 && {
+                  index < safeArray(invoice.items).length - 1 && {
                     borderBottomWidth: 1,
                     borderBottomColor: theme.border,
                   },

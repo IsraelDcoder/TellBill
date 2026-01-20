@@ -25,6 +25,11 @@ import { useInvoiceStore } from "@/stores/invoiceStore";
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoicePreview">;
 
+// ✅ RULE 2: SAFE HELPERS (MANDATORY)
+const safeText = (value?: string | null): string => value ?? '';
+const safeArray = <T,>(value?: T[] | null): T[] => value ?? [];
+const safeNumber = (value?: number | null): number => value ?? 0;
+
 export default function InvoicePreviewScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -177,11 +182,11 @@ export default function InvoicePreviewScreen() {
             </div>
 
             ${
-              invoice.safetyNotes && invoice.safetyNotes.length > 0
+              safeText(invoice.safetyNotes)
                 ? `
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                 <h3 style="margin-top: 0; font-size: 12px;">SAFETY NOTES</h3>
-                <p style="font-size: 12px; color: #6B7280;">${invoice.safetyNotes}</p>
+                <p style="font-size: 12px; color: #6B7280;">${safeText(invoice.safetyNotes)}</p>
               </div>
             `
                 : ""
@@ -391,7 +396,7 @@ export default function InvoicePreviewScreen() {
             </View>
           </View>
 
-          {invoice.safetyNotes.length > 0 ? (
+          {safeText(invoice.safetyNotes) ? (
             <View style={styles.pdfNotes}>
               <ThemedText
                 type="small"
@@ -400,7 +405,7 @@ export default function InvoicePreviewScreen() {
                 SAFETY NOTES
               </ThemedText>
               <ThemedText type="small" style={{ color: "#374151" }}>
-                {invoice.safetyNotes}
+                {safeText(invoice.safetyNotes)}
               </ThemedText>
             </View>
           ) : null}

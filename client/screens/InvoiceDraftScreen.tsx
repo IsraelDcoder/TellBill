@@ -27,6 +27,11 @@ import { PLAN_LIMITS } from "@/constants/planLimits";
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoiceDraft">;
 
+// ✅ RULE 2: SAFE HELPERS (MANDATORY)
+const safeText = (value?: string | null): string => value ?? '';
+const safeArray = <T,>(value?: T[] | null): T[] => value ?? [];
+const safeNumber = (value?: number | null): number => value ?? 0;
+
 export default function InvoiceDraftScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -41,12 +46,12 @@ export default function InvoiceDraftScreen() {
   const invoiceLimit = PLAN_LIMITS[currentPlan].voiceRecordings;
   const hasReachedLimit = invoicesCreated >= invoiceLimit;
 
-  const invoiceData = route.params?.invoiceData || {
-    clientName: "Sample Client",
-    clientEmail: "client@example.com",
-    clientPhone: "(555) 000-0000",
-    clientAddress: "123 Sample St",
-    jobAddress: "123 Sample St",
+  const invoiceData = route.params?.invoiceData ?? {
+    clientName: "",
+    clientEmail: "",
+    clientPhone: "",
+    clientAddress: "",
+    jobAddress: "",
     items: [],
     laborHours: 0,
     laborRate: 0,
@@ -102,7 +107,7 @@ export default function InvoiceDraftScreen() {
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               INVOICE DRAFT
             </ThemedText>
-            <ThemedText type="h2">{invoiceData.clientName}</ThemedText>
+            <ThemedText type="h2">{safeText(invoiceData.clientName) || "Unnamed Client"}</ThemedText>
           </View>
           <View
             style={[
@@ -121,7 +126,7 @@ export default function InvoiceDraftScreen() {
         <View style={styles.addressRow}>
           <Feather name="map-pin" size={14} color={theme.textSecondary} />
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {invoiceData.jobAddress}
+            {safeText(invoiceData.jobAddress) || 'Address not provided'}
           </ThemedText>
         </View>
       </GlassCard>
@@ -140,25 +145,25 @@ export default function InvoiceDraftScreen() {
             },
           ]}
         >
-          {invoiceData.items.map((item: any, index: number) => (
+          {safeArray(invoiceData.items).map((item: any, index: number) => (
             <View
               key={item.id}
               style={[
                 styles.itemRow,
-                index < invoiceData.items.length - 1 && {
+                index < safeArray(invoiceData.items).length - 1 && {
                   borderBottomWidth: 1,
                   borderBottomColor: theme.border,
                 },
               ]}
             >
               <View style={styles.itemInfo}>
-                <ThemedText type="body">{item.description}</ThemedText>
+                <ThemedText type="body">{safeText(item.description)}</ThemedText>
                 <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  {item.quantity} x {formatCurrency(item.unitPrice)}
+                  {safeNumber(item.quantity)} x {formatCurrency(safeNumber(item.unitPrice))}
                 </ThemedText>
               </View>
               <ThemedText type="body" style={{ fontWeight: "600" }}>
-                {formatCurrency(item.total)}
+                {formatCurrency(safeNumber(item.total))}
               </ThemedText>
             </View>
           ))}
@@ -167,7 +172,7 @@ export default function InvoiceDraftScreen() {
               Materials Subtotal
             </ThemedText>
             <ThemedText type="body" style={{ fontWeight: "600" }}>
-              {formatCurrency(invoiceData.materialsTotal)}
+              {formatCurrency(safeNumber(invoiceData.materialsTotal))}
             </ThemedText>
           </View>
         </View>
@@ -191,12 +196,12 @@ export default function InvoiceDraftScreen() {
             <View style={styles.itemInfo}>
               <ThemedText type="body">Skilled Labor</ThemedText>
               <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                {invoiceData.laborHours} hours x{" "}
-                {formatCurrency(invoiceData.laborRate)}/hr
+                {safeNumber(invoiceData.laborHours)} hours x{" "}
+                {formatCurrency(safeNumber(invoiceData.laborRate))}/hr
               </ThemedText>
             </View>
             <ThemedText type="body" style={{ fontWeight: "600" }}>
-              {formatCurrency(invoiceData.laborTotal)}
+              {formatCurrency(safeNumber(invoiceData.laborTotal))}
             </ThemedText>
           </View>
         </View>
@@ -216,15 +221,15 @@ export default function InvoiceDraftScreen() {
           <View style={styles.totalRow}>
             <ThemedText type="body">Subtotal</ThemedText>
             <ThemedText type="body">
-              {formatCurrency(invoiceData.subtotal)}
+              {formatCurrency(safeNumber(invoiceData.subtotal))}
             </ThemedText>
           </View>
           <View style={styles.totalRow}>
             <ThemedText type="body">
-              Tax ({(invoiceData.taxRate * 100).toFixed(0)}%)
+              Tax ({(safeNumber(invoiceData.taxRate) * 100).toFixed(0)}%)
             </ThemedText>
             <ThemedText type="body">
-              {formatCurrency(invoiceData.taxAmount)}
+              {formatCurrency(safeNumber(invoiceData.taxAmount))}
             </ThemedText>
           </View>
           <View
@@ -239,13 +244,13 @@ export default function InvoiceDraftScreen() {
               type="h2"
               style={{ color: BrandColors.constructionGold }}
             >
-              {formatCurrency(invoiceData.total)}
+              {formatCurrency(safeNumber(invoiceData.total))}
             </ThemedText>
           </View>
         </View>
       </View>
 
-      {invoiceData.safetyNotes.length > 0 ? (
+      {safeText(invoiceData.safetyNotes) ? (
         <View style={styles.section}>
           <ThemedText type="h4" style={styles.sectionTitle}>
             Safety Notes
@@ -260,7 +265,7 @@ export default function InvoiceDraftScreen() {
               },
             ]}
           >
-            <ThemedText type="body">{invoiceData.safetyNotes}</ThemedText>
+            <ThemedText type="body">{safeText(invoiceData.safetyNotes)}</ThemedText>
           </View>
         </View>
       ) : null}
@@ -279,7 +284,7 @@ export default function InvoiceDraftScreen() {
             },
           ]}
         >
-          <ThemedText type="body">{invoiceData.paymentTerms}</ThemedText>
+          <ThemedText type="body">{safeText(invoiceData.paymentTerms)}</ThemedText>
         </View>
       </View>
 

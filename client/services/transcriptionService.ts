@@ -11,15 +11,16 @@ import { speechToTextService } from "./speechToTextService";
 // PROD_URL: Production backend URL (for deployed app)
 // ============================================================================
 
-const DEV_IP = "10.64.118.139"; // Your computer's IP address
+const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.64.118.139";
 const DEV_PORT = 3000; // Your backend port
 const PROD_URL = process.env.EXPO_PUBLIC_BACKEND_URL || null;
 
 // Determine which URL to use
 const getBackendUrl = (): string => {
   // Priority order:
-  // 1. Environment variable (for production/special cases)
-  // 2. Dev IP (for local testing)
+  // 1. Environment variable EXPO_PUBLIC_BACKEND_URL (production)
+  // 2. Environment variable EXPO_PUBLIC_BACKEND_IP (development with specific port)
+  // 3. Hardcoded DEV_IP (fallback for development)
   
   if (PROD_URL) {
     console.log("[Config] Using production backend URL:", PROD_URL);
@@ -28,7 +29,7 @@ const getBackendUrl = (): string => {
 
   const devUrl = `http://${DEV_IP}:${DEV_PORT}`;
   console.log("[Config] Using development backend:", devUrl);
-  console.log("[Config] Note: This requires backend running at http://${DEV_IP}:${DEV_PORT}");
+  console.log("[Config] IP from EXPO_PUBLIC_BACKEND_IP:", process.env.EXPO_PUBLIC_BACKEND_IP);
   return devUrl;
 };
 
@@ -110,8 +111,7 @@ class TranscriptionService {
   /**
    * Fallback: Transcribe via backend
    * This is used when on-device STT is not available
-   * Note: Backend route was removed, so this would need to be re-added if using fallback
-   * For now, we'll throw an error directing users to set up native STT
+   * Sends audio to backend which uses OpenRouter Whisper API for transcription
    */
   private async transcribeViaBackend(
     audioUri: string,
@@ -127,21 +127,47 @@ class TranscriptionService {
 
       console.log("[Transcription] Audio file loaded, size:", base64Audio.length);
 
-      // NOTE: The /api/transcribe endpoint has been removed per requirements
-      // To use backend transcription, you would need to:
-      // 1. Set up a different endpoint that handles audio→transcript
-      // 2. Or implement one of the native STT solutions:
-      //    - react-native-google-speech-recognition
-      //    - Google ML Kit (via @react-native-ml-kit packages)
-      //    - Porcupine or similar on-device engines
-      
-      throw new Error(
-        "Backend transcription endpoint removed. " +
-        "Please implement on-device STT:\n" +
-        "Option 1: npm install react-native-google-speech-recognition\n" +
-        "Option 2: Integrate Google ML Kit speech recognition\n" +
-        "Option 3: Implement native modules for iOS/Android"
-      );
+      // Get backend URL
+      const backendUrl = BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error(
+          "Backend URL not configured. " +
+          "Please set EXPO_PUBLIC_BACKEND_URL in .env or configure EXPO_PUBLIC_BACKEND_IP in .env"
+        );
+      }
+
+      // Send to backend for Groq Whisper transcription
+      console.log("[Transcription] Sending audio to backend for transcription...");
+      const response = await fetch(`${backendUrl}/api/transcribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audioData: base64Audio,
+          audioUri: audioUri,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        const errorMessage = errorData.details || errorData.error || response.statusText;
+        throw new Error(`Transcription service error: ${response.status} - ${errorMessage}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.transcript) {
+        throw new Error("No transcript received from backend");
+      }
+
+      console.log("[Transcription] Backend transcription successful");
+      return {
+        text: result.transcript,
+        duration,
+        language: result.language || "en-US",
+        confidence: result.confidence || 0.9,
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error("[Transcription] Backend transcription failed:", errorMsg);
@@ -150,20 +176,28 @@ class TranscriptionService {
   }
 
   /**
-   * Extract invoice data from transcript using backend OpenRouter API
-   * The backend securely handles OpenRouter API authentication
+   * Extract invoice data from transcript using Groq LLM via backend
+   * 
+   * PRODUCTION ONLY - NO MOCK DATA
+   * The backend securely handles Groq API authentication
    * ONLY the transcript text is sent to the backend (no audio)
+   * 
+   * Returns real extracted invoice data or throws error if extraction fails
    */
   async extractInvoiceData(transcript: string) {
     try {
+      if (!transcript || transcript.trim().length === 0) {
+        throw new Error("Transcript is empty");
+      }
+
       console.log("[Invoice Extraction] Starting extraction via backend", {
         transcriptLength: transcript.length,
-        backendUrl: BACKEND_URL
+        backendUrl: BACKEND_URL,
       });
 
       const extractUrl = `${BACKEND_URL}/api/extract-invoice`;
       console.log("[Invoice Extraction] Calling backend endpoint:", extractUrl);
-      
+
       const response = await fetch(extractUrl, {
         method: "POST",
         headers: {
@@ -187,9 +221,9 @@ class TranscriptionService {
 
       const invoiceData = await response.json();
 
-      console.log("[Invoice Extraction] Success", {
-        clientName: invoiceData.clientName,
-        total: invoiceData.total,
+      console.log("[Invoice Extraction] ✅ Success", {
+        client_name: invoiceData.client_name,
+        subtotal: invoiceData.subtotal,
       });
 
       return invoiceData;
