@@ -14,6 +14,8 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string;
   invoiceNumber: string;
+  userId?: string; // ✅ Track which user created invoice
+  createdBy?: string; // Name of user who created it
   clientName: string;
   clientEmail: string;
   clientPhone: string;

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "../lib/uuid";
+import { useProjectEventStore } from "./projectEventStore";
 
 export interface Project {
   id: string;
@@ -50,6 +51,10 @@ export const useProjectStore = create<ProjectStore>()(
       },
 
       deleteProject: (id) => {
+        // ✅ CASCADE DELETE: Remove all events associated with this project
+        const eventStore = useProjectEventStore.getState();
+        eventStore.deleteProjectEvents(id);
+        
         set((state) => ({
           projects: state.projects.filter((proj) => proj.id !== id),
         }));

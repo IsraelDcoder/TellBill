@@ -89,7 +89,7 @@ export function registerProjectRoutes(app: Express) {
    */
   app.get("/api/projects/:userId", async (req: Request, res: Response) => {
     try {
-      const { userId } = req.params;
+      const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
 
       if (!userId) {
         return res.status(400).json({
@@ -123,7 +123,7 @@ export function registerProjectRoutes(app: Express) {
    */
   app.put("/api/projects/:projectId", async (req: Request, res: Response) => {
     try {
-      const { projectId } = req.params;
+      const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
       const { userId, ...updates } = req.body as UpdateProjectRequest & { userId: string };
 
       if (!projectId || !userId) {
@@ -181,8 +181,8 @@ export function registerProjectRoutes(app: Express) {
    */
   app.delete("/api/projects/:projectId", async (req: Request, res: Response) => {
     try {
-      const { projectId } = req.params;
-      const { userId } = req.query as { userId: string };
+      const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
+      const userId = Array.isArray(req.query.userId as string[]) ? (req.query.userId as string[])[0] : (req.query.userId as string);
 
       if (!projectId || !userId) {
         return res.status(400).json({

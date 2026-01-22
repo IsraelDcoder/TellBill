@@ -316,7 +316,7 @@ export default function TranscriptReviewScreen() {
         });
       };
 
-      // ✅ USE EXTRACTED MATERIALS IF NOT EDITED (preserve AI precision)
+      
       let items: any[];
       if (!materialsEdited && safeArray(extractedData?.materials).length > 0) {
         items = safeArray(extractedData?.materials).map((m: any, idx: number) => {

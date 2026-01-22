@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { ReceiptProcessingService } from "@/services/receiptProcessingService";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -27,15 +28,14 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { audioRecorderService } from "@/services/audioRecorderService";
 import { transcriptionService } from "@/services/transcriptionService";
 import { offlineReceiptService } from "@/services/offlineReceiptService";
-import { ShareProgressButton } from "@/components/ShareProgressButton";
-import { ShareProgressModal } from "@/components/ShareProgressModal";
+import { useProjectEventStore } from "@/stores/projectEventStore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "ProjectHub">;
 
 interface ProjectEvent {
   eventId: string;
-  eventType: "LABOR" | "MATERIAL" | "PROGRESS" | "ALERT";
+  eventType: "LABOR" | "MATERIAL" | "PROGRESS" | "ALERT" | "RECEIPT";
   timestamp: Date;
   data: {
     description?: string;
@@ -69,6 +69,11 @@ const eventTypeConfig = {
     color: "#FF8C00",
     icon: "alert-triangle",
     bgColor: "#FF8C0015",
+  },
+  RECEIPT: {
+    color: "#9B59B6",
+    icon: "receipt",
+    bgColor: "#9B59B615",
   },
 };
 
@@ -116,12 +121,12 @@ function ActivityCard({ event, index }: ActivityCardProps) {
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
           <View style={styles.titleRow}>
-            <Feather name={config.icon} size={16} color={config.color} />
+            <Feather name={config.icon as any} size={16} color={config.color} />
             <ThemedText type="h4" style={[styles.cardTitle, { marginLeft: Spacing.sm }]}>
               {title}
             </ThemedText>
           </View>
-          <ThemedText type="caption" style={styles.cardSubtitle}>
+            <ThemedText type="small" style={styles.cardSubtitle}>
             {subtitle}
           </ThemedText>
         </View>
@@ -134,7 +139,7 @@ function ActivityCard({ event, index }: ActivityCardProps) {
           </ThemedText>
         )}
       </View>
-      <ThemedText type="caption" style={styles.cardTime}>
+      <ThemedText type="small" style={styles.cardTime}>
         {event.timestamp.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -151,15 +156,22 @@ export default function ProjectHubScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
 
+  const { getProjectEvents, addEvents } = useProjectEventStore();
   const [events, setEvents] = useState<ProjectEvent[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isShareModalVisible, setIsShareModalVisible] = useState(false);
   const [showReceiptCamera, setShowReceiptCamera] = useState(false);
   const [syncingPendingReceipts, setSyncingPendingReceipts] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const queryClient = useQueryClient();
   const { hasAccess: canUseReceiptScanner } = useReceiptScannerAccess();
+
+  // Load project events on mount
+  useEffect(() => {
+    const loadedEvents = getProjectEvents(route.params.projectId);
+    setEvents(loadedEvents as ProjectEvent[]);
+    console.log(`[ProjectHub] Loaded ${loadedEvents.length} events for project ${route.params.projectId}`);
+  }, [route.params.projectId, getProjectEvents]);
 
   // Initialize audio on component mount
   useEffect(() => {
@@ -188,7 +200,7 @@ export default function ProjectHubScreen() {
   const projectName = safeText(route.params?.projectName) || "Pinecrest Kitchen Remodel";
   const projectId = safeText(route.params?.projectId);
 
-  // Setup header with share and camera buttons
+  // Setup header with camera button
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -201,10 +213,6 @@ export default function ProjectHubScreen() {
               <Feather name="camera" size={24} color="white" />
             </Pressable>
           )}
-          <ShareProgressButton
-            onPress={() => setIsShareModalVisible(true)}
-            color="white"
-          />
         </View>
       ),
     });
@@ -225,19 +233,30 @@ export default function ProjectHubScreen() {
       console.log("[ProjectHub] Device online, syncing pending receipts...");
 
       const processFn = async (receipt: any) => {
-        // Import receiptProcessingService to create activities
-        const { receiptProcessingService } = await import(
-          "@/services/receiptProcessingService"
-        );
-        await receiptProcessingService.createActivityFromReceipt(
+        // Upload and process receipt on backend
+        const uploadResult = await ReceiptProcessingService.uploadReceipt(
           projectId,
-          receipt.vendor,
-          receipt.date,
-          receipt.items,
-          receipt.grandTotal,
-          receipt.photoUri,
           receipt.photoBase64
         );
+
+        if (uploadResult.success && uploadResult.receiptId) {
+          const createResult = await ReceiptProcessingService.createActivityFromReceipt(
+            projectId,
+            uploadResult.receiptId,
+            {
+              vendor: receipt.vendor,
+              date: receipt.date,
+              items: receipt.items,
+              grand_total: receipt.grandTotal,
+            }
+          );
+
+          if (!createResult.success) {
+            throw new Error(createResult.error || "Failed to create activity");
+          }
+        } else {
+          throw new Error(uploadResult.error || "Failed to upload receipt");
+        }
       };
 
       const result = await offlineReceiptService.processPendingReceipts(processFn);
@@ -285,7 +304,7 @@ export default function ProjectHubScreen() {
   const handleStartRecording = async () => {
     try {
       setIsRecording(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Light);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // Animate pulse
       Animated.loop(
@@ -363,7 +382,7 @@ export default function ProjectHubScreen() {
 
       // Material events
       if (invoiceData.materials && invoiceData.materials.length > 0) {
-        invoiceData.materials.forEach((material, index) => {
+        invoiceData.materials.forEach((material: any, index: number) => {
           newEvents.push({
             eventId: String(eventId++),
             eventType: "MATERIAL",
@@ -410,7 +429,16 @@ export default function ProjectHubScreen() {
         });
       }
 
-      setEvents((prev) => [...newEvents, ...prev]);
+      // ✅ Save events to store (persisted to AsyncStorage)
+      const persistedEvents = addEvents(
+        route.params.projectId,
+        newEvents.map((e) => ({
+          eventType: e.eventType as "LABOR" | "MATERIAL" | "PROGRESS" | "ALERT" | "RECEIPT",
+          timestamp: e.timestamp,
+          data: e.data,
+        }))
+      );
+      setEvents((prev) => [...persistedEvents, ...prev] as ProjectEvent[]);
       setIsProcessing(false);
 
       const itemCount = newEvents.length;
@@ -446,7 +474,7 @@ export default function ProjectHubScreen() {
           <ThemedText type="h3">{projectName}</ThemedText>
           <View style={styles.totalsRow}>
             <View>
-              <ThemedText type="caption" style={styles.totalLabel}>
+              <ThemedText type="small" style={styles.totalLabel}>
                 Live Invoice
               </ThemedText>
               <ThemedText
@@ -459,7 +487,7 @@ export default function ProjectHubScreen() {
             {alertCount > 0 && (
               <Pressable style={styles.alertBadge}>
                 <Feather name="alert-circle" size={16} color="white" />
-                <ThemedText type="caption" style={styles.alertText}>
+                <ThemedText type="small" style={styles.alertText}>
                   Alerts
                 </ThemedText>
                 <ThemedText type="h4" style={styles.alertCount}>{alertCount}</ThemedText>
@@ -471,7 +499,7 @@ export default function ProjectHubScreen() {
 
       {/* ACTIVITY STREAM LABEL */}
       <ThemedText
-        type="caption"
+        type="small"
         style={[styles.streamLabel, { marginTop: Spacing.lg, marginLeft: Spacing.lg }]}
       >
         Activity Stream
@@ -484,7 +512,7 @@ export default function ProjectHubScreen() {
           <ThemedText type="h4" style={{ marginTop: Spacing.md }}>
             No Activities Yet
           </ThemedText>
-          <ThemedText type="caption" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
+          <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: Spacing.sm }}>
             Tap the mic to record your first activity
           </ThemedText>
         </View>
@@ -508,7 +536,7 @@ export default function ProjectHubScreen() {
       {isProcessing && (
         <View style={styles.processingOverlay}>
           <ActivityIndicator size="large" color={BrandColors.constructionGold} />
-          <ThemedText type="caption" style={{ marginTop: Spacing.md, color: "white" }}>
+          <ThemedText type="small" style={{ marginTop: Spacing.md, color: "white" }}>
             Processing...
           </ThemedText>
         </View>
@@ -541,22 +569,11 @@ export default function ProjectHubScreen() {
       {isRecording && (
         <View style={styles.recordingLabel}>
           <View style={styles.recordingPulse} />
-          <ThemedText type="caption" style={{ color: "white" }}>
+          <ThemedText type="small" style={{ color: "white" }}>
             Recording...
           </ThemedText>
         </View>
       )}
-
-      {/* SHARE PROGRESS MODAL */}
-      <ShareProgressModal
-        isVisible={isShareModalVisible}
-        projectId={projectId}
-        projectName={projectName}
-        onClose={() => setIsShareModalVisible(false)}
-        onSuccess={() => {
-          Alert.alert("Success", "Project progress shared with your client!");
-        }}
-      />
 
       {/* RECEIPT CAMERA */}
       {canUseReceiptScanner && (
@@ -577,7 +594,7 @@ export default function ProjectHubScreen() {
           ]}
         >
           <ActivityIndicator size="small" color="white" />
-          <ThemedText type="caption" style={{ marginLeft: Spacing.md, color: "white" }}>
+          <ThemedText type="small" style={{ marginLeft: Spacing.md, color: "white" }}>
             Syncing offline receipts...
           </ThemedText>
         </View>

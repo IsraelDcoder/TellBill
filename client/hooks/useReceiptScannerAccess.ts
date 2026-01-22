@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 
 export const SUBSCRIPTION_TIERS = {
   FREE: "free",
@@ -19,9 +20,10 @@ interface FeatureAccess {
 
 export function useFeatureAccess(feature: string): FeatureAccess {
   const { user } = useAuth();
+  const { currentPlan } = useSubscriptionStore();
 
-  // Get subscription tier from user - default to "free"
-  const tier = (user?.subscription_tier || SUBSCRIPTION_TIERS.FREE) as SubscriptionTier;
+  // Get subscription tier from store - default to "free"
+  const tier = (currentPlan || SUBSCRIPTION_TIERS.FREE) as SubscriptionTier;
 
   // Feature matrix
   const featureMatrix: Record<string, SubscriptionTier[]> = {

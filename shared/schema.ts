@@ -411,61 +411,6 @@ export const syncQueue = sqliteTable("sync_queue", {
   syncedAt: integer("synced_at", { mode: "timestamp_ms" }),
 });
 
-// Client sharing - Magic link tokens for shareable client portals
-export const clientShareTokens = sqliteTable("client_share_tokens", {
-  tokenId: text("token_id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  
-  // The actual magic link token (UUID)
-  token: text("token").notNull().unique(),
-  
-  // Lifecycle
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  expiresAt: integer("expires_at", { mode: "timestamp_ms" }), // NULL = never expires
-  revokedAt: integer("revoked_at", { mode: "timestamp_ms" }), // NULL = active
-  
-  // Usage tracking
-  accessCount: integer("access_count").default(0),
-  lastAccessed: integer("last_accessed", { mode: "timestamp_ms" }),
-});
-
-// Client portal payments - Track payments from clients via magic links
-export const clientPortalPayments = sqliteTable("client_portal_payments", {
-  paymentId: text("payment_id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  tokenId: text("token_id")
-    .notNull()
-    .references(() => clientShareTokens.tokenId, { onDelete: "cascade" }),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  
-  // Payment details
-  amount: integer("amount").notNull(), // in cents
-  currency: text("currency").default("USD"),
-  paymentStatus: text("payment_status").notNull(), // PENDING | SUCCESS | FAILED
-  flutterwaveReference: text("flutterwave_reference"), // For reconciliation
-  
-  // Timestamps
-  paidAt: integer("paid_at", { mode: "timestamp_ms" }),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
 // Type exports
 export type ProjectEvent = typeof projectEvents.$inferSelect;
 export type InsertProjectEvent = typeof projectEvents.$inferInsert;
@@ -473,7 +418,3 @@ export type AudioLog = typeof audioLogs.$inferSelect;
 export type InsertAudioLog = typeof audioLogs.$inferInsert;
 export type SyncQueueItem = typeof syncQueue.$inferSelect;
 export type InsertSyncQueueItem = typeof syncQueue.$inferInsert;
-export type ClientShareToken = typeof clientShareTokens.$inferSelect;
-export type InsertClientShareToken = typeof clientShareTokens.$inferInsert;
-export type ClientPortalPayment = typeof clientPortalPayments.$inferSelect;
-export type InsertClientPortalPayment = typeof clientPortalPayments.$inferInsert;

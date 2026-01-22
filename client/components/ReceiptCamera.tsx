@@ -16,7 +16,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ReceiptReviewDrawer } from "@/components/ReceiptReviewDrawer";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
-import { receiptProcessingService } from "@/services/receiptProcessingService";
+import { ReceiptProcessingService } from "@/services/receiptProcessingService";
 
 interface ExtractedItem {
   name: string;
@@ -78,7 +78,7 @@ export function ReceiptCamera({
     if (!cameraRef.current || !isCaptureMode) return;
 
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Light);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       // Pulse animation
       Animated.sequence([
@@ -111,24 +111,24 @@ export function ReceiptCamera({
         // Otherwise, extract receipt data
         setIsExtracting(true);
         try {
-          const extracted = await receiptProcessingService.extractReceiptData(
-            photo.base64
+          const extractionResult = await ReceiptProcessingService.extractReceiptData(
+            photo.uri
           );
 
-          // Check for duplicates
-          setIsDuplicateLoading(true);
-          const duplicate = await receiptProcessingService.checkForDuplicates(
-            extracted.vendor,
-            extracted.grandTotal,
-            extracted.date
-          );
-          setIsDuplicate(duplicate);
+          if (!extractionResult.success || !extractionResult.data) {
+            throw new Error(extractionResult.error || "Failed to extract receipt data");
+          }
+
+          const extracted = extractionResult.data;
+
+          // Check for duplicates (note: client-side doesn't have duplicate check yet)
+          setIsDuplicateLoading(false);
 
           setExtractedData({
             vendor: extracted.vendor,
             date: extracted.date,
             items: extracted.items,
-            grandTotal: extracted.grandTotal,
+            grandTotal: extracted.grand_total,
             photoUri: photo.uri,
             photoBase64: photo.base64,
           });
@@ -163,34 +163,32 @@ export function ReceiptCamera({
 
     try {
       setIsSaving(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Light);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      // First, upload the receipt
-      const uploadResponse = await receiptProcessingService.uploadReceipt(
-        extractedData.photoBase64,
-        extractedData.vendor,
-        extractedData.date
+      // First, upload the receipt photo
+      const uploadResult = await ReceiptProcessingService.uploadReceipt(
+        projectId,
+        extractedData.photoBase64
       );
 
-      if (!uploadResponse.success || !uploadResponse.receiptId) {
-        throw new Error(uploadResponse.error || "Failed to upload receipt");
+      if (!uploadResult.success || !uploadResult.receiptId) {
+        throw new Error(uploadResult.error || "Failed to upload receipt");
       }
 
-      // Then create an activity from the receipt
-      const activityResponse = await receiptProcessingService.createActivityFromReceipt(
+      // Then create an activity from the receipt on the backend
+      const activityResult = await ReceiptProcessingService.createActivityFromReceipt(
         projectId,
-        uploadResponse.receiptId,
+        uploadResult.receiptId,
         {
           vendor: extractedData.vendor,
           date: extractedData.date,
           items: extractedData.items,
           grand_total: extractedData.grandTotal,
-        },
-        true // visibleToClient
+        }
       );
 
-      if (!activityResponse.success) {
-        throw new Error(activityResponse.error || "Failed to create activity");
+      if (!activityResult.success) {
+        throw new Error(activityResult.error || "Failed to create receipt activity");
       }
 
       Alert.alert("Success", "Receipt added to project");
@@ -224,7 +222,7 @@ export function ReceiptCamera({
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
         <View style={styles.centerContent}>
           <Feather name="camera-off" size={48} color={theme.text} />
-          <ThemedText type="subtitle" style={{ marginTop: Spacing.lg }}>
+          <ThemedText type="h3" style={{ marginTop: Spacing.lg }}>
             Camera Permission Required
           </ThemedText>
           <Pressable
@@ -242,7 +240,7 @@ export function ReceiptCamera({
     return (
       <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
         <View style={styles.centerContent}>
-          <ThemedText type="subtitle">Camera access is required</ThemedText>
+          <ThemedText type="h3">Camera access is required</ThemedText>
           <Pressable
             style={styles.permissionButton}
             onPress={handleRequestPermission}
@@ -266,7 +264,7 @@ export function ReceiptCamera({
         >
           {/* Header */}
           <View style={styles.header}>
-            <ThemedText type="subtitle" style={styles.headerText}>
+            <ThemedText type="h3" style={styles.headerText}>
               Scan Receipt
             </ThemedText>
             <Pressable onPress={onClose} style={styles.closeButton}>

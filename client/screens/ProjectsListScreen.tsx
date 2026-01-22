@@ -91,7 +91,7 @@ function ProjectCard({
               ]}
             />
             <ThemedText
-              type="caption"
+              type="small"
               style={[
                 styles.statusText,
                 { color: statusColors[project.status] },
@@ -106,12 +106,12 @@ function ProjectCard({
         <ThemedText type="h4" style={styles.projectName}>
           {project.name}
         </ThemedText>
-        <ThemedText type="caption" style={styles.projectClient}>
+        <ThemedText type="small" style={styles.projectClient}>
           {project.clientName} • {project.address}
         </ThemedText>
 
         <View style={styles.projectFooter}>
-          <ThemedText type="caption" style={styles.budgetLabel}>
+          <ThemedText type="small" style={styles.budgetLabel}>
             Budget
           </ThemedText>
           <ThemedText

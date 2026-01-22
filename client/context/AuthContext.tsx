@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Google from "expo-auth-session/providers/google";
-import * as SecureStore from "expo-secure-store";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTeamStore } from "@/stores/teamStore";
 import { useProfileStore } from "@/stores/profileStore";
+import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
 
 export interface User {
@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { resetProjects } = useProjectStore();
   const { resetTeam } = useTeamStore();
   const { setCompanyInfo } = useProfileStore();
+  const { hydrateActivities } = useActivityStore();
 
   // ✅ GOOGLE OAUTH SETUP
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -488,6 +489,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("[Auth] Rehydrating subscription data");
         const { hydrateSubscription } = useSubscriptionStore.getState();
         hydrateSubscription(data.subscription);
+      }
+
+      // ✅ NEW: Hydrate activityStore from backend
+      // Restore user's activity log (recent invoice creations, sends, etc.)
+      if (data.activities && Array.isArray(data.activities)) {
+        console.log(`[Auth] Rehydrating ${data.activities.length} activities`);
+        hydrateActivities(data.activities);
       }
 
       console.log("[Auth] ✅ USER STATE REHYDRATION COMPLETE");

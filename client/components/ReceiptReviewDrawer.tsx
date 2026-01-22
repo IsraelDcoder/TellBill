@@ -53,7 +53,7 @@ export function ReceiptReviewDrawer({
   onCancel,
   isProcessing = false,
 }: ReceiptReviewDrawerProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [showDetails, setShowDetails] = useState(false);
 
@@ -96,9 +96,9 @@ export function ReceiptReviewDrawer({
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title">Receipt Found</ThemedText>
+          <ThemedText type="h2">Receipt Found</ThemedText>
           <Pressable onPress={onCancel} style={styles.closeButton}>
-            <Feather name="x" size={24} color={theme === "dark" ? "white" : "black"} />
+            <Feather name="x" size={24} color={isDark ? "white" : "black"} />
           </Pressable>
         </View>
 
@@ -125,7 +125,7 @@ export function ReceiptReviewDrawer({
           {/* Vendor & Date */}
           <View style={styles.infoBox}>
             <View style={styles.infoRow}>
-              <ThemedText type="caption" style={styles.label}>
+              <ThemedText type="small" style={styles.label}>
                 Vendor
               </ThemedText>
               <ThemedText style={styles.value}>{vendor}</ThemedText>
@@ -133,7 +133,7 @@ export function ReceiptReviewDrawer({
             <View
               style={[styles.infoRow, { borderTopWidth: 1, borderTopColor: "rgba(0,0,0,0.1)" }]}
             >
-              <ThemedText type="caption" style={styles.label}>
+              <ThemedText type="small" style={styles.label}>
                 Date
               </ThemedText>
               <ThemedText style={styles.value}>{date}</ThemedText>
@@ -147,13 +147,13 @@ export function ReceiptReviewDrawer({
                 style={styles.itemsHeader}
                 onPress={() => setShowDetails(!showDetails)}
               >
-                <ThemedText type="subtitle">
+                <ThemedText type="h4">
                   {items.length} {items.length === 1 ? "Item" : "Items"}
                 </ThemedText>
                 <Feather
                   name={showDetails ? "chevron-up" : "chevron-down"}
                   size={20}
-                  color={theme === "dark" ? "white" : "black"}
+                  color={isDark ? "white" : "black"}
                 />
               </Pressable>
 
@@ -163,7 +163,7 @@ export function ReceiptReviewDrawer({
                     <View key={index} style={styles.itemRow}>
                       <View style={styles.itemInfo}>
                         <ThemedText style={styles.itemName}>{item.name}</ThemedText>
-                        <ThemedText type="caption" style={styles.itemQuantity}>
+                        <ThemedText type="small" style={styles.itemQuantity}>
                           {item.quantity} × ${item.unit_price.toFixed(2)}
                         </ThemedText>
                       </View>
@@ -180,7 +180,7 @@ export function ReceiptReviewDrawer({
           {/* Total Amount */}
           <View style={styles.totalBox}>
             <View style={styles.totalRow}>
-              <ThemedText type="subtitle">Total Amount</ThemedText>
+              <ThemedText type="h4">Total Amount</ThemedText>
               <ThemedText
                 type="h2"
                 style={{
@@ -196,7 +196,7 @@ export function ReceiptReviewDrawer({
           {isDuplicateLoading && (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="small" color={BrandColors.constructionGold} />
-              <ThemedText type="caption" style={{ marginLeft: Spacing.md }}>
+              <ThemedText type="small" style={{ marginLeft: Spacing.md }}>
                 Checking for duplicates...
               </ThemedText>
             </View>

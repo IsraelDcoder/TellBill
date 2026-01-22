@@ -15,7 +15,7 @@ export function ShareProgressButton({
   color = "white",
 }: ShareProgressButtonProps) {
   const handlePress = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Light);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onPress();
   };
 

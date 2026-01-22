@@ -30,6 +30,7 @@ const safeNumber = (value?: number | null): number => value ?? 0;
 
 const statusConfig = {
   draft: { color: "#6B7280", icon: "edit-3" as const, label: "Draft" },
+  created: { color: "#8B5CF6", icon: "file-text" as const, label: "Created" },
   sent: { color: "#3B82F6", icon: "send" as const, label: "Sent" },
   pending: { color: "#F59E0B", icon: "clock" as const, label: "Pending" },
   paid: { color: "#22C55E", icon: "check-circle" as const, label: "Paid" },

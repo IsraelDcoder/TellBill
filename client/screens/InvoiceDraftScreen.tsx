@@ -19,6 +19,8 @@ import { GlassCard } from "@/components/GlassCard";
 import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { useActivityStore } from "@/stores/activityStore";
+import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
@@ -40,6 +42,8 @@ export default function InvoiceDraftScreen() {
   const route = useRoute<RouteProps>();
   const { addInvoice, updateInvoice } = useInvoiceStore();
   const { currentPlan, invoicesCreated, incrementInvoices } = useSubscriptionStore();
+  const { addActivity } = useActivityStore();
+  const { user } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Check if user has reached invoice creation limit
@@ -84,10 +88,32 @@ export default function InvoiceDraftScreen() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const invoice = addInvoice(invoiceData);
+    
+    // ✅ Add userId and createdBy to invoice data
+    const invoiceWithUser = {
+      ...invoiceData,
+      userId: user?.id,
+      createdBy: user?.name || user?.email || "Unknown",
+    };
+    
+    const invoice = addInvoice(invoiceWithUser);
     
     // Update invoice status to "created" to mark it as successfully created/approved
     updateInvoice(invoice.id, { status: "created" });
+    
+    // ✅ Log activity: User created invoice
+    addActivity({
+      userId: user?.id || "unknown",
+      userName: user?.name || user?.email || "Unknown User",
+      action: "created_invoice",
+      resourceType: "invoice",
+      resourceId: invoice.id,
+      resourceName: invoice.invoiceNumber,
+      details: {
+        clientName: invoice.clientName,
+        total: invoice.total,
+      },
+    });
     
     incrementInvoices();
     navigation.navigate("InvoicePreview", { invoiceId: invoice.id });
@@ -110,7 +136,7 @@ export default function InvoiceDraftScreen() {
       <GlassCard style={styles.headerCard}>
         <View style={styles.headerRow}>
           <View>
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
               INVOICE DRAFT
             </ThemedText>
             <ThemedText type="h2">{safeText(invoiceData.clientName) || "Unnamed Client"}</ThemedText>

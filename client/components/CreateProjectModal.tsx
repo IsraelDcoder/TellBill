@@ -155,7 +155,7 @@ export function CreateProjectModal({
                 editable={!isLoading}
               />
               {errors.projectName && (
-                <ThemedText type="caption" style={styles.errorText}>
+                <ThemedText type="small" style={styles.errorText}>
                   {errors.projectName}
                 </ThemedText>
               )}
@@ -183,7 +183,7 @@ export function CreateProjectModal({
                 editable={!isLoading}
               />
               {errors.clientName && (
-                <ThemedText type="caption" style={styles.errorText}>
+                <ThemedText type="small" style={styles.errorText}>
                   {errors.clientName}
                 </ThemedText>
               )}
@@ -211,7 +211,7 @@ export function CreateProjectModal({
                 editable={!isLoading}
               />
               {errors.address && (
-                <ThemedText type="caption" style={styles.errorText}>
+                <ThemedText type="small" style={styles.errorText}>
                   {errors.address}
                 </ThemedText>
               )}
@@ -299,7 +299,7 @@ export function CreateProjectModal({
                 editable={!isLoading}
               />
               {errors.budget && (
-                <ThemedText type="caption" style={styles.errorText}>
+                <ThemedText type="small" style={styles.errorText}>
                   {errors.budget}
                 </ThemedText>
               )}
