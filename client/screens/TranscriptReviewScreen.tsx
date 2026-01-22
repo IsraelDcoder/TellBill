@@ -57,6 +57,7 @@ interface FormField {
   placeholder: string;
   multiline?: boolean;
   confidence?: number;
+  key: "clientName" | "clientEmail" | "clientPhone" | "jobAddress" | "jobDescription" | "materials" | "laborHours" | "laborRate" | "notes";
 }
 
 export default function TranscriptReviewScreen() {
@@ -86,9 +87,15 @@ export default function TranscriptReviewScreen() {
     materialsTotal: 0,
     subtotal: 0,
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Extract invoice on mount
   useEffect(() => {
+    // Prevent re-running after initialization
+    if (isInitialized) {
+      return;
+    }
+
     const extractInvoice = async () => {
       try {
         setIsLoading(true);
@@ -132,14 +139,15 @@ export default function TranscriptReviewScreen() {
           }
         })();
 
-        // ✅ COMPUTE SUBTOTAL LOCALLY (MANDATORY FOR FINANCIAL PRODUCT)
-        const laborHours = safeNumber(result.labor?.hours);
-        const laborRate = safeNumber(result.labor?.rate_per_hour);
-        const laborTotal = laborHours * laborRate;
+        // ✅ COMPUTE SUBTOTAL LOCALLY - MANDATORY FOR FINANCIAL PRODUCT
+        const laborHours = safeNumber(result.labor?.hours) || 0;
+        const laborRate = safeNumber(result.labor?.rate_per_hour) || 0;
+        const laborTotal = (laborHours || 0) * (laborRate || 0);
 
+        // ✅ FIXED: Properly sum material totals, handle missing values  
         const materialsTotal =
           safeArray(result.materials).reduce((sum: number, item: any) => {
-            return sum + safeNumber(item.total);
+            return sum + (safeNumber(item.total) || 0);
           }, 0);
 
         const computedSubtotal = laborTotal + materialsTotal;
@@ -163,23 +171,29 @@ export default function TranscriptReviewScreen() {
         });
 
         setIsLoading(false);
+        setIsInitialized(true);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : "Extraction failed";
-        console.error("[TranscriptReview] Extraction error:", error);
-        setExtractionError(errorMsg);
+        
+        // Only log and show alert if user provided a transcript but extraction failed
+        // If no transcript was provided, that's normal - user is creating invoice manually
+        if (errorMsg !== "No transcript provided") {
+          console.error("[TranscriptReview] Extraction error:", error);
+          setExtractionError(errorMsg);
+          Alert.alert(
+            "Extraction Failed",
+            `${errorMsg}\n\nYou can manually enter the invoice details below.`,
+            [{ text: "OK" }]
+          );
+        }
+        
         setIsLoading(false);
-
-        // Show alert and allow manual entry
-        Alert.alert(
-          "Extraction Failed",
-          `${errorMsg}\n\nYou can manually enter the invoice details below.`,
-          [{ text: "OK" }]
-        );
+        setIsInitialized(true);
       }
     };
 
     extractInvoice();
-  }, [route.params]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -207,12 +221,14 @@ export default function TranscriptReviewScreen() {
       icon: "user",
       value: formData.clientName,
       placeholder: "Enter client name",
+      key: "clientName",
     },
     {
       label: "Client Address",
       icon: "map-pin",
       value: formData.jobAddress,
       placeholder: "Enter job site address",
+      key: "jobAddress",
     },
     {
       label: "Job Description",
@@ -220,6 +236,7 @@ export default function TranscriptReviewScreen() {
       value: formData.jobDescription,
       placeholder: "Describe the work",
       multiline: true,
+      key: "jobDescription",
     },
     {
       label: "Materials",
@@ -227,18 +244,21 @@ export default function TranscriptReviewScreen() {
       value: formData.materials,
       placeholder: "List materials with quantities and prices",
       multiline: true,
+      key: "materials",
     },
     {
       label: "Labor Hours",
       icon: "clock",
       value: formData.laborHours,
       placeholder: "Enter labor hours",
+      key: "laborHours",
     },
     {
       label: "Hourly Rate ($)",
       icon: "dollar-sign",
       value: formData.laborRate,
       placeholder: "Enter hourly rate",
+      key: "laborRate",
     },
     {
       label: "Notes",
@@ -246,6 +266,7 @@ export default function TranscriptReviewScreen() {
       value: formData.notes,
       placeholder: "Additional notes",
       multiline: true,
+      key: "notes",
     },
   ];
 
@@ -271,15 +292,18 @@ export default function TranscriptReviewScreen() {
           // Try to parse "quantity name $price" format
           const match = line.match(/(\d+)\s+(.+?)\s+\$?([\d.]+)?/i);
           if (match) {
-            const qty = parseInt(match[1]) || 1;
+            const qty = Math.max(1, parseInt(match[1]) || 1);
             const name = match[2].trim();
             const price = match[3] ? parseFloat(match[3]) : 0;
+            // ✅ FIXED: Proper rounding to cents
+            const unitPriceCents = Math.round(price * 100);
+            const totalCents = qty * unitPriceCents;
             return {
               id: `item-${idx}`,
               description: name,
               quantity: qty,
-              unitPrice: price * 100, // Convert to cents
-              total: qty * price * 100,
+              unitPrice: unitPriceCents,
+              total: totalCents,
             };
           }
           return {
@@ -295,24 +319,31 @@ export default function TranscriptReviewScreen() {
       // ✅ USE EXTRACTED MATERIALS IF NOT EDITED (preserve AI precision)
       let items: any[];
       if (!materialsEdited && safeArray(extractedData?.materials).length > 0) {
-        items = safeArray(extractedData?.materials).map((m: any, idx: number) => ({
-          id: `item-${idx}`,
-          description: safeText(m.name) || "Item",
-          quantity: safeNumber(m.quantity),
-          unitPrice: safeNumber(m.unit_price) * 100, // Convert to cents
-          total: safeNumber(m.total) * 100, // Convert to cents
-        }));
+        items = safeArray(extractedData?.materials).map((m: any, idx: number) => {
+          // ✅ FIXED: Ensure proper cents conversion with rounding
+          const qty = safeNumber(m.quantity) || 1;
+          const unitPrice = Math.round((safeNumber(m.unit_price) || 0) * 100);
+          const total = Math.round((safeNumber(m.total) || 0) * 100);
+          return {
+            id: `item-${idx}`,
+            description: safeText(m.name) || "Item",
+            quantity: qty,
+            unitPrice,
+            // Fallback calculation if total is missing
+            total: total > 0 ? total : qty * unitPrice,
+          };
+        });
       } else {
         items = parseItems(formData.materials);
       }
 
       // ✅ PRODUCTION SUBTOTAL: Use computed totals (AI not trusted for money)
-      const laborTotal = computedTotals.laborTotal;
-      const materialsTotal = computedTotals.materialsTotal;
-      const subtotal = computedTotals.subtotal;
+      const laborTotal = Math.round(computedTotals.laborTotal * 100); // Convert to cents
+      const materialsTotal = Math.round(computedTotals.materialsTotal * 100); // Convert to cents
+      const subtotal = laborTotal + materialsTotal; // Both now in cents
       const taxRate = 0.08;
-      const taxAmount = Math.round(subtotal * taxRate);
-      const total = subtotal + taxAmount;
+      const taxAmount = Math.round(subtotal * taxRate); // Calculate tax in cents
+      const total = subtotal + taxAmount; // Total in cents
 
       navigation.navigate("InvoiceDraft", {
         invoiceData: {
@@ -412,8 +443,7 @@ export default function TranscriptReviewScreen() {
           </View>
         )}
 
-        {fields.map((field, index) => {
-          const fieldKey = Object.keys(formData)[index] as keyof typeof formData;
+        {fields.map((field) => {
           return (
             <View key={field.label} style={styles.fieldContainer}>
               <View style={styles.fieldHeader}>
@@ -441,11 +471,13 @@ export default function TranscriptReviewScreen() {
                   },
                 ]}
                 value={field.value}
-                onChangeText={(value) => updateField(fieldKey, value)}
+                onChangeText={(value) => updateField(field.key, value)}
                 placeholder={field.placeholder}
                 placeholderTextColor={theme.textSecondary}
                 multiline={field.multiline}
                 textAlignVertical={field.multiline ? "top" : "center"}
+                editable={true}
+                selectTextOnFocus={true}
               />
             </View>
           );

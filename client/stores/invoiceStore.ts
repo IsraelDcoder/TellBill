@@ -28,7 +28,7 @@ export interface Invoice {
   taxRate: number;
   taxAmount: number;
   total: number;
-  status: "draft" | "sent" | "pending" | "paid" | "overdue";
+  status: "draft" | "created" | "sent" | "pending" | "paid" | "overdue";
   notes: string;
   safetyNotes: string;
   paymentTerms: string;
@@ -100,9 +100,10 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const paid = invoices.filter((i) => i.status === "paid").length;
         const pending = invoices.filter((i) => i.status === "pending").length;
         const overdue = invoices.filter((i) => i.status === "overdue").length;
+        // ✅ FIXED: Revenue calculation properly handles undefined values
         const revenue = invoices
           .filter((i) => i.status === "paid")
-          .reduce((sum, i) => sum + i.total, 0);
+          .reduce((sum, i) => sum + (i.total || 0), 0);
         const timeSaved = invoices.length * 0.5;
 
         return { sent, paid, pending, overdue, revenue, timeSaved };

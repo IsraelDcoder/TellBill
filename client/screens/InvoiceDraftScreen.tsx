@@ -38,7 +38,7 @@ export default function InvoiceDraftScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
-  const { addInvoice } = useInvoiceStore();
+  const { addInvoice, updateInvoice } = useInvoiceStore();
   const { currentPlan, invoicesCreated, incrementInvoices } = useSubscriptionStore();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
@@ -68,10 +68,12 @@ export default function InvoiceDraftScreen() {
   };
 
   const formatCurrency = (amount: number) => {
+    // Convert from cents to dollars
+    const dollars = amount / 100;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(amount);
+    }).format(dollars);
   };
 
   const handleApprove = () => {
@@ -83,6 +85,10 @@ export default function InvoiceDraftScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const invoice = addInvoice(invoiceData);
+    
+    // Update invoice status to "created" to mark it as successfully created/approved
+    updateInvoice(invoice.id, { status: "created" });
+    
     incrementInvoices();
     navigation.navigate("InvoicePreview", { invoiceId: invoice.id });
   };

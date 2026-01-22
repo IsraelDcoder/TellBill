@@ -130,6 +130,11 @@ export default function HomeScreen() {
                 navigation.navigate("Main", { screen: "InvoicesTab" } as any)
               }
             />
+            <QuickActionButton
+              title="Scan Receipt"
+              icon="camera"
+              onPress={() => navigation.navigate("ReceiptScanner" as any)}
+            />
           </View>
         </View>
 

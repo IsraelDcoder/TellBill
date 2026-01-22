@@ -5,7 +5,10 @@ import { registerAuthRoutes } from "./auth";
 import { registerPaymentRoutes } from "./payments";
 import { registerInventoryRoutes } from "./inventory";
 import { registerInvoiceRoutes } from "./invoices";
+import { registerProjectRoutes } from "./projects";
+import { registerClientSharingRoutes } from "./clientSharing";
 import { registerDataLoadingRoutes } from "./dataLoading";
+import { registerReceiptRoutes } from "./receiptRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register authentication routes
@@ -22,6 +25,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register invoice routes
   registerInvoiceRoutes(app);
+
+  // Register project routes
+  registerProjectRoutes(app);
+
+  // Register client sharing routes (Feature 2.2)
+  registerClientSharingRoutes(app);
+
+  // Register receipt scanner routes (Feature 4.1)
+  registerReceiptRoutes(app);
 
   // Register transcription routes (uses OpenRouter API)
   registerTranscriptionRoutes(app);

@@ -10,7 +10,8 @@ import InvoiceDraftScreen from "@/screens/InvoiceDraftScreen";
 import InvoicePreviewScreen from "@/screens/InvoicePreviewScreen";
 import SendInvoiceScreen from "@/screens/SendInvoiceScreen";
 import InvoiceDetailScreen from "@/screens/InvoiceDetailScreen";
-import ProjectDetailScreen from "@/screens/ProjectDetailScreen";
+import ProjectHubScreen from "@/screens/ProjectHubScreen";
+import ReceiptScannerScreen from "@/screens/ReceiptScannerScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import BillingScreen from "@/screens/BillingScreen";
 import HelpSupportScreen from "@/screens/HelpSupportScreen";
@@ -26,6 +27,7 @@ import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import PaymentSuccessScreen from "@/screens/PaymentSuccessScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
+import { BrandColors } from "@/constants/theme";
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -37,7 +39,8 @@ export type RootStackParamList = {
   InvoicePreview: { invoiceId: string };
   SendInvoice: { invoiceId: string };
   InvoiceDetail: { invoiceId: string };
-  ProjectDetail: { projectId: string };
+  ProjectHub: { projectId: string; projectName?: string };
+  ReceiptScanner: undefined;
   Settings: undefined;
   EditProfile: undefined;
   CompanyInfo: undefined;
@@ -127,10 +130,19 @@ export default function RootStackNavigator() {
             }}
           />
           <Stack.Screen
-            name="ProjectDetail"
-            component={ProjectDetailScreen}
+            name="ProjectHub"
+            component={ProjectHubScreen}
             options={{
-              headerTitle: "Project Details",
+              headerTitle: "Project Hub",
+              headerTintColor: BrandColors.constructionGold,
+            }}
+          />
+          <Stack.Screen
+            name="ReceiptScanner"
+            component={ReceiptScannerScreen}
+            options={{
+              headerTitle: "Scan Receipt",
+              headerTintColor: BrandColors.constructionGold,
             }}
           />
           <Stack.Screen

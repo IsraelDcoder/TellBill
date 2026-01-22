@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { randomUUID } from "crypto";
@@ -308,3 +308,172 @@ export type ActivityLogEntry = typeof activityLog.$inferSelect;
 export type InsertActivityLogEntry = typeof activityLog.$inferInsert;
 export type Preference = typeof preferences.$inferSelect;
 export type InsertPreference = typeof preferences.$inferInsert;
+
+// ✅ EVENT-DRIVEN PROJECT HUB
+// Immutable append-only ledger for all project activities
+// Events are the source of truth; invoices are computed from events
+export const projectEvents = sqliteTable("project_events", {
+  // Unique event identifier
+  eventId: text("event_id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+
+  // Foreign keys
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  audioId: text("audio_id"), // Links to raw audio file if applicable
+
+  // Event classification
+  eventType: text("event_type").notNull(), // LABOR | MATERIAL | PROGRESS | ALERT
+  source: text("source").notNull(), // VOICE | MANUAL | IMPORT
+  confidence: real("confidence"), // 0.0-1.0 for AI-extracted events
+
+  // Transcription (if voice source)
+  transcript: text("transcript"),
+
+  // Event data (JSON-encoded based on eventType)
+  // LABOR: { description, hours, ratePerHour, total }
+  // MATERIAL: { name, quantity, unitPrice, total }
+  // PROGRESS: { status, location }
+  // ALERT: { alertType, severity, recommendedAction }
+  data: text("data"), // JSON string
+
+  // Client visibility and approval tracking
+  visibleToClient: integer("visible_to_client", { mode: "boolean" }).default(true),
+  approvalStatus: text("approval_status").default("PENDING"), // PENDING | APPROVED | REJECTED
+  approvedAt: integer("approved_at", { mode: "timestamp_ms" }),
+  approvalNotes: text("approval_notes"),
+  photos: text("photos"), // JSON array of photo URLs
+
+  // Audit trail
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+
+  // Immutability flag
+  isDeleted: integer("is_deleted", { mode: "boolean" }).default(false),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  deletionReason: text("deletion_reason"),
+});
+
+// Audio backup for dispute resolution
+export const audioLogs = sqliteTable("audio_logs", {
+  audioId: text("audio_id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
+  // Audio metadata
+  duration: integer("duration"), // milliseconds
+  fileSize: integer("file_size"), // bytes
+  mimeType: text("mime_type"), // audio/wav, audio/mp3, etc
+  storageUrl: text("storage_url"), // S3 or similar
+  localPath: text("local_path"), // For offline mode
+
+  // Timestamps
+  recordedAt: integer("recorded_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  uploadedAt: integer("uploaded_at", { mode: "timestamp_ms" }),
+});
+
+// Offline sync queue
+export const syncQueue = sqliteTable("sync_queue", {
+  syncId: text("sync_id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+
+  // Queue item type
+  itemType: text("item_type").notNull(), // EVENT | AUDIO | INVOICE
+  itemData: text("item_data").notNull(), // JSON payload
+
+  // Sync status
+  status: text("status").notNull(), // PENDING | SYNCING | COMPLETED | FAILED
+  attempts: integer("attempts").default(0),
+  lastError: text("last_error"),
+
+  // Timestamps
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  syncedAt: integer("synced_at", { mode: "timestamp_ms" }),
+});
+
+// Client sharing - Magic link tokens for shareable client portals
+export const clientShareTokens = sqliteTable("client_share_tokens", {
+  tokenId: text("token_id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  
+  // The actual magic link token (UUID)
+  token: text("token").notNull().unique(),
+  
+  // Lifecycle
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }), // NULL = never expires
+  revokedAt: integer("revoked_at", { mode: "timestamp_ms" }), // NULL = active
+  
+  // Usage tracking
+  accessCount: integer("access_count").default(0),
+  lastAccessed: integer("last_accessed", { mode: "timestamp_ms" }),
+});
+
+// Client portal payments - Track payments from clients via magic links
+export const clientPortalPayments = sqliteTable("client_portal_payments", {
+  paymentId: text("payment_id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  tokenId: text("token_id")
+    .notNull()
+    .references(() => clientShareTokens.tokenId, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  
+  // Payment details
+  amount: integer("amount").notNull(), // in cents
+  currency: text("currency").default("USD"),
+  paymentStatus: text("payment_status").notNull(), // PENDING | SUCCESS | FAILED
+  flutterwaveReference: text("flutterwave_reference"), // For reconciliation
+  
+  // Timestamps
+  paidAt: integer("paid_at", { mode: "timestamp_ms" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Type exports
+export type ProjectEvent = typeof projectEvents.$inferSelect;
+export type InsertProjectEvent = typeof projectEvents.$inferInsert;
+export type AudioLog = typeof audioLogs.$inferSelect;
+export type InsertAudioLog = typeof audioLogs.$inferInsert;
+export type SyncQueueItem = typeof syncQueue.$inferSelect;
+export type InsertSyncQueueItem = typeof syncQueue.$inferInsert;
+export type ClientShareToken = typeof clientShareTokens.$inferSelect;
+export type InsertClientShareToken = typeof clientShareTokens.$inferInsert;
+export type ClientPortalPayment = typeof clientPortalPayments.$inferSelect;
+export type InsertClientPortalPayment = typeof clientPortalPayments.$inferInsert;
