@@ -82,13 +82,14 @@ interface SubscriptionStore {
   // Usage tracking (server-synced)
   voiceRecordingsUsed: number;
   invoicesCreated: number;
+  projectsCreated: number;
   currentPlan: Plan;
   isSubscribed: boolean;
   
   // UI state
   isLoading: boolean;
   showLimitModal: boolean;
-  limitModalType: "voice" | "invoice" | undefined;
+  limitModalType: "voice" | "invoice" | "project" | undefined;
   pricingTiers: PricingTier[];
   
   // Actions
@@ -96,16 +97,17 @@ interface SubscriptionStore {
   setSubscription: (subscription: Subscription | null) => void;
   incrementVoiceRecordings: () => void;
   incrementInvoices: () => void;
+  incrementProjects: () => void;
   setCurrentPlan: (plan: Plan) => void;
   setIsSubscribed: (subscribed: boolean) => void;
   setIsLoading: (loading: boolean) => void;
-  setShowLimitModal: (show: boolean, type?: "voice" | "invoice") => void;
+  setShowLimitModal: (show: boolean, type?: "voice" | "invoice" | "project") => void;
   setPricingTiers: (tiers: PricingTier[]) => void;
   resetSubscription: () => void;
   resetMonthlyUsage: () => void;
-  syncWithServer: (data: { voiceRecordingsUsed: number; invoicesCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
+  syncWithServer: (data: { voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
   // ✅ Hydration: Load subscription from backend (login rehydration)
-  hydrateSubscription: (data: { userEntitlement: Entitlement; subscription: Subscription | null; voiceRecordingsUsed: number; invoicesCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
+  hydrateSubscription: (data: { userEntitlement: Entitlement; subscription: Subscription | null; voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionStore>()(
@@ -118,6 +120,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       // Usage tracking
       voiceRecordingsUsed: 0,
       invoicesCreated: 0,
+      projectsCreated: 0,
       currentPlan: "free",
       isSubscribed: false,
       
@@ -196,6 +199,9 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       incrementInvoices: () =>
         set((state) => ({ invoicesCreated: state.invoicesCreated + 1 })),
 
+      incrementProjects: () =>
+        set((state) => ({ projectsCreated: state.projectsCreated + 1 })),
+
       setCurrentPlan: (plan) =>
         set({ currentPlan: plan }),
 
@@ -215,6 +221,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
         set({
           voiceRecordingsUsed: data.voiceRecordingsUsed,
           invoicesCreated: data.invoicesCreated,
+          projectsCreated: data.projectsCreated,
           currentPlan: data.currentPlan,
           isSubscribed: data.isSubscribed,
         }),
@@ -223,6 +230,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
         set({
           voiceRecordingsUsed: 0,
           invoicesCreated: 0,
+          projectsCreated: 0,
         }),
 
       resetSubscription: () =>
@@ -231,6 +239,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           subscription: null,
           voiceRecordingsUsed: 0,
           invoicesCreated: 0,
+          projectsCreated: 0,
           currentPlan: "free",
           isSubscribed: false,
           // ✅ SAFETY GUARD: Prevent accidental data loss
@@ -247,6 +256,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           subscription: data.subscription,
           voiceRecordingsUsed: data.voiceRecordingsUsed,
           invoicesCreated: data.invoicesCreated,
+          projectsCreated: data.projectsCreated,
           currentPlan: data.currentPlan,
           isSubscribed: data.isSubscribed,
         }),

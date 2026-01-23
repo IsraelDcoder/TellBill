@@ -22,7 +22,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface UpgradeRequiredModalProps {
   visible: boolean;
   onClose: () => void;
-  type: "voice" | "invoice" | "feature";
+  type: "voice" | "invoice" | "project" | "feature";
   featureName?: string;
 }
 
@@ -34,7 +34,7 @@ export function UpgradeRequiredModal({
 }: UpgradeRequiredModalProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { voiceRecordingsUsed, invoicesCreated, currentPlan } = useSubscriptionStore();
+  const { voiceRecordingsUsed, invoicesCreated, projectsCreated, currentPlan } = useSubscriptionStore();
 
   const getContent = () => {
     if (type === "voice") {
@@ -52,6 +52,14 @@ export function UpgradeRequiredModal({
         description: `You've created 3 free invoices this month. Upgrade to ${
           currentPlan === "free" ? "Solo" : "a higher plan"
         } to generate unlimited invoices.`,
+      };
+    } else if (type === "project") {
+      return {
+        icon: "briefcase",
+        title: "Project Limit Reached",
+        description: `You've created 3 free projects. Upgrade to ${
+          currentPlan === "free" ? "Solo" : "a higher plan"
+        } to manage unlimited projects.`,
       };
     } else {
       return {

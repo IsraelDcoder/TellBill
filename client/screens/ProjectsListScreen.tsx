@@ -19,11 +19,13 @@ import { ThemedText } from "@/components/ThemedText";
 import { EmptyState } from "@/components/EmptyState";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
 import { ProjectActionsModal } from "@/components/ProjectActionsModal";
+import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useAuth } from "@/context/AuthContext";
 import { useProjectStore } from "@/stores/projectStore";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { getApiUrl, getBackendUrl } from "@/lib/backendUrl";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -140,6 +142,7 @@ export default function ProjectsListScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [selectedProjectForActions, setSelectedProjectForActions] = useState<Project | null>(null);
+  const { showLimitModal, limitModalType, setShowLimitModal } = useSubscriptionStore();
 
   // Load projects from API when screen mounts
   useEffect(() => {
@@ -322,6 +325,8 @@ export default function ProjectsListScreen() {
       return;
     }
 
+    const { incrementProjects } = useSubscriptionStore.getState();
+
     try {
       setIsCreatingProject(true);
       const baseUrl = getBackendUrl();
@@ -359,6 +364,9 @@ export default function ProjectsListScreen() {
           status: data.project.status,
           budget: projectData.budget,
         };
+        
+        // Increment project counter in subscription store
+        incrementProjects();
         
         // Also add to local store as fallback
         addProjectToStore({
@@ -463,6 +471,11 @@ export default function ProjectsListScreen() {
         onStatusChange={handleStatusChange}
         onDelete={handleDeleteProject}
         onShare={handleShareProject}
+      />
+      <UpgradeRequiredModal
+        visible={showLimitModal && limitModalType === "project"}
+        onClose={() => setShowLimitModal(false)}
+        type="project"
       />
     </View>
   );
