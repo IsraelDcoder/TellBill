@@ -168,16 +168,20 @@ class AudioRecorderService {
 
       if (!recordingUri) {
         console.error("[AudioRecorder] Recording URI is null");
+        this.recording = null;
         return null;
       }
 
-      // Get duration from status
+      // Get duration from status before clearing
       const status = await this.recording.getStatusAsync();
       const duration = status.durationMillis ? status.durationMillis / 1000 : 0;
 
       console.log(`[AudioRecorder] Recording stopped. URI: ${recordingUri}, Duration: ${duration}s`);
 
+      // Clear the recording reference AFTER we've extracted all info
       this.recording = null;
+      this.currentError = null;
+      this.notifyStatusChange();
 
       return {
         uri: recordingUri,
@@ -185,7 +189,11 @@ class AudioRecorderService {
         isReady: true,
       };
     } catch (error) {
-      console.error("[AudioRecorder] Failed to stop recording:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("[AudioRecorder] Failed to stop recording:", errorMsg);
+      this.recording = null; // Clear reference even on error
+      this.currentError = errorMsg;
+      this.notifyStatusChange();
       throw error;
     }
   }
@@ -219,11 +227,19 @@ class AudioRecorderService {
   async cleanup(): Promise<void> {
     try {
       if (this.recording) {
-        await this.recording.stopAndUnloadAsync();
+        console.log("[AudioRecorder] Cleaning up recording...");
+        // Check if recording is already stopped before trying to unload
+        const status = await this.recording.getStatusAsync();
+        if (status.isRecording) {
+          // Only unload if still recording
+          await this.recording.stopAndUnloadAsync();
+        }
         this.recording = null;
       }
     } catch (error) {
-      console.error("[AudioRecorder] Cleanup error:", error);
+      // Silently ignore errors during cleanup - recording may already be unloaded
+      console.log("[AudioRecorder] Cleanup complete (recording was already cleaned up)");
+      this.recording = null;
     }
   }
 
