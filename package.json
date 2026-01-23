@@ -33,7 +33,6 @@
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
-    "better-sqlite3": "^12.6.2",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.1",
@@ -92,9 +91,9 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.0",
     "@types/node": "24.10.0",
+    "@types/pg": "^8.16.0",
     "@types/react": "~19.1.0",
     "@types/react-native": "^0.72.8",
     "babel-plugin-module-resolver": "^5.0.2",

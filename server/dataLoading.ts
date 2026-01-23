@@ -98,11 +98,11 @@ export function registerDataLoadingRoutes(app: Express) {
         });
       }
 
-      // ✅ Filter by ownerUserId (team members are owned by the user who added them)
+      // ✅ Filter by userId (team members belong to the user)
       const userTeam = await db
         .select()
         .from(team)
-        .where(eq(team.ownerUserId, userId));
+        .where(eq(team.userId, userId));
 
       return res.status(200).json({
         success: true,
@@ -167,17 +167,17 @@ export function registerDataLoadingRoutes(app: Express) {
       }
 
       // ✅ CRITICAL: Filter by userId
-      // Fetch most recent activities (ordered by timestamp DESC)
-      const userActivities = await db
+      // Fetch most recent activities (ordered by createdAt DESC)
+      const activities = await db
         .select()
         .from(activityLog)
         .where(eq(activityLog.userId, userId))
-        .orderBy((t) => t.timestamp)
+        .orderBy((t) => t.createdAt)
         .limit(parseInt(limit as string));
 
       return res.status(200).json({
         success: true,
-        data: userActivities.reverse(), // Most recent first
+        data: activities.reverse(), // Most recent first
       });
     } catch (error) {
       console.error("[Data] Error fetching activities:", error);
@@ -221,7 +221,7 @@ export function registerDataLoadingRoutes(app: Express) {
           db
             .select()
             .from(team)
-            .where(eq(team.ownerUserId, userId)),
+            .where(eq(team.userId, userId)),
           db
             .select()
             .from(preferences)

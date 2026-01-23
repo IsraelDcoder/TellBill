@@ -13,8 +13,7 @@ export interface LogActivityRequest {
   action: string; // "created_invoice", "sent_invoice", "approved_invoice", etc.
   resourceType: string; // "invoice", "project", etc.
   resourceId: string;
-  resourceName?: string;
-  details?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -24,13 +23,11 @@ export interface LogActivityRequest {
 export async function logActivity(req: LogActivityRequest): Promise<void> {
   try {
     await db.insert(activityLog).values({
-      id: `activity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       userId: req.userId,
       action: req.action,
       resourceType: req.resourceType,
       resourceId: req.resourceId,
-      details: req.details ? JSON.stringify(req.details) : null,
-      timestamp: new Date(),
+      metadata: req.metadata ? JSON.stringify(req.metadata) : null,
     });
     console.log(`[ActivityLog] Logged: ${req.action} for ${req.resourceType} ${req.resourceId}`);
   } catch (error) {
@@ -49,7 +46,7 @@ export function registerActivityLogRoutes(app: Express) {
    */
   app.post("/api/activity/log", async (req: Request, res: Response) => {
     try {
-      const { userId, action, resourceType, resourceId, resourceName, details } = req.body;
+      const { userId, action, resourceType, resourceId, metadata } = req.body;
 
       if (!userId || !action || !resourceType || !resourceId) {
         return res.status(400).json({
@@ -63,8 +60,7 @@ export function registerActivityLogRoutes(app: Express) {
         action,
         resourceType,
         resourceId,
-        resourceName,
-        details,
+        metadata,
       });
 
       return res.status(200).json({

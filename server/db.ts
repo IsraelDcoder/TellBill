@@ -1,18 +1,38 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import path from "path";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-// Parse SQLite database path
-const dbPath = process.env.DATABASE_URL.replace("file:", "");
-const absolutePath = path.resolve(process.cwd(), dbPath);
+// ✅ PostgreSQL Connection Pool
+// Reuses connections for better performance and resource management
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // SSL configuration for production
+  ssl: process.env.DATABASE_SSL === "true" ? {
+    rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+  } : false,
+  // Connection pool settings
+  max: 20,           // Maximum connections in pool
+  idleTimeoutMillis: 30000,  // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 2000,  // Fail fast if can't get connection
+});
 
-// Create SQLite connection
-const sqlite = new Database(absolutePath);
-sqlite.pragma("journal_mode = WAL");
+// Log connection pool events
+pool.on("error", (err) => {
+  console.error("[DB Pool] Unexpected error on idle client:", err);
+});
 
-// Initialize drizzle with SQLite client
-export const db = drizzle(sqlite);
+pool.on("connect", () => {
+  console.log("[DB] New connection established");
+});
+
+// Initialize drizzle with PostgreSQL client
+export const db = drizzle(pool);
+
+// ✅ Graceful shutdown
+export async function closeDb() {
+  await pool.end();
+  console.log("[DB] Connection pool closed");
+}

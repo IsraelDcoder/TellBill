@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-01-23T09:23:10.630Z",
+  "tables": {
+    "users": [
+      {
+        "id": "0438e804-082e-4b74-b722-f32db02b2582",
+        "email": "theonyekachithompson@gmail.com",
+        "password": "$2b$10$6gf8myGO9PzYtkxqjzfOvOkOca7rLFjFmH5gyCdj8hjal30DzL9Ti",
+        "name": "Israel Onyekachi Thompson ",
+        "company_name": null,
+        "company_phone": null,
+        "company_email": null,
+        "company_address": null,
+        "company_website": null,
+        "company_tax_id": null,
+        "current_plan": "free",
+        "is_subscribed": 0,
+        "subscription_status": "inactive",
+        "created_at": 1768939106323
+      }
+    ],
+    "preferences": [],
+    "job_sites": [],
+    "team": [],
+    "projects": [
+      {
+        "id": "58a2e4ed-21a3-449f-a05d-92d47e7772c8",
+        "user_id": "0438e804-082e-4b74-b722-f32db02b2582",
+        "name": "Olive Estate",
+        "description": "Client: Mr. Thompson, Address: Banana island",
+        "status": "active",
+        "created_at": 1769025593732,
+        "updated_at": 1769025593732
+      },
+      {
+        "id": "71d0e728-2585-4c8b-bb08-14fbbb98b2cf",
+        "user_id": "0438e804-082e-4b74-b722-f32db02b2582",
+        "name": "Black soup",
+        "description": "Client: Precious, Address: Ekpoma",
+        "status": "active",
+        "created_at": 1769101795182,
+        "updated_at": 1769101795182
+      }
+    ],
+    "invoices": [],
+    "activity_log": [],
+    "inventory_items": [],
+    "stock_history": [],
+    "reorder_orders": []
+  },
+  "rowCounts": {
+    "users": 1,
+    "preferences": 0,
+    "job_sites": 0,
+    "team": 0,
+    "projects": 2,
+    "invoices": 0,
+    "activity_log": 0,
+    "inventory_items": 0,
+    "stock_history": 0,
+    "reorder_orders": 0
+  }
+}

@@ -1,17 +1,14 @@
 import { defineConfig } from "drizzle-kit";
-import path from "path";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+  throw new Error("DATABASE_URL environment variable is required (PostgreSQL connection string)");
 }
-
-const dbPath = process.env.DATABASE_URL.replace("file:", "");
 
 export default defineConfig({
   out: "./migrations",
   schema: "./shared/schema.ts",
-  dialect: "sqlite",
+  dialect: "postgresql",
   dbCredentials: {
-    url: dbPath,
+    url: process.env.DATABASE_URL,
   },
 });

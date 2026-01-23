@@ -1,10 +1,15 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 
-export const users = sqliteTable("users", {
+// ✅ MIGRATION NOTE: Changed from sqliteTable to pgTable, updated types for PostgreSQL
+// - integer("created_at", { mode: "timestamp_ms" }) → timestamp with time zone
+// - real → numeric for financial precision
+// - integer with boolean mode → native boolean type
+
+export const users = pgTable("users", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
@@ -18,11 +23,11 @@ export const users = sqliteTable("users", {
   companyWebsite: text("company_website"),
   companyTaxId: text("company_tax_id"),
   currentPlan: text("current_plan").default("free"), // free, solo, team, enterprise
-  isSubscribed: integer("is_subscribed", { mode: "boolean" }).default(false),
+  isSubscribed: boolean("is_subscribed").default(false),
   subscriptionStatus: text("subscription_status").default("inactive"), // active, inactive, cancelled, expired
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -35,7 +40,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // Job Sites table - for team level usage
-export const jobSites = sqliteTable("job_sites", {
+export const jobSites = pgTable("job_sites", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
@@ -46,16 +51,16 @@ export const jobSites = sqliteTable("job_sites", {
   location: text("location"),
   description: text("description"),
   status: text("status").default("active"), // active, inactive, completed
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
 // Inventory Items table - items at each job site
-export const inventoryItems = sqliteTable("inventory_items", {
+export const inventoryItems = pgTable("inventory_items", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
@@ -69,17 +74,17 @@ export const inventoryItems = sqliteTable("inventory_items", {
   currentStock: integer("current_stock").default(0),
   minimumStock: integer("minimum_stock").default(10),
   reorderQuantity: integer("reorder_quantity").default(50),
-  unitCost: integer("unit_cost").default(0), // stored in cents
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  unitCost: numeric("unit_cost", { precision: 10, scale: 2 }).default("0"), // USD with 2 decimals
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
 // Stock History table - audit trail for inventory changes
-export const stockHistory = sqliteTable("stock_history", {
+export const stockHistory = pgTable("stock_history", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
@@ -91,330 +96,200 @@ export const stockHistory = sqliteTable("stock_history", {
   previousStock: integer("previous_stock").notNull(),
   newStock: integer("new_stock").notNull(),
   reason: text("reason"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
 // Reorder Orders table - track reorder requests
-export const reorderOrders = sqliteTable("reorder_orders", {
+export const reorderOrders = pgTable("reorder_orders", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
   itemId: text("item_id")
     .notNull()
     .references(() => inventoryItems.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   quantity: integer("quantity").notNull(),
   status: text("status").default("pending"), // pending, ordered, received, cancelled
-  orderDate: integer("order_date", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  expectedDate: integer("expected_date", { mode: "timestamp_ms" }),
-  receivedDate: integer("received_date", { mode: "timestamp_ms" }),
-  supplier: text("supplier"),
   notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
-export type JobSite = typeof jobSites.$inferSelect;
-export type InsertJobSite = typeof jobSites.$inferInsert;
-export type InventoryItem = typeof inventoryItems.$inferSelect;
-export type InsertInventoryItem = typeof inventoryItems.$inferInsert;
-export type StockHistory = typeof stockHistory.$inferSelect;
-export type ReorderOrder = typeof reorderOrders.$inferSelect;
-/**
- * ✅ USER DATA OWNERSHIP ENFORCEMENT
- *
- * RULE: Every piece of data MUST belong to a userId
- *
- * The following tables track user data ownership:
- * - invoices
- * - profiles
- * - companyInfo
- * - projects
- * - team
- * - preferences
- * - activityLog
- *
- * Each table MUST have userId or chain to userId (e.g., siteId → jobSites.userId)
- */
-
-// Invoices table - tracks all user invoices
-export const invoices = sqliteTable("invoices", {
+// Team table - for managing team members
+export const team = pgTable("team", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: Every invoice belongs to a user
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  invoiceNumber: text("invoice_number").notNull(),
-  clientName: text("client_name").notNull(),
-  clientEmail: text("client_email"),
-  clientPhone: text("client_phone"),
-  clientAddress: text("client_address"),
-  jobAddress: text("job_address"),
-  subtotal: integer("subtotal").default(0),
-  tax: integer("tax").default(0),
-  total: integer("total").default(0),
-  status: text("status").default("draft"), // draft, sent, pending, paid, overdue
-  notes: text("notes"),
-  safetyNotes: text("safety_notes"),
-  paymentTerms: text("payment_terms"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  memberName: text("member_name"),
+  memberEmail: text("member_email"),
+  role: text("role").default("member"), // admin, manager, member
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-  sentAt: integer("sent_at", { mode: "timestamp_ms" }),
-  paidAt: integer("paid_at", { mode: "timestamp_ms" }),
-  dueDate: integer("due_date", { mode: "timestamp_ms" }),
+    .defaultNow(),
 });
 
-// Profiles table - tracks user profile information
-export const profiles = sqliteTable("profiles", {
+export type Team = typeof team.$inferSelect;
+
+// Preferences table - user preferences
+export const preferences = pgTable("preferences", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: One profile per user
   userId: text("user_id")
     .notNull()
-    .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  phoneNumber: text("phone_number"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  currency: text("currency").default("USD"),
+  language: text("language").default("en"),
+  theme: text("theme").default("light"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
-// Company Info table - tracks user's company information
-export const companyInfo = sqliteTable("company_info", {
+// Projects table
+export const projects = pgTable("projects", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: One company per user
-  userId: text("user_id")
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  companyName: text("company_name"),
-  companyPhone: text("company_phone"),
-  companyEmail: text("company_email"),
-  companyAddress: text("company_address"),
-  companyWebsite: text("company_website"),
-  companyTaxId: text("company_tax_id"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-// Projects table - tracks user projects
-export const projects = sqliteTable("projects", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: Every project belongs to a user
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  description: text("description"),
-  status: text("status").default("active"), // active, inactive, completed
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  clientName: text("client_name"),
+  address: text("address"),
+  status: text("status").default("active"),
+  budget: numeric("budget", { precision: 12, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
+    .defaultNow(),
 });
 
-// Team Members table - tracks team members (users invited by owner)
-export const team = sqliteTable("team", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: Team member belongs to owner user
-  ownerUserId: text("owner_user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  memberName: text("member_name").notNull(),
-  memberEmail: text("member_email"),
-  role: text("role").default("member"), // owner, admin, member
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-// Activity Log table - audit trail of user actions
-export const activityLog = sqliteTable("activity_log", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: Every activity belongs to a user
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  action: text("action").notNull(), // created_invoice, sent_invoice, etc.
-  resourceType: text("resource_type"), // invoice, project, etc.
-  resourceId: text("resource_id"),
-  details: text("details"), // JSON string with metadata
-  timestamp: integer("timestamp", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-// Preferences table - tracks user app preferences
-export const preferences = sqliteTable("preferences", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  // ✅ OWNERSHIP: One preferences record per user
-  userId: text("user_id")
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  notificationsEnabled: integer("notifications_enabled", { mode: "boolean" }).default(true),
-  emailOnInvoiceSent: integer("email_on_invoice_sent", { mode: "boolean" }).default(true),
-  darkMode: integer("dark_mode", { mode: "boolean" }).default(false),
-  theme: text("theme").default("default"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-// Type exports
-export type Invoice = typeof invoices.$inferSelect;
-export type InsertInvoice = typeof invoices.$inferInsert;
-export type Profile = typeof profiles.$inferSelect;
-export type InsertProfile = typeof profiles.$inferInsert;
-export type CompanyInfo = typeof companyInfo.$inferSelect;
-export type InsertCompanyInfo = typeof companyInfo.$inferInsert;
 export type Project = typeof projects.$inferSelect;
-export type InsertProject = typeof projects.$inferInsert;
-export type TeamMember = typeof team.$inferSelect;
-export type InsertTeamMember = typeof team.$inferInsert;
-export type ActivityLogEntry = typeof activityLog.$inferSelect;
-export type InsertActivityLogEntry = typeof activityLog.$inferInsert;
-export type Preference = typeof preferences.$inferSelect;
-export type InsertPreference = typeof preferences.$inferInsert;
 
-// ✅ EVENT-DRIVEN PROJECT HUB
-// Immutable append-only ledger for all project activities
-// Events are the source of truth; invoices are computed from events
-export const projectEvents = sqliteTable("project_events", {
-  // Unique event identifier
+// Invoices table
+export const invoices = pgTable("invoices", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "set null" }),
+  createdBy: text("created_by"),
+  status: text("status").default("draft"),
+  total: numeric("total", { precision: 12, scale: 2 }).default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+
+// Activity Log table
+export const activityLog = pgTable("activity_log", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  resourceType: text("resource_type").notNull(), // invoice, project, receipt
+  resourceId: text("resource_id").notNull(),
+  action: text("action").notNull(), // created, updated, deleted, sent
+  metadata: text("metadata"), // JSON
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ActivityLog = typeof activityLog.$inferSelect;
+
+// Receipts table
+export const receipts = pgTable("receipts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  cloudPath: text("cloud_path"),
+  isProcessed: boolean("is_processed").default(false),
+  extractedData: text("extracted_data"), // JSON
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Receipt = typeof receipts.$inferSelect;
+
+// Payments table
+export const payments = pgTable("payments", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  invoiceId: text("invoice_id")
+    .notNull()
+    .references(() => invoices.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  method: text("method"), // cash, check, transfer
+  reference: text("reference"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+
+// Project Events table - append-only ledger for project recordings
+export const projectEvents = pgTable("project_events", {
   eventId: text("event_id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-
-  // Foreign keys
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  audioId: text("audio_id"), // Links to raw audio file if applicable
-
-  // Event classification
+  audioId: text("audio_id"),
   eventType: text("event_type").notNull(), // LABOR | MATERIAL | PROGRESS | ALERT
   source: text("source").notNull(), // VOICE | MANUAL | IMPORT
-  confidence: real("confidence"), // 0.0-1.0 for AI-extracted events
-
-  // Transcription (if voice source)
+  confidence: numeric("confidence", { precision: 3, scale: 2 }),
   transcript: text("transcript"),
-
-  // Event data (JSON-encoded based on eventType)
-  // LABOR: { description, hours, ratePerHour, total }
-  // MATERIAL: { name, quantity, unitPrice, total }
-  // PROGRESS: { status, location }
-  // ALERT: { alertType, severity, recommendedAction }
-  data: text("data"), // JSON string
-
-  // Client visibility and approval tracking
-  visibleToClient: integer("visible_to_client", { mode: "boolean" }).default(true),
-  approvalStatus: text("approval_status").default("PENDING"), // PENDING | APPROVED | REJECTED
-  approvedAt: integer("approved_at", { mode: "timestamp_ms" }),
+  data: text("data"), // JSON
+  visibleToClient: boolean("visible_to_client").default(true),
+  approvalStatus: text("approval_status").default("PENDING"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   approvalNotes: text("approval_notes"),
-  photos: text("photos"), // JSON array of photo URLs
-
-  // Audit trail
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
+  photos: text("photos"), // JSON array
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
-    .$defaultFn(() => new Date()),
-
-  // Immutability flag
-  isDeleted: integer("is_deleted", { mode: "boolean" }).default(false),
-  deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+    .defaultNow(),
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   deletionReason: text("deletion_reason"),
 });
 
-// Audio backup for dispute resolution
-export const audioLogs = sqliteTable("audio_logs", {
-  audioId: text("audio_id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-
-  // Audio metadata
-  duration: integer("duration"), // milliseconds
-  fileSize: integer("file_size"), // bytes
-  mimeType: text("mime_type"), // audio/wav, audio/mp3, etc
-  storageUrl: text("storage_url"), // S3 or similar
-  localPath: text("local_path"), // For offline mode
-
-  // Timestamps
-  recordedAt: integer("recorded_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  uploadedAt: integer("uploaded_at", { mode: "timestamp_ms" }),
-});
-
-// Offline sync queue
-export const syncQueue = sqliteTable("sync_queue", {
-  syncId: text("sync_id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-
-  // Queue item type
-  itemType: text("item_type").notNull(), // EVENT | AUDIO | INVOICE
-  itemData: text("item_data").notNull(), // JSON payload
-
-  // Sync status
-  status: text("status").notNull(), // PENDING | SYNCING | COMPLETED | FAILED
-  attempts: integer("attempts").default(0),
-  lastError: text("last_error"),
-
-  // Timestamps
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  syncedAt: integer("synced_at", { mode: "timestamp_ms" }),
-});
-
-// Type exports
 export type ProjectEvent = typeof projectEvents.$inferSelect;
 export type InsertProjectEvent = typeof projectEvents.$inferInsert;
-export type AudioLog = typeof audioLogs.$inferSelect;
-export type InsertAudioLog = typeof audioLogs.$inferInsert;
-export type SyncQueueItem = typeof syncQueue.$inferSelect;
-export type InsertSyncQueueItem = typeof syncQueue.$inferInsert;

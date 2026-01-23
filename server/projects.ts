@@ -55,7 +55,8 @@ export function registerProjectRoutes(app: Express) {
         .values({
           userId,
           name,
-          description: `Client: ${clientName}, Address: ${address}`,
+          clientName,
+          address,
           status,
         })
         .returning();
@@ -154,9 +155,15 @@ export function registerProjectRoutes(app: Express) {
         });
       }
 
+      // Convert budget to string for PostgreSQL numeric type
+      const updatedValues = {
+        ...updates,
+        budget: updates.budget ? String(updates.budget) : undefined,
+      };
+
       const updatedProject = await db
         .update(projects)
-        .set(updates)
+        .set(updatedValues)
         .where(eq(projects.id, projectId))
         .returning();
 
