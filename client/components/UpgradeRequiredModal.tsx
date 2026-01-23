@@ -34,7 +34,7 @@ export function UpgradeRequiredModal({
 }: UpgradeRequiredModalProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { voiceRecordingsUsed, invoicesCreated, projectsCreated, currentPlan } = useSubscriptionStore();
+  const { voiceRecordingsUsed, invoicesCreated, projectsAccessed, currentPlan } = useSubscriptionStore();
 
   const getContent = () => {
     if (type === "voice") {
@@ -56,10 +56,10 @@ export function UpgradeRequiredModal({
     } else if (type === "project") {
       return {
         icon: "briefcase",
-        title: "Project Limit Reached",
-        description: `You've created 3 free projects. Upgrade to ${
+        title: "Project Access Limit Reached",
+        description: `You've accessed the projects page 3 times this month. Upgrade to ${
           currentPlan === "free" ? "Solo" : "a higher plan"
-        } to manage unlimited projects.`,
+        } for unlimited access.`,
       };
     } else {
       return {

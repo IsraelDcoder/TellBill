@@ -83,6 +83,7 @@ interface SubscriptionStore {
   voiceRecordingsUsed: number;
   invoicesCreated: number;
   projectsCreated: number;
+  projectsAccessed: number;
   currentPlan: Plan;
   isSubscribed: boolean;
   
@@ -97,7 +98,8 @@ interface SubscriptionStore {
   setSubscription: (subscription: Subscription | null) => void;
   incrementVoiceRecordings: () => void;
   incrementInvoices: () => void;
-  incrementProjects: () => void;
+  incrementProjectCreation: () => void;
+  incrementProjectAccess: () => void;
   setCurrentPlan: (plan: Plan) => void;
   setIsSubscribed: (subscribed: boolean) => void;
   setIsLoading: (loading: boolean) => void;
@@ -105,9 +107,9 @@ interface SubscriptionStore {
   setPricingTiers: (tiers: PricingTier[]) => void;
   resetSubscription: () => void;
   resetMonthlyUsage: () => void;
-  syncWithServer: (data: { voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
+  syncWithServer: (data: { voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; projectsAccessed: number; currentPlan: Plan; isSubscribed: boolean }) => void;
   // ✅ Hydration: Load subscription from backend (login rehydration)
-  hydrateSubscription: (data: { userEntitlement: Entitlement; subscription: Subscription | null; voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; currentPlan: Plan; isSubscribed: boolean }) => void;
+  hydrateSubscription: (data: { userEntitlement: Entitlement; subscription: Subscription | null; voiceRecordingsUsed: number; invoicesCreated: number; projectsCreated: number; projectsAccessed: number; currentPlan: Plan; isSubscribed: boolean }) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionStore>()(
@@ -121,6 +123,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       voiceRecordingsUsed: 0,
       invoicesCreated: 0,
       projectsCreated: 0,
+      projectsAccessed: 0,
       currentPlan: "free",
       isSubscribed: false,
       
@@ -199,8 +202,11 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       incrementInvoices: () =>
         set((state) => ({ invoicesCreated: state.invoicesCreated + 1 })),
 
-      incrementProjects: () =>
+      incrementProjectCreation: () =>
         set((state) => ({ projectsCreated: state.projectsCreated + 1 })),
+
+      incrementProjectAccess: () =>
+        set((state) => ({ projectsAccessed: state.projectsAccessed + 1 })),
 
       setCurrentPlan: (plan) =>
         set({ currentPlan: plan }),
@@ -222,6 +228,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           voiceRecordingsUsed: data.voiceRecordingsUsed,
           invoicesCreated: data.invoicesCreated,
           projectsCreated: data.projectsCreated,
+          projectsAccessed: data.projectsAccessed,
           currentPlan: data.currentPlan,
           isSubscribed: data.isSubscribed,
         }),
@@ -231,6 +238,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           voiceRecordingsUsed: 0,
           invoicesCreated: 0,
           projectsCreated: 0,
+          projectsAccessed: 0,
         }),
 
       resetSubscription: () =>
@@ -240,6 +248,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           voiceRecordingsUsed: 0,
           invoicesCreated: 0,
           projectsCreated: 0,
+          projectsAccessed: 0,
           currentPlan: "free",
           isSubscribed: false,
           // ✅ SAFETY GUARD: Prevent accidental data loss
@@ -257,6 +266,7 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           voiceRecordingsUsed: data.voiceRecordingsUsed,
           invoicesCreated: data.invoicesCreated,
           projectsCreated: data.projectsCreated,
+          projectsAccessed: data.projectsAccessed,
           currentPlan: data.currentPlan,
           isSubscribed: data.isSubscribed,
         }),

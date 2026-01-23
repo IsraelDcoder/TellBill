@@ -22,6 +22,7 @@ import { ProjectActionsModal } from "@/components/ProjectActionsModal";
 import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
+import { PLAN_LIMITS } from "@/constants/planLimits";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useAuth } from "@/context/AuthContext";
 import { useProjectStore } from "@/stores/projectStore";
@@ -142,11 +143,20 @@ export default function ProjectsListScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [selectedProjectForActions, setSelectedProjectForActions] = useState<Project | null>(null);
-  const { showLimitModal, limitModalType, setShowLimitModal } = useSubscriptionStore();
+  const { currentPlan, projectsAccessed, incrementProjectAccess, showLimitModal, limitModalType, setShowLimitModal } = useSubscriptionStore();
 
   // Load projects from API when screen mounts
   useEffect(() => {
     if (userId) {
+      // Check project access limit for free users
+      const projectAccessLimit = PLAN_LIMITS[currentPlan]?.projectAccess;
+      if (currentPlan === "free" && projectsAccessed >= projectAccessLimit) {
+        setShowLimitModal(true, "project");
+        return;
+      }
+      
+      // Increment access counter
+      incrementProjectAccess();
       loadProjects();
     }
   }, [userId]);
@@ -325,8 +335,6 @@ export default function ProjectsListScreen() {
       return;
     }
 
-    const { incrementProjects } = useSubscriptionStore.getState();
-
     try {
       setIsCreatingProject(true);
       const baseUrl = getBackendUrl();
@@ -365,9 +373,6 @@ export default function ProjectsListScreen() {
           budget: projectData.budget,
         };
         
-        // Increment project counter in subscription store
-        incrementProjects();
-        
         // Also add to local store as fallback
         addProjectToStore({
           name: projectData.name,
@@ -376,6 +381,10 @@ export default function ProjectsListScreen() {
           status: projectData.status,
           budget: projectData.budget,
         });
+        
+        // Increment project creation count for usage tracking
+        const { incrementProjectCreation } = useSubscriptionStore.getState();
+        incrementProjectCreation();
         
         setProjects((prev) => [newProject, ...prev]);
         setShowCreateModal(false);

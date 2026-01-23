@@ -15,9 +15,10 @@ import { Button } from "@/components/Button";
 import { LockedFeatureOverlay } from "@/components/LockedFeatureOverlay";
 import { useTheme } from "@/hooks/useTheme";
 import { useFeatureLock } from "@/hooks/useFeatureLock";
+import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { PLAN_LIMITS } from "@/constants/planLimits";
-import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 
 interface CreateProjectModalProps {
   visible: boolean;
@@ -48,13 +49,13 @@ export function CreateProjectModal({
   const { theme, isDark } = useTheme();
   const { isLocked } = useFeatureLock("projects");
   const { currentPlan, projectsCreated, setShowLimitModal } = useSubscriptionStore();
-  const projectLimit = PLAN_LIMITS[currentPlan].projects;
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState<"active" | "completed" | "on_hold">("active");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [budget, setBudget] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [errors, setErrors] = useState<{
     projectName?: string;
     clientName?: string;
@@ -88,9 +89,10 @@ export function CreateProjectModal({
   };
 
   const handleCreate = () => {
-    // Check project limit
-    if (projectsCreated >= projectLimit && currentPlan === "free") {
-      setShowLimitModal(true, "project");
+    // Check project creation limit for free users
+    const projectCreateLimit = PLAN_LIMITS[currentPlan].projectsCreated;
+    if (projectsCreated >= projectCreateLimit && currentPlan === "free") {
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -142,19 +144,6 @@ export function CreateProjectModal({
             <ThemedText type="h2" style={styles.title}>
               Create New Project
             </ThemedText>
-
-            {currentPlan === "free" && (
-              <View style={[styles.usageIndicator, { backgroundColor: isDark ? theme.backgroundSecondary : "#F0F9FF" }]}>
-                <ThemedText type="body" style={{ fontSize: 13 }}>
-                  📊 Projects created: <ThemedText type="body" style={{ fontWeight: "600" }}>{projectsCreated}</ThemedText> / <ThemedText type="body" style={{ fontWeight: "600" }}>{projectLimit}</ThemedText>
-                </ThemedText>
-                {projectsCreated >= projectLimit && (
-                  <ThemedText type="small" style={{ color: "#DC2626", marginTop: 4 }}>
-                    ⚠️ Upgrade to Solo plan for unlimited projects
-                  </ThemedText>
-                )}
-              </View>
-            )}
 
             <View style={styles.formGroup}>
               <ThemedText type="body" style={styles.label}>
@@ -346,6 +335,12 @@ export function CreateProjectModal({
           </View>
         </View>
       </View>
+
+      <UpgradeRequiredModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        type="project"
+      />
     </Modal>
   );
 }
@@ -388,14 +383,6 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: Spacing.lg,
     marginTop: Spacing.sm,
-  },
-  usageIndicator: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.lg,
-    borderLeftWidth: 3,
-    borderLeftColor: "#3B82F6",
   },
   formGroup: {
     marginBottom: Spacing.lg,

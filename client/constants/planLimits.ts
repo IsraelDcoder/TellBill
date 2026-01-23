@@ -2,7 +2,8 @@ export const PLAN_LIMITS = {
   free: {
     voiceRecordings: 3,
     invoices: 3,
-    projects: 3,
+    projectsCreated: 3,
+    projectAccess: 3,
     features: {
       voiceRecording: true,
       basicInvoicing: true,
@@ -22,7 +23,8 @@ export const PLAN_LIMITS = {
   solo: {
     voiceRecordings: Infinity,
     invoices: Infinity,
-    projects: Infinity,
+    projectsCreated: Infinity,
+    projectAccess: Infinity,
     features: {
       voiceRecording: true,
       basicInvoicing: true,
@@ -42,7 +44,8 @@ export const PLAN_LIMITS = {
   team: {
     voiceRecordings: Infinity,
     invoices: Infinity,
-    projects: Infinity,
+    projectsCreated: Infinity,
+    projectAccess: Infinity,
     features: {
       voiceRecording: true,
       basicInvoicing: true,
@@ -62,7 +65,8 @@ export const PLAN_LIMITS = {
   enterprise: {
     voiceRecordings: Infinity,
     invoices: Infinity,
-    projects: Infinity,
+    projectsCreated: Infinity,
+    projectAccess: Infinity,
     features: {
       voiceRecording: true,
       basicInvoicing: true,
