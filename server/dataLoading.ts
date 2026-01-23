@@ -272,6 +272,8 @@ export function registerDataLoadingRoutes(app: Express) {
             subscription: null,
             voiceRecordingsUsed: 0,
             invoicesCreated: userInvoices.length,
+            projectsCreated: 0,
+            projectsAccessed: 0,
             currentPlan: "free",
             isSubscribed: false,
           },

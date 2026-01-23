@@ -28,12 +28,11 @@ export function getBackendUrl(): string {
     return url;
   }
 
-  // Default: Use your machine's IP (works for physical phones on same network)
-  // For emulators, set EXPO_PUBLIC_BACKEND_IP=10.0.2.2
-  const DEFAULT_IP = "10.64.118.139";
+  // Default: Use localhost for development web app
+  // For native emulators/phones, set EXPO_PUBLIC_BACKEND_IP environment variable
+  const DEFAULT_IP = "10.231.53.139"; // Your machine IP for phone testing
   const url = `http://${DEFAULT_IP}:${DEV_PORT}`;
-  console.log("[Backend] Using default development IP:", url);
-  console.log("[Backend] If using emulator, set EXPO_PUBLIC_BACKEND_IP=10.0.2.2");
+  console.log("[Backend] Using development URL:", url);
   return url;
 }
 

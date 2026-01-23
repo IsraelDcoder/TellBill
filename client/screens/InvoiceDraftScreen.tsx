@@ -46,10 +46,6 @@ export default function InvoiceDraftScreen() {
   const { user } = useAuth();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Check if user has reached invoice creation limit
-  const invoiceLimit = PLAN_LIMITS[currentPlan].voiceRecordings;
-  const hasReachedLimit = invoicesCreated >= invoiceLimit;
-
   const invoiceData = route.params?.invoiceData ?? {
     clientName: "",
     clientEmail: "",
@@ -71,6 +67,10 @@ export default function InvoiceDraftScreen() {
     status: "draft" as const,
   };
 
+  // Check if user has reached invoice creation limit
+  const invoiceLimitFromPlan = PLAN_LIMITS[currentPlan].invoices;
+  const hasInvoiceLimit = invoicesCreated >= invoiceLimitFromPlan && currentPlan === "free";
+
   const formatCurrency = (amount: number) => {
     // Convert from cents to dollars
     const dollars = amount / 100;
@@ -82,7 +82,7 @@ export default function InvoiceDraftScreen() {
 
   const handleApprove = () => {
     // Check if user has reached invoice limit
-    if (hasReachedLimit) {
+    if (hasInvoiceLimit) {
       setShowUpgradeModal(true);
       return;
     }

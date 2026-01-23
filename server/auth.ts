@@ -290,7 +290,12 @@ export function registerAuthRoutes(app: Express) {
    */
   app.get("/api/auth/user/:userId", async (req: Request, res: Response) => {
     try {
-      const { userId } = req.params;
+      let { userId } = req.params;
+      
+      // Ensure userId is a string (not array)
+      if (Array.isArray(userId)) {
+        userId = userId[0];
+      }
 
       if (!userId) {
         return res.status(400).json({
@@ -303,7 +308,7 @@ export function registerAuthRoutes(app: Express) {
       const userResult = await db
         .select()
         .from(users)
-        .where(eq(users.id, userId))
+        .where(eq(users.id, userId as string))
         .limit(1);
 
       if (userResult.length === 0) {
