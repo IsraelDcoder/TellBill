@@ -32,10 +32,7 @@ export interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * AuthProvider - Manages authentication state and session
- * Wraps the entire app to provide auth context to all screens
- */
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any | null>(null);
@@ -56,11 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     scopes: ["profile", "email"],
   });
 
-  /**
-   * ✅ SAFETY: Only reset data during NEW signup
-   * Reset is called ONLY when creating a brand new user account
-   * Ensures returning users never have their data accidentally cleared
-   */
+
   const resetDataForNewSignup = () => {
     console.log("[Auth] Resetting data for NEW user signup");
     resetInvoices();
@@ -69,19 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetSubscription();
   };
 
-  /**
-   * ✅ SAFETY GUARD: Prevent accidental data deletion
-   * This function should NEVER be called during normal login
-   * Only explicit user actions (delete account) should remove data
-   * 
-   * Raises error if reset is attempted on returning user
-   */
+
   const safeReset = (operation: "signup" | "logout" | "login") => {
     if (operation === "signup") {
-      // ✅ ALLOWED: New user signup
+     
       resetDataForNewSignup();
     } else if (operation === "logout") {
-      // ❌ BLOCKED: Logout should NOT reset data
+      
       console.error(
         "[Auth] ❌ SAFETY VIOLATION: Attempted data reset on logout",
         "Data persistence must survive logout"
@@ -105,34 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, []);
 
-  /**
-   * Listen for auth state changes (session expiration, logout, etc.)
-   */
   useEffect(() => {
     if (!session) return;
 
-    // TODO: Set up Supabase real-time listener
-    // supabase.auth.onAuthStateChange((event, newSession) => {
-    //   if (event === 'SIGNED_IN') {
-    //     setSession(newSession);
-    //   } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-    //     handleSignOut();
-    //   } else if (event === 'TOKEN_REFRESHED') {
-    //     setSession(newSession);
-    //   }
-    // });
   }, [session]);
 
   const initializeAuth = async () => {
     try {
       setIsLoading(true);
       
-      // TODO: Call Supabase to get current session
-      // const { data: { session } } = await supabase.auth.getSession();
-      // if (session?.user) {
-      //   setSession(session);
-      //   setUser(mapSupabaseUserToUser(session.user));
-      // }
       
       console.log("[Auth] Initialization complete");
     } catch (err) {
@@ -148,14 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setIsLoading(true);
 
-      // ✅ SIGNUP: Call backend signup endpoint to create new user
-      // Backend validates:
-      // - Email and password are provided
-      // - Password meets security requirements
-      // - Email is not already registered
-      // Returns 201 CREATED if successful (new user ID generated)
-      // Returns 409 CONFLICT if email already exists
-      // Returns 400 BAD REQUEST if validation fails
+
       const response = await fetch(getApiUrl("/api/auth/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -164,10 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      // ✅ STRICT: Only accept 201 Created (not 200, not any success)
-      // 201 CREATED = New user successfully created with unique stable ID
       if (response.status !== 201) {
-        // 409: Email exists | 400: Bad request | 500: Server error
+ 
         throw new Error(data.error || "Sign up failed");
       }
 
@@ -264,28 +223,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // ✅ DATA PERSISTENCE: Do NOT reset user data on login
-      // User's previous data (invoices, projects, etc.) must persist
-      // Data is loaded from backend after successful login
+      console.log("[Auth] Setting user and session...");
       setUser(newUser);
       setSession({ user: newUser });
-      
-      // Load all user data from backend
-      await loadUserDataFromBackend(newUser.id);
-      
       setCurrentPlan("free");
+      
+      console.log("[Auth] ✅ Login complete! Navigation should happen now");
+      console.log("[Auth] User:", newUser.email);
+      console.log("[Auth] About to exit signIn function...");
+      
 
+      setTimeout(() => {
+        console.log("[Auth] Background: Starting data rehydration...");
+        loadUserDataFromBackend(newUser.id).catch((err) => {
+          console.warn("[Auth] Background: Data rehydration failed:", err);
+        });
+      }, 100);
+      
       console.log("[Auth] Sign in successful:", email);
     } catch (err) {
+      console.error("[Auth] Sign in error:", err);
       // ✅ CRITICAL: On any error, ensure user remains null (no unauthorized access)
       setUser(null);
       setSession(null);
 
       const message = err instanceof Error ? err.message : "Sign in failed";
       setError(message);
+      console.error("[Auth] Error set, throwing:", message);
       throw err;
     } finally {
+      console.log("[Auth] FINALLY: Setting isLoading to false");
       setIsLoading(false);
+      console.log("[Auth] FINALLY: isLoading set to false, function complete");
     }
   };
 
@@ -400,12 +369,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setIsLoading(true);
 
-      // TODO: Call Supabase resetPasswordForEmail
-      // const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      //   redirectTo: "https://yourapp.com/reset-password",
-      // });
-      //
-      // if (error) throw error;
+
 
       console.log("[Auth] Password reset email sent to:", email);
     } catch (err) {
@@ -428,19 +392,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * - UI must immediately reflect existing user history
    */
   const loadUserDataFromBackend = async (userId: string) => {
+    // Non-blocking data rehydration - never block login
     try {
       console.log("[Auth] REHYDRATING USER STATE from backend:", userId);
+      const backendUrl = getApiUrl(`/api/data/all?userId=${userId}`);
+      console.log("[Auth] Fetching from URL:", backendUrl);
 
       // Fetch all user data in one request (most efficient)
-      const response = await fetch(getApiUrl(`/api/data/all?userId=${userId}`));
+      const response = await fetch(backendUrl);
+      console.log("[Auth] Data fetch response status:", response.status);
 
       if (!response.ok) {
         console.warn("[Auth] Failed to rehydrate data:", response.status);
-        // Non-blocking: If backend fails, use cached data from AsyncStorage
         return;
       }
 
       const { success, data } = await response.json();
+      console.log("[Auth] Data rehydration response:", { success, hasData: !!data });
 
       if (!success || !data) {
         console.warn("[Auth] Invalid rehydration response");
@@ -448,7 +416,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ CRITICAL: Hydrate invoiceStore from backend
-      // Restore user's invoices (not empty for returning users)
       if (data.invoices && Array.isArray(data.invoices)) {
         console.log(`[Auth] Rehydrating ${data.invoices.length} invoices`);
         const { hydrateInvoices } = useInvoiceStore.getState();
@@ -456,7 +423,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ CRITICAL: Hydrate projectStore from backend
-      // Restore user's projects
       if (data.projects && Array.isArray(data.projects)) {
         console.log(`[Auth] Rehydrating ${data.projects.length} projects`);
         const { hydrateProjects } = useProjectStore.getState();
@@ -464,16 +430,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ CRITICAL: Hydrate teamStore from backend
-      // Restore user's team members and invites
       if (data.team && Array.isArray(data.team)) {
         console.log(`[Auth] Rehydrating ${data.team.length} team members`);
         const { hydrateTeam } = useTeamStore.getState();
-        // Note: Need to also hydrate invites if they come from backend
         hydrateTeam(data.team, data.invites || []);
       }
 
       // ✅ CRITICAL: Hydrate profileStore from backend
-      // Restore user's profile information
       if (data.profile) {
         console.log("[Auth] Rehydrating user profile");
         const { hydrateProfile } = useProfileStore.getState();
@@ -484,7 +447,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ CRITICAL: Hydrate subscriptionStore from backend
-      // Restore user's subscription and usage data
       if (data.subscription) {
         console.log("[Auth] Rehydrating subscription data");
         const { hydrateSubscription } = useSubscriptionStore.getState();
@@ -492,7 +454,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ NEW: Hydrate activityStore from backend
-      // Restore user's activity log (recent invoice creations, sends, etc.)
       if (data.activities && Array.isArray(data.activities)) {
         console.log(`[Auth] Rehydrating ${data.activities.length} activities`);
         hydrateActivities(data.activities);

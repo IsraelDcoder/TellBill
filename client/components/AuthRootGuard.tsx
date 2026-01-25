@@ -24,16 +24,13 @@ export function AuthRootGuard({
   const { theme } = useTheme();
   const [isReady, setIsReady] = useState(false);
 
-  // Wait for auth initialization to complete
-  useEffect(() => {
-    if (!isLoading) {
-      setIsReady(true);
-      onAuthStateReady?.(isAuthenticated);
-    }
-  }, [isLoading, isAuthenticated, onAuthStateReady]);
+  console.log("[AuthRootGuard] Render: isLoading=", isLoading, "isAuthenticated=", isAuthenticated, "user=", user?.email);
 
   // Show loading while auth state is being checked
-  if (!isReady) {
+  // This directly checks isLoading instead of using isReady
+  // so it always shows spinner when isLoading is true
+  if (isLoading) {
+    console.log("[AuthRootGuard] Showing spinner - isLoading is true");
     return (
       <View
         style={{
@@ -48,6 +45,7 @@ export function AuthRootGuard({
     );
   }
 
+  console.log("[AuthRootGuard] Rendering children - isLoading is false");
   // ✅ Only render children once auth state is ready
   // Navigation will handle directing to login or main app based on isAuthenticated
   return <>{children}</>;
