@@ -345,6 +345,9 @@ export default function TranscriptReviewScreen() {
       const taxAmount = Math.round(subtotal * taxRate); // Calculate tax in cents
       const total = subtotal + taxAmount; // Total in cents
 
+      // ✅ FIXED: Convert labor rate to cents (store as integer cents, not dollars)
+      const laborRateInCents = Math.round(safeNumber(parseFloat(formData.laborRate)) * 100);
+
       navigation.navigate("InvoiceDraft", {
         invoiceData: {
           clientName: safeText(formData.clientName) || "Unnamed Client",
@@ -355,7 +358,7 @@ export default function TranscriptReviewScreen() {
           jobDescription: safeText(formData.jobDescription),
           items,
           laborHours: safeNumber(parseFloat(formData.laborHours)),
-          laborRate: safeNumber(parseFloat(formData.laborRate)),
+          laborRate: laborRateInCents,
           laborTotal,
           materialsTotal,
           subtotal,

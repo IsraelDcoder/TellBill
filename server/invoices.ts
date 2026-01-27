@@ -4,6 +4,16 @@ import {
   sendInvoiceSMS,
   sendInvoiceWhatsApp,
 } from "./emailService";
+import {
+  validateInvoice,
+  validateUUID,
+  validateEmail,
+  validatePhoneNumber,
+  validateEnum,
+  isRequired,
+  respondWithValidationErrors,
+} from "./utils/validation";
+import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 
 interface SendInvoiceRequest {
   invoiceId: string;
@@ -37,21 +47,70 @@ export function registerInvoiceRoutes(app: Express) {
         const { invoiceId, method, contact, clientName, invoiceData } =
           req.body as SendInvoiceRequest;
 
-        // Validate input
-        if (!invoiceId || !method || !contact) {
-          console.log("[Invoice] Validation failed - missing fields");
-          return res.status(400).json({
-            success: false,
-            error: "Missing required fields: invoiceId, method, contact",
+        // ✅ COMPREHENSIVE INPUT VALIDATION
+        const errors: any[] = [];
+
+        // Validate invoiceId (UUID format)
+        if (!isRequired(invoiceId)) {
+          errors.push({ field: "invoiceId", message: "Invoice ID is required" });
+        } else if (!validateUUID(invoiceId)) {
+          errors.push({
+            field: "invoiceId",
+            message: "Invalid invoice ID format",
           });
         }
 
-        // Validate method
-        if (!["email", "sms", "whatsapp"].includes(method)) {
-          console.log("[Invoice] Validation failed - invalid method:", method);
-          return res.status(400).json({
+        // Validate method enum
+        if (!isRequired(method)) {
+          errors.push({ field: "method", message: "Method is required" });
+        } else if (!validateEnum(method, ["email", "sms", "whatsapp"])) {
+          errors.push({
+            field: "method",
+            message: "Method must be email, sms, or whatsapp",
+          });
+        }
+
+        // Validate contact based on method
+        if (!isRequired(contact)) {
+          errors.push({ field: "contact", message: "Contact is required" });
+        } else if (method === "email" && !validateEmail(contact)) {
+          errors.push({ field: "contact", message: "Invalid email format" });
+        } else if (
+          (method === "sms" || method === "whatsapp") &&
+          !validatePhoneNumber(contact)
+        ) {
+          errors.push({
+            field: "contact",
+            message: "Invalid phone number format",
+          });
+        }
+
+        // Validate clientName
+        if (!isRequired(clientName)) {
+          errors.push({
+            field: "clientName",
+            message: "Client name is required",
+          });
+        }
+
+        if (errors.length > 0) {
+          return respondWithValidationErrors(res, errors);
+        }
+
+        // ✅ CHECK INVOICE SEND LIMIT (for free tier users)
+        // This is just a basic check; in production you'd track actual sent count
+        const limitCheck = await checkUsageLimit(
+          req,
+          "invoices",
+          0 // In production: query actual invoice count
+        );
+
+        if (!limitCheck.allowed && limitCheck.upgradeRequired) {
+          return res.status(403).json({
             success: false,
-            error: "Invalid method. Must be email, sms, or whatsapp",
+            error: "Invoice limit reached",
+            message: limitCheck.error,
+            upgradeRequired: true,
           });
         }
 

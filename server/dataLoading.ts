@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { invoices, projects, team, preferences, users, activityLog, projectEvents } from "@shared/schema";
+import { invoices, projects, preferences, users, activityLog, projectEvents } from "@shared/schema";
 import { db } from "./db";
 
 /**
@@ -84,40 +84,6 @@ export function registerDataLoadingRoutes(app: Express) {
   });
 
   /**
-   * GET /api/data/team?userId={userId}
-   * Get all team members for a user
-   */
-  app.get("/api/data/team", async (req: Request, res: Response) => {
-    try {
-      const { userId } = req.query;
-
-      if (!userId || typeof userId !== "string") {
-        return res.status(400).json({
-          success: false,
-          error: "userId query parameter is required",
-        });
-      }
-
-      // ✅ Filter by userId (team members belong to the user)
-      const userTeam = await db
-        .select()
-        .from(team)
-        .where(eq(team.userId, userId));
-
-      return res.status(200).json({
-        success: true,
-        data: userTeam,
-      });
-    } catch (error) {
-      console.error("[Data] Error fetching team:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to fetch team members",
-      });
-    }
-  });
-
-  /**
    * GET /api/data/preferences?userId={userId}
    * Get user's preferences
    */
@@ -172,7 +138,6 @@ export function registerDataLoadingRoutes(app: Express) {
         .select()
         .from(activityLog)
         .where(eq(activityLog.userId, userId))
-        .orderBy((t) => t.createdAt)
         .limit(parseInt(limit as string));
 
       return res.status(200).json({
@@ -208,7 +173,7 @@ export function registerDataLoadingRoutes(app: Express) {
       }
 
       // ✅ Fetch all user data in parallel (efficient)
-      const [userInvoices, userProjects, userTeam, userPreferences, userProfile, userActivities] =
+      const [userInvoices, userProjects, userPreferences, userProfile, userActivities] =
         await Promise.all([
           db
             .select()
@@ -218,10 +183,6 @@ export function registerDataLoadingRoutes(app: Express) {
             .select()
             .from(projects)
             .where(eq(projects.userId, userId)),
-          db
-            .select()
-            .from(team)
-            .where(eq(team.userId, userId)),
           db
             .select()
             .from(preferences)
@@ -247,7 +208,6 @@ export function registerDataLoadingRoutes(app: Express) {
         data: {
           invoices: userInvoices,
           projects: userProjects,
-          team: userTeam,
           preferences: userPreferences,
           activities: userActivities.reverse(), // Most recent first
           // Profile data from users table

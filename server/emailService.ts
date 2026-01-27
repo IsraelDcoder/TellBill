@@ -6,6 +6,44 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@tellbill.com";
 
 /**
+ * Generic email sending function
+ * Used by scope proof engine and other services
+ */
+export async function sendEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<void> {
+  try {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(params.to)) {
+      throw new Error(`Invalid email address: ${params.to}`);
+    }
+
+    const response = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    });
+
+    if (response.error) {
+      throw new Error(`Email send failed: ${response.error.message}`);
+    }
+
+    console.log(
+      `[EmailService] ✅ Email sent to ${params.to} - ${params.subject}`
+    );
+  } catch (error) {
+    console.error(
+      `[EmailService] Failed to send email to ${params.to}:`,
+      error
+    );
+    throw error;
+  }
+}
+
+/**
  * Send invoice via email using Resend service
  * @param to - Recipient email address
  * @param clientName - Name of the client receiving the invoice
@@ -336,3 +374,109 @@ export async function sendWelcomeEmail(
     };
   }
 }
+
+/**
+ * Send payment confirmation email
+ * @param email - Recipient email
+ * @param paymentDetails - Payment information
+ */
+export async function sendPaymentConfirmationEmail(
+  email: string,
+  paymentDetails: {
+    name: string;
+    plan: string;
+    amount: string;
+    currency: string;
+    date: string;
+  }
+) {
+  try {
+    console.log(
+      `[EmailService] Sending payment confirmation to ${email}`
+    );
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error(`Invalid email address: ${email}`);
+    }
+
+    const planName = paymentDetails.plan
+      .charAt(0)
+      .toUpperCase() + paymentDetails.plan.slice(1);
+
+    const confirmationHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px; border-radius: 8px;">
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h1 style="color: #333; margin-bottom: 20px;">Payment Confirmation</h1>
+          
+          <p style="color: #666; font-size: 16px;">Hi ${paymentDetails.name},</p>
+          
+          <p style="color: #666; font-size: 16px;">Thank you for upgrading to the <strong>${planName}</strong> plan on TellBill!</p>
+          
+          <div style="background-color: #f9f9f9; padding: 20px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+            <h2 style="color: #333; margin-top: 0;">Transaction Details</h2>
+            <p style="color: #666;"><strong>Plan:</strong> ${planName}</p>
+            <p style="color: #666;"><strong>Amount:</strong> ${paymentDetails.currency} ${paymentDetails.amount}</p>
+            <p style="color: #666;"><strong>Date:</strong> ${paymentDetails.date}</p>
+            <p style="color: #666;"><strong>Status:</strong> <span style="color: #4CAF50; font-weight: bold;">✓ Confirmed</span></p>
+          </div>
+          
+          <h3 style="color: #333;">What's Included:</h3>
+          <ul style="color: #666;">
+            <li>Unlimited voice recordings</li>
+            <li>Unlimited invoices</li>
+            <li>Advanced templates and customization</li>
+            <li>Payment tracking and analytics</li>
+            <li>Priority email support</li>
+          </ul>
+          
+          <p style="color: #666; margin-top: 30px;">
+            Your subscription is now active. You can start using all premium features immediately.
+          </p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+            <p style="color: #999; font-size: 12px;">
+              If you have any questions, please reach out to our support team at support@tellbill.com
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const response = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Payment Confirmed - TellBill ${planName} Plan`,
+      html: confirmationHtml,
+    });
+
+    if (response.error) {
+      console.error(
+        `[EmailService] Failed to send payment confirmation to ${email}:`,
+        response.error
+      );
+      throw new Error(
+        `Payment confirmation email send failed: ${response.error.message}`
+      );
+    }
+
+    console.log(
+      `[EmailService] ✅ Payment confirmation sent successfully to ${email}`
+    );
+
+    return {
+      success: true,
+      message: `Payment confirmation sent to ${email}`,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending payment confirmation to ${email}:`,
+      errorMessage
+    );
+    throw error; // Throw for webhook to handle
+  }
+}
+

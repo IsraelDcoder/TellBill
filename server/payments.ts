@@ -2,6 +2,15 @@ import type { Express, Request, Response } from "express";
 import { eq } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { db } from "./db";
+import {
+  validatePayment,
+  validateUUID,
+  validateEmail,
+  respondWithValidationErrors,
+} from "./utils/validation";
+import { handleFlutterwaveWebhook } from "./utils/flutterwaveWebhook";
+import { paymentRateLimiter, webhookRateLimiter } from "./utils/rateLimiter";
+import { capturePaymentEvent, captureException } from "./utils/sentry";
 
 interface InitiatePaymentRequest {
   userId: string;
@@ -30,8 +39,9 @@ export function registerPaymentRoutes(app: Express) {
   /**
    * POST /api/payments/initiate
    * Initialize a Flutterwave payment
+   * ✅ Rate limited to 10 attempts per hour per user
    */
-  app.post("/api/payments/initiate", async (req: Request, res: Response) => {
+  app.post("/api/payments/initiate", paymentRateLimiter, async (req: Request, res: Response) => {
     try {
       const {
         userId,
@@ -41,20 +51,14 @@ export function registerPaymentRoutes(app: Express) {
         userFullName,
       } = req.body as InitiatePaymentRequest;
 
-      // Validate input
-      if (!userId || !planId || !email) {
-        return res.status(400).json({
-          success: false,
-          error: "Missing required fields: userId, planId, email",
+      // ✅ COMPREHENSIVE INPUT VALIDATION
+      const validation = validatePayment(req.body);
+      if (!validation.isValid) {
+        captureException("Payment validation failed", {
+          endpoint: "/api/payments/initiate",
+          errors: validation.errors,
         });
-      }
-
-      // Validate plan ID
-      if (!["solo", "team", "enterprise"].includes(planId)) {
-        return res.status(400).json({
-          success: false,
-          error: "Invalid plan ID. Must be solo, team, or enterprise",
-        });
+        return respondWithValidationErrors(res, validation.errors);
       }
 
       // Check if user exists
@@ -95,6 +99,9 @@ export function registerPaymentRoutes(app: Express) {
 
       console.log("[Payment] Initiated payment:", reference);
 
+      // Capture payment initiation
+      capturePaymentEvent(true, reference, amount, userId, undefined);
+
       return res.status(200).json({
         success: true,
         reference,
@@ -103,6 +110,7 @@ export function registerPaymentRoutes(app: Express) {
       });
     } catch (error) {
       console.error("[Payment] Initiation error:", error);
+      captureException(error as Error, { endpoint: "/api/payments/initiate" });
       return res.status(500).json({
         success: false,
         error: "Internal server error during payment initiation",
@@ -256,4 +264,24 @@ export function registerPaymentRoutes(app: Express) {
       });
     }
   });
+
+  /**
+   * POST /api/webhooks/flutterwave
+   * Webhook handler for Flutterwave payment confirmations
+   * ✅ WEBHOOK SECURITY:
+   *    - Signature verification (HMAC-SHA256)
+   *    - Verifies X-Flutterwave-Signature header
+   *    - Only processes valid, signed webhooks
+   *    - Upgrades subscription only on "successful" status
+   *    - Rate limited (permissive for Flutterwave retries)
+   */
+  app.post(
+    "/api/webhooks/flutterwave",
+    webhookRateLimiter,
+    async (req: Request, res: Response) => {
+      // Call webhook handler
+      await handleFlutterwaveWebhook(req, res);
+    }
+  );
 }
+

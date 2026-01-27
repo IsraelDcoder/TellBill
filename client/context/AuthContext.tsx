@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Google from "expo-auth-session/providers/google";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProjectStore } from "@/stores/projectStore";
-import { useTeamStore } from "@/stores/teamStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
@@ -38,10 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null); // ✅ JWT token
   const { resetSubscription, setCurrentPlan } = useSubscriptionStore();
   const { resetInvoices } = useInvoiceStore();
   const { resetProjects } = useProjectStore();
-  const { resetTeam } = useTeamStore();
   const { setCompanyInfo } = useProfileStore();
   const { hydrateActivities } = useActivityStore();
 
@@ -53,12 +53,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     scopes: ["profile", "email"],
   });
 
+  /**
+   * ✅ Save JWT token to AsyncStorage
+   */
+  const saveToken = async (token: string) => {
+    try {
+      await AsyncStorage.setItem("authToken", token);
+      setAuthToken(token);
+      console.log("[Auth] JWT token saved to AsyncStorage");
+    } catch (err) {
+      console.error("[Auth] Failed to save token:", err);
+    }
+  };
+
+  /**
+   * ✅ Retrieve JWT token from AsyncStorage
+   */
+  const getStoredToken = async (): Promise<string | null> => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (token) {
+        setAuthToken(token);
+        console.log("[Auth] JWT token retrieved from AsyncStorage");
+      }
+      return token;
+    } catch (err) {
+      console.error("[Auth] Failed to retrieve token:", err);
+      return null;
+    }
+  };
+
+  /**
+   * ✅ Clear JWT token from AsyncStorage
+   */
+  const clearToken = async () => {
+    try {
+      await AsyncStorage.removeItem("authToken");
+      setAuthToken(null);
+      console.log("[Auth] JWT token cleared from AsyncStorage");
+    } catch (err) {
+      console.error("[Auth] Failed to clear token:", err);
+    }
+  };
 
   const resetDataForNewSignup = () => {
     console.log("[Auth] Resetting data for NEW user signup");
     resetInvoices();
     resetProjects();
-    resetTeam();
     resetSubscription();
   };
 
@@ -101,6 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
+      // ✅ Try to retrieve stored JWT token
+      const storedToken = await getStoredToken();
+      
+      if (storedToken) {
+        console.log("[Auth] Found stored JWT token, restoring user session...");
+        // Token exists, user was previously authenticated
+        // Note: Verify token with backend in next step
+      }
       
       console.log("[Auth] Initialization complete");
     } catch (err) {
@@ -143,6 +192,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: data.user.name,
         createdAt: data.user.createdAt,
       };
+
+      // ✅ SAVE JWT TOKEN to AsyncStorage
+      if (data.token) {
+        await saveToken(data.token);
+      } else {
+        console.warn("[Auth] No JWT token received from signup");
+      }
 
       // ✅ NEW USER: Only new users start with empty data
       // Reset called here because this is a NEW signup, not returning user
@@ -210,6 +266,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: data.user.name,
         createdAt: data.user.createdAt,
       };
+
+      // ✅ SAVE JWT TOKEN to AsyncStorage
+      if (data.token) {
+        await saveToken(data.token);
+      } else {
+        console.warn("[Auth] No JWT token received from login");
+      }
 
       // Load company info from response if available
       if (data.user.companyName || data.user.companyPhone || data.user.companyEmail || data.user.companyAddress || data.user.companyWebsite || data.user.companyTaxId) {
@@ -429,13 +492,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hydrateProjects(data.projects);
       }
 
-      // ✅ CRITICAL: Hydrate teamStore from backend
-      if (data.team && Array.isArray(data.team)) {
-        console.log(`[Auth] Rehydrating ${data.team.length} team members`);
-        const { hydrateTeam } = useTeamStore.getState();
-        hydrateTeam(data.team, data.invites || []);
-      }
-
       // ✅ CRITICAL: Hydrate profileStore from backend
       if (data.profile) {
         console.log("[Auth] Rehydrating user profile");
@@ -483,6 +539,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setError(null);
       setIsLoading(true);
+
+      // ✅ CLEAR JWT TOKEN from AsyncStorage
+      await clearToken();
 
       // TODO: Call Supabase signOut
       // const { error } = await supabase.auth.signOut();

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approve Work - TellBill</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            color: #D4AF37;
+            margin-bottom: 12px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6B7280;
+        }
+
+        .content {
+            margin-bottom: 32px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #9CA3AF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .section-content {
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #D4AF37;
+        }
+
+        .work-description {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1F2937;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .photo {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #E5E7EB;
+        }
+
+        .cost-box {
+            background: #ECFDF5;
+            border-left-color: #10B981;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+
+        .cost-label {
+            font-size: 12px;
+            color: #6B7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .cost-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: #10B981;
+        }
+
+        .approval-buttons {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 16px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn-approve {
+            background: #D4AF37;
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #C19B28;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-question {
+            background: white;
+            color: #6B7280;
+            border: 2px solid #E5E7EB;
+        }
+
+        .btn-question:hover {
+            border-color: #D4AF37;
+            color: #D4AF37;
+            background: #FFFBF0;
+        }
+
+        .error {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #EF4444;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #ECFDF5;
+            color: #065F46;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6B7280;
+        }
+
+        .spinner {
+            border: 4px solid #E5E7EB;
+            border-top: 4px solid #D4AF37;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E7EB;
+            font-size: 12px;
+            color: #9CA3AF;
+        }
+
+        .footer-link {
+            color: #D4AF37;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">TellBill</div>
+            <div class="title">Approve Work</div>
+            <div class="subtitle">Review and confirm the work completed on your project</div>
+        </div>
+
+        <div class="error" id="errorBox"></div>
+        <div class="success" id="successBox"></div>
+
+        <div id="loadingState" class="loading">
+            <div class="spinner"></div>
+            <p>Loading work details...</p>
+        </div>
+
+        <div id="contentState" class="hidden">
+            <div class="content">
+                <!-- What Was Done -->
+                <div class="section">
+                    <div class="section-title">📋 Work Completed</div>
+                    <div class="section-content">
+                        <div class="work-description" id="description"></div>
+                    </div>
+                </div>
+
+                <!-- Photos -->
+                <div class="section" id="photosSection">
+                    <div class="section-title">📸 Photo Proof</div>
+                    <div class="section-content">
+                        <div class="photos-grid" id="photosGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Cost -->
+                <div class="section">
+                    <div class="cost-box">
+                        <div class="cost-label">Total Cost</div>
+                        <div class="cost-amount" id="cost">$0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="approval-buttons">
+                <button class="btn btn-approve" id="approveBtn">✅ Approve & Add to Invoice</button>
+                <button class="btn btn-question" id="questionBtn">❓ I Have a Question</button>
+            </div>
+
+            <div class="footer">
+                <p>This approval will be added to your invoice immediately.</p>
+                <p style="margin-top: 8px;">Need help? <a href="mailto:support@tellbill.app" class="footer-link">Contact support</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const getTokenFromUrl = () => {
+            const path = window.location.pathname;
+            return path.split('/approve/')[1];
+        };
+
+        const showError = (message) => {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+        };
+
+        const showSuccess = (message) => {
+            const successBox = document.getElementById('successBox');
+            successBox.textContent = message;
+            successBox.style.display = 'block';
+        };
+
+        const loadScopeProof = async () => {
+            const token = getTokenFromUrl();
+            
+            if (!token) {
+                showError('Invalid approval link');
+                return;
+            }
+
+            try {
+                // Fetch scope proof details from API
+                const response = await fetch(`/api/scope-proof/${token}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showError('Invalid or expired approval link');
+                    return;
+                }
+
+                const proof = data.data;
+
+                // Populate UI
+                document.getElementById('description').textContent = proof.description;
+                document.getElementById('cost').textContent = `$${parseFloat(proof.estimatedCost).toFixed(2)}`;
+
+                // Populate photos
+                if (proof.photos && proof.photos.length > 0) {
+                    const photosGrid = document.getElementById('photosGrid');
+                    proof.photos.forEach(photoUrl => {
+                        const img = document.createElement('img');
+                        img.src = photoUrl;
+                        img.alt = 'Work proof';
+                        img.className = 'photo';
+                        photosGrid.appendChild(img);
+                    });
+                } else {
+                    document.getElementById('photosSection').style.display = 'none';
+                }
+
+                // Show content
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('contentState').classList.remove('hidden');
+
+                // Setup event listeners
+                document.getElementById('approveBtn').addEventListener('click', () => handleApprove(token));
+                document.getElementById('questionBtn').addEventListener('click', () => handleQuestion(proof));
+
+            } catch (error) {
+                console.error('Error loading scope proof:', error);
+                showError('Failed to load approval details');
+            }
+        };
+
+        const handleApprove = async (token) => {
+            const approveBtn = document.getElementById('approveBtn');
+            approveBtn.disabled = true;
+            approveBtn.textContent = 'Processing...';
+
+            try {
+                // For this demo, we'll use a placeholder client email
+                // In production, you'd ask for email confirmation
+                const response = await fetch(`/api/scope-proof/approve/${token}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        clientEmail: 'client@example.com', // In production, get this from input
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('contentState').classList.add('hidden');
+                    showSuccess('✅ Work approved and added to invoice!');
+                    
+                    // Redirect after success
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                } else {
+                    approveBtn.disabled = false;
+                    approveBtn.textContent = '✅ Approve & Add to Invoice';
+                    showError(data.error || 'Failed to approve work');
+                }
+            } catch (error) {
+                console.error('Error approving:', error);
+                approveBtn.disabled = false;
+                approveBtn.textContent = '✅ Approve & Add to Invoice';
+                showError('Failed to process approval');
+            }
+        };
+
+        const handleQuestion = (proof) => {
+            // Send email to contractor
+            window.location.href = `mailto:contractor@example.com?subject=Question about work on your project&body=Hi, I have a question about the work completed today...`;
+        };
+
+        // Load on page load
+        window.addEventListener('load', loadScopeProof);
+    </script>
+</body>
+</html>

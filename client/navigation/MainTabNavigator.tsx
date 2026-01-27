@@ -7,9 +7,8 @@ import { Platform, StyleSheet } from "react-native";
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import ProjectsStackNavigator from "@/navigation/ProjectsStackNavigator";
 import InvoicesStackNavigator from "@/navigation/InvoicesStackNavigator";
-import TeamStackNavigator from "@/navigation/TeamStackNavigator";
-import InventoryStackNavigator from "@/navigation/InventoryStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
+import ApprovalsScreen from "@/screens/ApprovalsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
 
@@ -17,8 +16,7 @@ export type MainTabParamList = {
   HomeTab: undefined;
   ProjectsTab: undefined;
   InvoicesTab: undefined;
-  TeamTab: undefined;
-  InventoryTab: undefined;
+  ApprovalsTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -91,22 +89,12 @@ export default function MainTabNavigator() {
         }}
       />
       <Tab.Screen
-        name="TeamTab"
-        component={TeamStackNavigator}
+        name="ApprovalsTab"
+        component={ApprovalsScreen}
         options={{
-          title: "Team",
+          title: "Approvals",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="users" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="InventoryTab"
-        component={InventoryStackNavigator}
-        options={{
-          title: "Inventory",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="box" size={size} color={color} />
+            <Feather name="check-circle" size={size} color={color} />
           ),
         }}
       />

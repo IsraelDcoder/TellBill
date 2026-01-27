@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { eq } from "drizzle-orm";
 import { projects, users } from "@shared/schema";
 import { db } from "./db";
+import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 
 interface CreateProjectRequest {
   userId: string;
@@ -33,6 +34,22 @@ export function registerProjectRoutes(app: Express) {
         return res.status(400).json({
           success: false,
           error: "Missing required fields: userId, name, clientName, address, status",
+        });
+      }
+
+      // ✅ CHECK PROJECT CREATION LIMIT (for free tier users)
+      const limitCheck = await checkUsageLimit(
+        req,
+        "projectsCreated",
+        0 // In production: query actual project count for this user
+      );
+
+      if (!limitCheck.allowed && limitCheck.upgradeRequired) {
+        return res.status(403).json({
+          success: false,
+          error: "Project limit reached",
+          message: limitCheck.error,
+          upgradeRequired: true,
         });
       }
 

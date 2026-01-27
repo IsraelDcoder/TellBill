@@ -28,6 +28,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useProjectStore } from "@/stores/projectStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { getApiUrl, getBackendUrl } from "@/lib/backendUrl";
+import { getAuthToken } from "@/lib/query-client";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -172,7 +173,14 @@ export default function ProjectsListScreen() {
       const url = `${baseUrl}/api/projects/${userId}`;
       console.log(`[ProjectsList] Loading projects from: ${url}`);
       
-      const response = await fetch(url);
+      // ✅ Get auth token and include in Authorization header
+      const token = await getAuthToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(url, { headers });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

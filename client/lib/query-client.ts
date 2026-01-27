@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
@@ -16,6 +17,19 @@ export function getApiUrl(): string {
   return url.href;
 }
 
+/**
+ * ✅ Get JWT token from AsyncStorage
+ */
+export async function getAuthToken(): Promise<string | null> {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    return token;
+  } catch (err) {
+    console.error("[API] Failed to get auth token:", err);
+    return null;
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -31,9 +45,17 @@ export async function apiRequest(
   const baseUrl = getApiUrl();
   const url = new URL(route, baseUrl);
 
+  // ✅ Get JWT token and include in headers
+  const token = await getAuthToken();
+  const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

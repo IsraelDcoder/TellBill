@@ -8,6 +8,16 @@ import {
   validatePasswordStrength,
 } from "./utils/password";
 import { sendWelcomeEmail } from "./emailService";
+import { generateToken } from "./utils/jwt";
+import {
+  validateSignup,
+  validateLogin,
+  sanitizeEmail,
+  sanitizeString,
+  respondWithValidationErrors,
+} from "./utils/validation";
+import { loginRateLimiter, signupRateLimiter, adaptiveLimiter } from "./utils/rateLimiter";
+import { captureAuthError, setSentryUserContext, captureException } from "./utils/sentry";
 
 interface SignUpRequest {
   email: string;
@@ -22,6 +32,7 @@ interface SignInRequest {
 
 interface AuthResponse {
   success: boolean;
+  token?: string; // ✅ JWT token for authentication
   user?: {
     id: string;
     email: string;
@@ -78,6 +89,7 @@ export function registerAuthRoutes(app: Express) {
    * - 201 Created: New user successfully created
    * - 409 Conflict: Email already registered (user exists)
    * - 400 Bad Request: Invalid input or password requirements not met
+   * - 429 Too Many Requests: Rate limit exceeded
    * - 500 Server Error: Database or system error
    *
    * AUTHENTICATION PRINCIPLE:
@@ -85,25 +97,32 @@ export function registerAuthRoutes(app: Express) {
    * Each successful signup creates exactly ONE new user with a unique ID.
    * This user can then log in with their email and password.
    */
-  app.post("/api/auth/signup", async (req: Request, res: Response) => {
+  app.post("/api/auth/signup", signupRateLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password, name } = req.body as SignUpRequest;
 
-      // VALIDATE: Email and password are both required
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          error: "Email and password are required",
-        } as AuthResponse);
+      // ✅ COMPREHENSIVE INPUT VALIDATION
+      const validation = validateSignup(req.body);
+      if (!validation.isValid) {
+        captureException("Signup validation failed", {
+          endpoint: "/api/auth/signup",
+          errors: validation.errors,
+        });
+        return respondWithValidationErrors(res, validation.errors);
       }
 
       // NORMALIZE: Email to lowercase and trim whitespace
       // This ensures john@example.com and JOHN@EXAMPLE.COM are the same user
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = sanitizeEmail(email);
+      const sanitizedName = name ? sanitizeString(name) : null;
 
       // VALIDATE: Password strength (enforced on backend, not frontend)
       const passwordValidation = validatePasswordStrength(password);
       if (!passwordValidation.isValid) {
+        captureException("Password validation failed", {
+          endpoint: "/api/auth/signup",
+          errors: passwordValidation.errors,
+        });
         return res.status(400).json({
           success: false,
           error: "Password does not meet security requirements",
@@ -140,7 +159,7 @@ export function registerAuthRoutes(app: Express) {
         .values({
           email: normalizedEmail,
           password: hashedPassword,
-          name: name || null,
+          name: sanitizedName,
         })
         .returning();
 
@@ -153,14 +172,26 @@ export function registerAuthRoutes(app: Express) {
 
       const user = newUser[0];
 
+      // ✅ GENERATE JWT TOKEN for authentication
+      const token = generateToken(user.id, user.email);
+
+      // Set user context in Sentry for error tracking
+      setSentryUserContext(user.id, user.email);
+
       // Send welcome email (async, don't block signup)
       sendWelcomeEmail(user.email, user.name || "User").catch((error) => {
         console.error("[Auth] Failed to send welcome email:", error);
+        captureException(error as Error, { 
+          endpoint: "/api/auth/signup",
+          operation: "send_welcome_email",
+          userId: user.id,
+        });
         // Don't throw - signup succeeded, email is just a courtesy
       });
 
       return res.status(201).json({
         success: true,
+        token, // ✅ Include JWT token in response
         user: {
           id: user.id,
           email: user.email,
@@ -170,6 +201,7 @@ export function registerAuthRoutes(app: Express) {
       } as AuthResponse);
     } catch (error) {
       console.error("[Auth] Signup error:", error);
+      captureException(error as Error, { endpoint: "/api/auth/signup" });
       return res.status(500).json({
         success: false,
         error: "Internal server error",
@@ -190,6 +222,7 @@ export function registerAuthRoutes(app: Express) {
    * - 200 OK: Authentication successful, user is logged in
    * - 401 Unauthorized: Email does not exist OR password does not match
    * - 400 Bad Request: Missing email or password fields
+   * - 429 Too Many Requests: Rate limit exceeded
    * - 500 Server Error: Database or system error
    *
    * AUTHENTICATION PRINCIPLES:
@@ -200,22 +233,19 @@ export function registerAuthRoutes(app: Express) {
    * ✅ Never creates new user on login
    * ✅ Generic error message prevents account enumeration
    */
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  app.post("/api/auth/login", loginRateLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body as SignInRequest;
 
-      // VALIDATE: Both email and password are required
-      // Missing fields should be caught by client, but validate on server
-      if (!email || !password) {
-        return res.status(401).json({
-          success: false,
-          error: "Invalid email or password",
-        } as AuthResponse);
+      // ✅ COMPREHENSIVE INPUT VALIDATION
+      const validation = validateLogin(req.body);
+      if (!validation.isValid) {
+        return respondWithValidationErrors(res, validation.errors);
       }
 
       // NORMALIZE: Email to lowercase and trim whitespace
       // Ensures john@example.com and JOHN@EXAMPLE.COM authenticate to same user
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = sanitizeEmail(email);
 
       // LOOKUP: Find user by email in database
       // ✅ This checks if user exists
@@ -230,6 +260,9 @@ export function registerAuthRoutes(app: Express) {
       // ✅ This prevents auto-creating users on login
       // ✅ User must sign up first
       if (userResult.length === 0) {
+        // Capture authentication failure
+        captureAuthError("invalid_credentials", normalizedEmail, req.ip || "unknown");
+        
         // Return generic error to prevent account enumeration
         // (attacker cannot tell if email is registered)
         return res.status(401).json({
@@ -248,6 +281,9 @@ export function registerAuthRoutes(app: Express) {
       // STRICT: Fail if password does not match
       // ✅ This prevents login with wrong password
       if (!passwordMatches) {
+        // Capture authentication failure
+        captureAuthError("invalid_credentials", normalizedEmail, req.ip || "unknown");
+        
         // Return generic error (same as missing user)
         return res.status(401).json({
           success: false,
@@ -259,8 +295,16 @@ export function registerAuthRoutes(app: Express) {
       // ✅ Returns the SAME user ID that was created at signup
       // ✅ User ID is permanent and unique
       // ✅ This is the user's identity for all future operations
+      
+      // ✅ GENERATE JWT TOKEN for authentication
+      const token = generateToken(user.id, user.email);
+      
+      // Set user context in Sentry for error tracking
+      setSentryUserContext(user.id, user.email);
+      
       return res.status(200).json({
         success: true,
+        token, // ✅ Include JWT token in response
         user: {
           id: user.id,
           email: user.email,
@@ -276,6 +320,7 @@ export function registerAuthRoutes(app: Express) {
       } as AuthResponse);
     } catch (error) {
       console.error("[Auth] Login error:", error);
+      captureException(error as Error, { endpoint: "/api/auth/login" });
       return res.status(500).json({
         success: false,
         error: "Internal server error",

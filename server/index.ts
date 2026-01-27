@@ -4,6 +4,15 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  initializeSentry,
+  attachSentryMiddleware,
+  attachSentryErrorHandler,
+} from "./utils/sentry";
+import { initializeBackupSystem } from "./utils/backup";
+import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
+import { securityHeaders } from "./utils/sanitize";
+import { setupCorsSecurely } from "./utils/cors";
 
 const app = express();
 const log = console.log;
@@ -22,38 +31,15 @@ declare module "http" {
 }
 
 function setupCors(app: express.Application) {
-  app.use((req, res, next) => {
-    const origin = req.header("origin");
-
-    // Allow localhost origins for Expo web development (any port)
-    const isLocalhost =
-      origin?.startsWith("http://localhost:") ||
-      origin?.startsWith("http://127.0.0.1:");
-
-    // Allow requests from any local network IP for React Native/Expo development
-    const isLocalNetwork = origin?.startsWith("http://10.") ||
-      origin?.startsWith("http://172.") ||
-      origin?.startsWith("http://192.");
-
-    if (origin && (isLocalhost || isLocalNetwork)) {
-      res.header("Access-Control-Allow-Origin", origin);
-      res.header(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS",
-      );
-      res.header("Access-Control-Allow-Headers", "Content-Type");
-      res.header("Access-Control-Allow-Credentials", "true");
-    }
-
-    if (req.method === "OPTIONS") {
-      return res.sendStatus(200);
-    }
-
-    next();
-  });
+  // ✅ CORS Security Module handles all CORS logic
+  // Supports development (localhost) and production (domain whitelist)
+  setupCorsSecurely(app);
 }
 
 function setupBodyParsing(app: express.Application) {
+  // ✅ Security Headers Middleware - Must be first
+  app.use(securityHeaders);
+
   app.use(
     express.json({
       limit: "50mb",
@@ -228,9 +214,21 @@ function setupErrorHandler(app: express.Application) {
 }
 
 (async () => {
+  // Initialize Sentry error tracking FIRST
+  initializeSentry();
+
+  // Initialize backup system (schedules daily, weekly, monthly backups)
+  initializeBackupSystem();
+
+  // Initialize scope proof scheduler (handles reminders and expiry)
+  initScopeProofScheduler();
+
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
+
+  // Attach Sentry request handlers early in middleware chain
+  attachSentryMiddleware(app);
 
   // Register API routes BEFORE static middleware to avoid conflicts
   const server = await registerRoutes(app);
@@ -238,6 +236,9 @@ function setupErrorHandler(app: express.Application) {
   configureExpoAndLanding(app);
 
   setupErrorHandler(app);
+
+  // Attach Sentry error handler LAST
+  attachSentryErrorHandler(app);
 
   const port = parseInt(process.env.PORT || "3000", 10);
   server.listen(port, "0.0.0.0", () => {

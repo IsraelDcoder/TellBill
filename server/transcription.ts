@@ -1,5 +1,11 @@
 import type { Express, Request, Response } from "express";
 import fetch from "node-fetch";
+import { checkUsageLimit } from "./utils/subscriptionMiddleware";
+import { db } from "./db";
+import { users, scopeProofs } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { analyzeScopeDrift } from "./utils/scopeDriftDetection";
+import { notifyApprovalRequest } from "./services/notificationService";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -248,6 +254,71 @@ export function registerTranscriptionRoutes(app: Express): void {
       const result = await extractInvoiceDataGroq(transcript);
       
       console.log("[Extract] ✅ Invoice extraction successful");
+
+      // ✅ NEW: AUTO-DETECT SCOPE DRIFT
+      console.log("[Extract] Analyzing for scope drift...");
+      const scopeDrift = await analyzeScopeDrift(transcript);
+      
+      if (scopeDrift.detected && scopeDrift.confidence > 0.35) {
+        console.log("[Extract] 🎯 Scope drift detected!", {
+          confidence: scopeDrift.confidence,
+          indicators: scopeDrift.indicators,
+        });
+
+        try {
+          // Get contractor info
+          const contractorId = (req.user as any)?.sub || (req.user as any)?.id;
+          
+          if (!contractorId) {
+            console.log("[Extract] No contractor ID, skipping scope proof creation");
+          } else {
+            const contractor = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, contractorId))
+              .limit(1);
+
+            if (contractor.length > 0 && contractor[0].email) {
+              // Create scope proof automatically
+              const description = scopeDrift.description || result.job_description || "Additional work identified";
+              const estimatedCost = (scopeDrift.estimatedCost || 150).toString();
+              const approvalToken = Math.random().toString(36).substring(2, 15);
+              
+              const newScopeProof = await db
+                .insert(scopeProofs)
+                .values({
+                  userId: contractorId,
+                  projectId: null, // Will be set when contractor links it
+                  description,
+                  estimatedCost,
+                  approvalToken,
+                  status: "draft",
+                })
+                .returning();
+
+              console.log("[Extract] 📋 Auto-created scope proof:", newScopeProof[0]?.id);
+
+              // Include scope drift detection in response
+              return res.json({
+                ...result,
+                scopeDriftDetected: {
+                  detected: true,
+                  confidence: scopeDrift.confidence,
+                  description: scopeDrift.description,
+                  estimatedCost: scopeDrift.estimatedCost,
+                  scopeProofId: newScopeProof[0]?.id,
+                  indicators: scopeDrift.indicators,
+                  message: "📍 We detected extra work in your transcription! Check your Approvals tab to request client approval.",
+                },
+              });
+            }
+          }
+        } catch (scopeError) {
+          console.error("[Extract] Error creating scope proof:", scopeError);
+          // Don't fail the invoice extraction - just continue
+        }
+      }
+
       return res.json(result);
     } catch (error: any) {
       console.error("[Extract] Extraction failed:", error);
@@ -264,6 +335,41 @@ export function registerTranscriptionRoutes(app: Express): void {
   app.post("/api/transcribe", async (req: Request, res: Response) => {
     try {
       const { audioData, audioUri } = req.body;
+
+      // ✅ CHECK VOICE RECORDING LIMIT
+      const contractorId = (req.user as any)?.sub || (req.user as any)?.id;
+      
+      if (!contractorId) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          code: "UNAUTHORIZED",
+        });
+      }
+
+      const voiceRecordingCount = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, contractorId))
+        .limit(1);
+
+      if (voiceRecordingCount.length > 0) {
+        // For now, we'll just track usage. In production, you'd track actual count
+        // and enforce limits here. For this demonstration, we allow it but log it.
+        const limitCheck = await checkUsageLimit(
+          req as any,
+          "voiceRecordings",
+          0 // In production: query actual count from activity log
+        );
+
+        if (!limitCheck.allowed && limitCheck.upgradeRequired) {
+          return res.status(403).json({
+            error: "Voice recording limit reached",
+            code: "LIMIT_EXCEEDED",
+            message: limitCheck.error,
+            upgradeRequired: true,
+          });
+        }
+      }
 
       if (!audioData) {
         return res.status(400).json({

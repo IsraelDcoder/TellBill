@@ -93,7 +93,7 @@ export default function HomeScreen() {
         <View style={styles.kpiRow}>
           <KPICard
             title="Total Revenue"
-            value={`$${stats.revenue.toLocaleString()}`}
+            value={`$${(stats.revenue / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon="dollar-sign"
             trend={{ value: 15, isPositive: true }}
           />

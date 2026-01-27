@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 
-// ✅ MIGRATION NOTE: Changed from sqliteTable to pgTable, updated types for PostgreSQL
+// MIGRATION NOTE: Changed from sqliteTable to pgTable, updated types for PostgreSQL
 // - integer("created_at", { mode: "timestamp_ms" }) → timestamp with time zone
 // - real → numeric for financial precision
 // - integer with boolean mode → native boolean type
@@ -58,88 +58,6 @@ export const jobSites = pgTable("job_sites", {
     .notNull()
     .defaultNow(),
 });
-
-// Inventory Items table - items at each job site
-export const inventoryItems = pgTable("inventory_items", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  siteId: text("site_id")
-    .notNull()
-    .references(() => jobSites.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  description: text("description"),
-  category: text("category"), // materials, tools, equipment, supplies
-  unit: text("unit").default("pcs"), // pcs, kg, liters, meters, etc.
-  currentStock: integer("current_stock").default(0),
-  minimumStock: integer("minimum_stock").default(10),
-  reorderQuantity: integer("reorder_quantity").default(50),
-  unitCost: numeric("unit_cost", { precision: 10, scale: 2 }).default("0"), // USD with 2 decimals
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-// Stock History table - audit trail for inventory changes
-export const stockHistory = pgTable("stock_history", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  itemId: text("item_id")
-    .notNull()
-    .references(() => inventoryItems.id, { onDelete: "cascade" }),
-  action: text("action").notNull(), // add, remove, reorder, adjust
-  quantity: integer("quantity").notNull(),
-  previousStock: integer("previous_stock").notNull(),
-  newStock: integer("new_stock").notNull(),
-  reason: text("reason"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-// Reorder Orders table - track reorder requests
-export const reorderOrders = pgTable("reorder_orders", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  itemId: text("item_id")
-    .notNull()
-    .references(() => inventoryItems.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  quantity: integer("quantity").notNull(),
-  status: text("status").default("pending"), // pending, ordered, received, cancelled
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-// Team table - for managing team members
-export const team = pgTable("team", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  memberName: text("member_name"),
-  memberEmail: text("member_email"),
-  role: text("role").default("member"), // admin, manager, member
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export type Team = typeof team.$inferSelect;
 
 // Preferences table - user preferences
 export const preferences = pgTable("preferences", {
@@ -293,3 +211,74 @@ export const projectEvents = pgTable("project_events", {
 
 export type ProjectEvent = typeof projectEvents.$inferSelect;
 export type InsertProjectEvent = typeof projectEvents.$inferInsert;
+/**
+ * ✅ SCOPE PROOF & CLIENT APPROVAL ENGINE
+ * 
+ * Captures extra/out-of-scope work, gets client approval immediately,
+ * auto-converts to invoice line items.
+ * 
+ * Revenue protection core feature - prevents contractors from losing money
+ * due to forgotten extra work, scope creep, or client disputes.
+ */
+export const scopeProofs = pgTable("scope_proofs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .references(() => projects.id, { onDelete: "set null" }),
+  invoiceId: text("invoice_id")
+    .references(() => invoices.id, { onDelete: "set null" }),
+
+  // Work description (AI-extracted or manual)
+  description: text("description").notNull(),
+
+  // Cost estimation
+  estimatedCost: numeric("estimated_cost", { precision: 10, scale: 2 }).notNull(),
+
+  // Photo URLs (JSON array of image URLs)
+  photos: text("photos").default("[]"), // JSON stringified array
+
+  // Status tracking
+  status: text("status").default("pending"), // pending | approved | expired
+
+  // Client approval
+  approvalToken: text("approval_token").notNull().unique(),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  approvedBy: text("approved_by"), // Client email
+
+  // Timestamps
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ScopeProof = typeof scopeProofs.$inferSelect;
+export type InsertScopeProof = typeof scopeProofs.$inferInsert;
+
+/**
+ * Track notifications sent for scope proofs
+ * Used for managing reminders at 12 hours
+ */
+export const scopeProofNotifications = pgTable("scope_proof_notifications", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  scopeProofId: text("scope_proof_id")
+    .notNull()
+    .references(() => scopeProofs.id, { onDelete: "cascade" }),
+  notificationType: text("notification_type").notNull(), // initial | reminder
+  sentAt: timestamp("sent_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  sentVia: text("sent_via").notNull(), // email | sms | whatsapp
+});
+
+export type ScopeProofNotification = typeof scopeProofNotifications.$inferSelect;
+export type InsertScopeProofNotification = typeof scopeProofNotifications.$inferInsert;
