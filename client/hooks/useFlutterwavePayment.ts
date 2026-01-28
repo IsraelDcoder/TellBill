@@ -10,7 +10,7 @@ import { getApiUrl } from "@/lib/backendUrl";
 interface PaymentResult {
   status: "pending" | "success" | "failed" | "cancelled";
   message?: string;
-  planId?: "solo" | "team" | "enterprise";
+  planId?: "solo" | "professional" | "enterprise";
 }
 
 const prefix = Linking.createURL("/");
@@ -47,7 +47,7 @@ export const useFlutterwavePayment = () => {
       const reference = params.get("ref");
       const planId = params.get("plan") as
         | "solo"
-        | "team"
+        | "professional"
         | "enterprise"
         | null;
       const userId = params.get("userId");
@@ -116,7 +116,7 @@ export const useFlutterwavePayment = () => {
   };
 
   const initiatePayment = async (
-    planId: "solo" | "team" | "enterprise",
+    planId: "solo" | "professional" | "enterprise",
     planName: string,
     userEmail: string,
     userPhone: string,

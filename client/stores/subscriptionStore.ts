@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type Entitlement = "none" | "solo" | "team" | "enterprise";
-export type Plan = "free" | "solo" | "team" | "enterprise";
+export type Entitlement = "none" | "solo" | "professional" | "enterprise";
+export type Plan = "free" | "solo" | "professional" | "enterprise";
 
 export interface Subscription {
   plan: Entitlement;
@@ -15,7 +15,7 @@ export interface Subscription {
 
 export interface PricingTier {
   id: string;
-  name: "solo" | "team" | "enterprise";
+  name: "solo" | "professional" | "enterprise";
   displayName: string;
   monthlyPrice: number;
   annualPrice: number;
@@ -48,16 +48,18 @@ export const PLAN_LIMITS = {
       "Priority email support",
     ],
   },
-  team: {
-    displayName: "Team",
+  professional: {
+    displayName: "Professional",
     usageLimit: Infinity,
     features: [
-      "Unlimited everything",
-      "Team management",
-      "Inventory management",
-      "Advanced analytics",
-      "API access",
-      "24/7 support",
+      "Unlimited voice recordings",
+      "Unlimited invoices",
+      "Scope proof & client approval",
+      "Auto-add approved work",
+      "Photo proof with timestamps",
+      "Approval reminders",
+      "Dispute-ready work logs",
+      "Unlimited projects",
     ],
   },
   enterprise: {
@@ -151,23 +153,23 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           revenueCatProductId: "solo_plan_monthly",
         },
         {
-          id: "team_tier",
-          name: "team",
-          displayName: "Team",
-          monthlyPrice: 99,
-          annualPrice: 990,
+          id: "professional_tier",
+          name: "professional",
+          displayName: "Professional",
+          monthlyPrice: 79,
+          annualPrice: 790,
           isPopular: true,
           features: [
+            "Scope proof & client approval",
+            "Auto-add approved work to invoices",
+            "Photo proof with timestamps",
+            "Approval reminders",
+            "Dispute-ready work logs",
             "Unlimited projects",
-            "Team management (up to 5 members)",
-            "Advanced invoicing",
-            "Payment tracking",
-            "Invoice templates",
-            "Priority email support",
-            "Voice-to-invoice transcription",
-            "Analytics dashboard",
+            "Unlimited voice-to-invoice",
+            "Advanced analytics",
           ],
-          revenueCatProductId: "team_plan_monthly",
+          revenueCatProductId: "professional_plan_monthly",
         },
         {
           id: "enterprise_tier",

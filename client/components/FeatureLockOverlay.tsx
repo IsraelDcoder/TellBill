@@ -7,8 +7,8 @@ import { useTheme } from "@/hooks/useTheme";
 
 interface FeatureLockOverlayProps {
   isLocked: boolean;
-  requiredPlan: "solo" | "team" | "enterprise";
-  currentPlan?: "free" | "solo" | "team" | "enterprise";
+  requiredPlan: "solo" | "professional" | "enterprise";
+  currentPlan?: "free" | "solo" | "professional" | "enterprise";
   onUpgradePress: () => void;
   feature: string;
 }
@@ -67,7 +67,7 @@ export function FeatureLockOverlay({
           style={[styles.benefits, { color: theme.textSecondary }]}
         >
           {requiredPlan === "solo" && "Get unlimited invoices and voice transcriptions"}
-          {requiredPlan === "team" && "Manage teams and collaborate with members"}
+          {requiredPlan === "professional" && "Protect your money with scope proof and client approval"}
           {requiredPlan === "enterprise" && "Access all features with dedicated support"}
         </ThemedText>
       </View>

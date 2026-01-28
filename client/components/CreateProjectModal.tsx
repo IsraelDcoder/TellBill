@@ -89,9 +89,9 @@ export function CreateProjectModal({
   };
 
   const handleCreate = () => {
-    // Check project creation limit for free users
-    const projectCreateLimit = PLAN_LIMITS[currentPlan].projectsCreated;
-    if (projectsCreated >= projectCreateLimit && currentPlan === "free") {
+    // Check project creation limit - only free tier is limited
+    // Free users don't have projects feature at all
+    if (currentPlan === "free") {
       setShowUpgradeModal(true);
       return;
     }

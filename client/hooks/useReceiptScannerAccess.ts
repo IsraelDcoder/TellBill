@@ -4,8 +4,8 @@ import { useSubscriptionStore } from "@/stores/subscriptionStore";
 
 export const SUBSCRIPTION_TIERS = {
   FREE: "free",
-  CONTRACTOR: "contractor",
-  TEAM: "team",
+  SOLO: "solo",
+  PROFESSIONAL: "professional",
   ENTERPRISE: "enterprise",
 };
 
@@ -27,11 +27,11 @@ export function useFeatureAccess(feature: string): FeatureAccess {
 
   // Feature matrix
   const featureMatrix: Record<string, SubscriptionTier[]> = {
-    receipt_scanner: [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE],
-    advanced_reports: [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE],
-    team_management: [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE],
-    api_access: [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE],
-    priority_support: [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE],
+    receipt_scanner: [SUBSCRIPTION_TIERS.SOLO, SUBSCRIPTION_TIERS.PROFESSIONAL, SUBSCRIPTION_TIERS.ENTERPRISE],
+    advanced_reports: [SUBSCRIPTION_TIERS.PROFESSIONAL, SUBSCRIPTION_TIERS.ENTERPRISE],
+    team_management: [SUBSCRIPTION_TIERS.PROFESSIONAL, SUBSCRIPTION_TIERS.ENTERPRISE],
+    api_access: [SUBSCRIPTION_TIERS.ENTERPRISE],
+    priority_support: [SUBSCRIPTION_TIERS.PROFESSIONAL, SUBSCRIPTION_TIERS.ENTERPRISE],
   };
 
   return useMemo(() => {
@@ -42,9 +42,9 @@ export function useFeatureAccess(feature: string): FeatureAccess {
     // Determine next tier needed
     let nextTier: SubscriptionTier | null = null;
     if (requiresUpgrade) {
-      // Suggest TEAM if free, ENTERPRISE if already on TEAM
+      // Suggest PROFESSIONAL if free/solo, ENTERPRISE if already on PROFESSIONAL
       nextTier =
-        tier === SUBSCRIPTION_TIERS.FREE ? SUBSCRIPTION_TIERS.TEAM : SUBSCRIPTION_TIERS.ENTERPRISE;
+        tier === SUBSCRIPTION_TIERS.FREE || tier === SUBSCRIPTION_TIERS.SOLO ? SUBSCRIPTION_TIERS.PROFESSIONAL : SUBSCRIPTION_TIERS.ENTERPRISE;
     }
 
     return {
@@ -62,6 +62,6 @@ export function useReceiptScannerAccess(): FeatureAccess {
 
 // Check if current user can use receipt scanner
 export function canUseReceiptScanner(subscriptionTier: SubscriptionTier): boolean {
-  const allowedTiers = [SUBSCRIPTION_TIERS.TEAM, SUBSCRIPTION_TIERS.ENTERPRISE];
+  const allowedTiers = [SUBSCRIPTION_TIERS.SOLO, SUBSCRIPTION_TIERS.PROFESSIONAL, SUBSCRIPTION_TIERS.ENTERPRISE];
   return allowedTiers.includes(subscriptionTier);
 }

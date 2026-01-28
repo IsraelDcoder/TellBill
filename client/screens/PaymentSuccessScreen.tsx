@@ -39,7 +39,7 @@ const PLAN_BENEFITS = {
 };
 
 interface PaymentSuccessScreenProps {
-  route?: { params?: { planId?: "solo" | "team" | "enterprise" } };
+  route?: { params?: { planId?: "solo" | "professional" | "enterprise" } };
 }
 
 export default function PaymentSuccessScreen(props: PaymentSuccessScreenProps) {

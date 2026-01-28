@@ -16,8 +16,11 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LockedFeatureOverlay } from "@/components/LockedFeatureOverlay";
 import { useScopeProofStore } from "@/stores/scopeProofStore";
 import { useTheme } from "@/hooks/useTheme";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { useFeatureLock } from "@/hooks/useFeatureLock";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 /**
@@ -25,10 +28,14 @@ import { BrandColors, Spacing } from "@/constants/theme";
  * 
  * Shows pending, approved, and expired scope proofs
  * Contractors manage client approvals here
+ * 
+ * 🔒 LOCKED: Scope Proof is only available on Professional and Enterprise plans
  */
 export default function ApprovalsScreen() {
   const { theme, isDark } = useTheme();
   const store = useScopeProofStore();
+  const { currentPlan } = useSubscriptionStore();
+  const { isLocked } = useFeatureLock("scope_proof");
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "expired">("pending");
   const [clientEmail, setClientEmail] = useState("");
   const [selectedProof, setSelectedProof] = useState<any>(null);
@@ -231,6 +238,15 @@ export default function ApprovalsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      {/* Lock Overlay for Non-Professional Users */}
+      {isLocked && (
+        <LockedFeatureOverlay
+          featureName="Scope Proof"
+          requiredPlan="Professional"
+          description="Get client approval for extra work with dispute-ready proof"
+        />
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <ThemedText style={styles.title}>Approvals</ThemedText>

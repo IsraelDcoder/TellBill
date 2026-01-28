@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
  * Enforces plan limits on the backend (don't trust client)
  */
 
-export type PlanType = "free" | "solo" | "team" | "enterprise";
+export type PlanType = "free" | "solo" | "professional" | "enterprise";
 
 /**
  * Plan feature matrix - defines what each plan can do
@@ -58,26 +58,30 @@ export const PLAN_FEATURES = {
       apiAccess: false,
     },
   },
-  team: {
+  professional: {
     voiceRecordings: Infinity,
     invoices: Infinity,
     projectsCreated: Infinity,
-    teamMembers: 10,
+    teamMembers: 1,
     storage: 500, // GB
     features: {
       voiceRecording: true,
       basicInvoicing: true,
       emailSupport: true,
       advancedTemplates: true,
-      teamManagement: true,
+      teamManagement: false,
       paymentTracking: true,
       recurringInvoices: true,
       invoiceAutomation: true,
-      prioritySupport: true,
+      prioritySupport: false,
       customBranding: true,
       multipleProjects: true,
       advancedAnalytics: true,
       apiAccess: false,
+      scopeProof: true,
+      clientApprovals: true,
+      photoProof: true,
+      approvalReminders: true,
     },
   },
   enterprise: {
@@ -108,8 +112,8 @@ export const PLAN_FEATURES = {
  * Plan prices in cents (for reference)
  */
 export const PLAN_PRICES = {
-  solo: 4999, // $49.99
-  team: 9999, // $99.99
+  solo: 2999, // $29.99
+  professional: 7999, // $79.99
   enterprise: 29999, // $299.99
 };
 
@@ -252,7 +256,7 @@ export async function upgradeSubscription(
   status: SubscriptionStatus = "active"
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!["free", "solo", "team", "enterprise"].includes(newPlan)) {
+    if (!["free", "solo", "professional", "enterprise"].includes(newPlan)) {
       return { success: false, error: "Invalid plan" };
     }
 

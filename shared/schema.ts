@@ -22,7 +22,7 @@ export const users = pgTable("users", {
   companyAddress: text("company_address"),
   companyWebsite: text("company_website"),
   companyTaxId: text("company_tax_id"),
-  currentPlan: text("current_plan").default("free"), // free, solo, team, enterprise
+  currentPlan: text("current_plan").default("free"), // free, solo, professional, enterprise
   isSubscribed: boolean("is_subscribed").default(false),
   subscriptionStatus: text("subscription_status").default("inactive"), // active, inactive, cancelled, expired
   createdAt: timestamp("created_at", { withTimezone: true })

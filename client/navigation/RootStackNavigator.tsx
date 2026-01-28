@@ -52,7 +52,7 @@ export type RootStackParamList = {
   InvoiceTemplate: undefined;
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
-  PaymentSuccess: { planId?: "solo" | "team" | "enterprise" };
+  PaymentSuccess: { planId?: "solo" | "professional" | "enterprise" };
   ComingSoon: { feature: string };
 };
 

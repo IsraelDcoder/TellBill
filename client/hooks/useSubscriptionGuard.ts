@@ -51,7 +51,7 @@ export function useSubscriptionStatus() {
     isLoading,
     isFree: userEntitlement === "none",
     isSolo: userEntitlement === "solo",
-    isTeam: userEntitlement === "team",
+    isProfessional: userEntitlement === "professional",
     isEnterprise: userEntitlement === "enterprise",
     isPaid: userEntitlement !== "none",
   };

@@ -7,9 +7,9 @@ export type FeatureName = "voice_recording" | "invoice_generation" | "team_manag
  * 
  * Rules:
  * - Free plan: Limited to 3 total uses (voice + invoice combined)
- * - Solo plan: Unlimited voice/invoice, but Team/Project pages locked
- * - Team plan: Everything unlocked, can manage teams
- * - Enterprise: All features available
+ * - Solo plan: Unlimited voice/invoice, receipt scanning, payment tracking
+ * - Professional plan: Everything in Solo + Scope Proof, Client Approval, Photo Proof
+ * - Enterprise: All features available with advanced analytics and API access
  */
 
 export interface AccessCheckResult {
@@ -36,12 +36,12 @@ export function checkAccess(
   voiceRecordingsUsed: number,
   invoicesCreated: number
 ): AccessCheckResult {
-  // Team/Project management - requires Team or Enterprise
+  // Team/Project management - requires Professional or Enterprise
   if (featureName === "team_management" || featureName === "project_management") {
     if (currentPlan === "free" || currentPlan === "solo") {
       return {
         hasAccess: false,
-        reason: `${featureName === "team_management" ? "Team management" : "Project management"} is available on Team & Enterprise plans.`,
+        reason: `${featureName === "team_management" ? "Team management" : "Project management"} is available on Professional & Enterprise plans.`,
       };
     }
     return { hasAccess: true };

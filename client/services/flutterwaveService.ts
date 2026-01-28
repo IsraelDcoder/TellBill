@@ -4,7 +4,7 @@ import { getApiUrl } from "@/lib/backendUrl";
 interface FlutterwavePaymentParams {
   userId: string;
   amount: number;
-  planId: "solo" | "team" | "enterprise";
+  planId: "solo" | "professional" | "enterprise";
   planName: string;
   email: string;
   phoneNumber: string;
@@ -20,8 +20,8 @@ interface FlutterwaveResponse {
 
 const FLUTTERWAVE_PUBLIC_KEY = process.env.EXPO_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || "";
 const PLAN_PRICES: Record<string, number> = {
-  solo: 4999, // $49.99 in cents
-  team: 9999, // $99.99 in cents
+  solo: 2999, // $29.99 in cents
+  professional: 7999, // $79.99 in cents
   enterprise: 29999, // $299.99 in cents
 };
 
@@ -114,7 +114,7 @@ export const flutterwaveService = {
   verifyPayment: async (
     transactionId: string,
     reference: string,
-    planId: "solo" | "team" | "enterprise",
+    planId: "solo" | "professional" | "enterprise",
     userId: string
   ): Promise<boolean> => {
     try {

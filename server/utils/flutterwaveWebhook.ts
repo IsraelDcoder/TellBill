@@ -78,7 +78,7 @@ export function extractPlanFromReference(reference: string): string | null {
   if (parts.length < 2 || parts[0] !== "tellbill") {
     return null;
   }
-  return parts[1]; // solo, team, enterprise
+  return parts[1]; // solo, professional, enterprise
 }
 
 /**
@@ -168,7 +168,7 @@ export async function handlePaymentSuccess(
     }
 
     // Validate plan
-    if (!["solo", "team", "enterprise"].includes(plan)) {
+    if (!["solo", "professional", "enterprise"].includes(plan)) {
       logWebhookEvent("charge.completed", tx_ref, "rejected", {
         reason: "Invalid plan",
         plan,

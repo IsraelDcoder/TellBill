@@ -24,6 +24,10 @@ import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 interface PlanCardProps {
   name: string;
   price: string;
+  period: string;
+  badge: string;
+  tagline: string;
+  color: string;
   features: string[];
   isCurrent: boolean;
   isPopular?: boolean;
@@ -34,6 +38,10 @@ interface PlanCardProps {
 function PlanCard({
   name,
   price,
+  period,
+  badge,
+  tagline,
+  color,
   features,
   isCurrent,
   isPopular,
@@ -48,34 +56,46 @@ function PlanCard({
         styles.planCard,
         {
           backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-          borderColor: isCurrent ? BrandColors.constructionGold : theme.border,
+          borderColor: isCurrent ? color : theme.border,
           borderWidth: isCurrent ? 2 : 1,
         },
         isCurrent ? Shadows.md : {},
       ]}
     >
       {isPopular ? (
-        <View style={styles.popularBadge}>
+        <View style={[styles.popularBadge, { backgroundColor: color }]}>
           <ThemedText type="small" style={styles.popularText}>
-            Most Popular
+            {badge}
           </ThemedText>
         </View>
       ) : null}
 
-      <ThemedText type="h3">{name}</ThemedText>
+      <ThemedText type="h3" style={{ color: isCurrent ? color : undefined }}>
+        {name}
+      </ThemedText>
+
+      <ThemedText type="body" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
+        {tagline}
+      </ThemedText>
+
       <View style={styles.priceRow}>
-        <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+        <ThemedText type="h2" style={{ color }}>
           {price}
         </ThemedText>
         <ThemedText type="body" style={{ color: theme.textSecondary }}>
-          /month
+          {period}
         </ThemedText>
       </View>
+
+      {!isPopular && (
+        <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
+          {badge}
+        </ThemedText>
+      )}
 
       <View style={styles.featuresList}>
         {features.map((feature, index) => (
           <View key={index} style={styles.featureRow}>
-            <Feather name="check" size={16} color={BrandColors.constructionGold} />
             <ThemedText type="small">{feature}</ThemedText>
           </View>
         ))}
@@ -91,7 +111,7 @@ function PlanCard({
             <View style={styles.loadingContent}>
               <ActivityIndicator
                 size="small"
-                color={isCurrent ? BrandColors.constructionGold : "#fff"}
+                color={isCurrent ? color : "#fff"}
               />
               <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
                 Processing...
@@ -153,7 +173,7 @@ export default function BillingScreen() {
     const userPhone = companyInfo.phone || "+1234567890";
 
     await initiatePayment(
-      planId as "solo" | "team" | "enterprise",
+      planId as "solo" | "professional" | "enterprise",
       planName,
       userEmail,
       userPhone,
@@ -169,27 +189,87 @@ export default function BillingScreen() {
       id: "free",
       name: "Free",
       price: "$0",
-      period: "/month",
-      features: PLAN_LIMITS.free.features,
+      period: "forever",
+      badge: "Trial Only",
+      tagline: "This works… but I can't run my business like this.",
+      features: [
+        "✅ 3 voice recordings (lifetime)",
+        "✅ 3 invoices (lifetime)",
+        "✅ Email invoice delivery",
+        "❌ No projects",
+        "❌ No receipt scanning",
+        "❌ No client approvals",
+      ],
       isCurrent: currentPlan === "free",
       isPopular: false,
-      description: "Perfect for getting started",
+      color: BrandColors.slateGrey,
     },
-    ...pricingTiers.map((tier) => ({
-      id: tier.name,
-      name: tier.displayName,
-      price: `$${tier.monthlyPrice}`,
+    {
+      id: "solo",
+      name: "Solo",
+      price: "$29",
       period: "/month",
-      features: tier.features,
-      isCurrent: currentPlan === tier.name,
-      isPopular: tier.isPopular,
-    })),
+      badge: "Get Organized",
+      tagline: "I'm faster and organized… but extras can still slip.",
+      features: [
+        "✅ Unlimited voice-to-invoice",
+        "✅ Unlimited invoices",
+        "✅ Projects (manual)",
+        "✅ Receipt scanning",
+        "✅ Payment tracking",
+        "✅ Email & WhatsApp delivery",
+        "❌ No scope proof & approval",
+      ],
+      isCurrent: currentPlan === "solo",
+      isPopular: false,
+      color: "#3B82F6",
+    },
+    {
+      id: "professional",
+      name: "Professional",
+      price: "$79",
+      period: "/month",
+      badge: "⭐ Most Popular",
+      tagline: "Never do unpaid work again.",
+      features: [
+        "✅ Everything in Solo",
+        "✅ Scope proof & client approval",
+        "✅ Auto-add approved work",
+        "✅ Photo proof with timestamps",
+        "✅ Approval reminders",
+        "✅ Dispute-ready work logs",
+        "✅ Unlimited projects",
+      ],
+      isCurrent: currentPlan === "professional",
+      isPopular: true,
+      color: BrandColors.constructionGold,
+    },
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      price: "$299",
+      period: "/month",
+      badge: "Revenue Infrastructure",
+      tagline: "This runs part of my business.",
+      features: [
+        "✅ Everything in Professional",
+        "✅ Unlimited usage everywhere",
+        "✅ Advanced analytics",
+        "✅ API access",
+        "✅ Custom branding",
+        "✅ Priority support",
+        "✅ Dedicated account contact",
+      ],
+      isCurrent: currentPlan === "enterprise",
+      isPopular: false,
+      color: "#8B5CF6",
+    },
   ];
 
   const paymentHistory = isSubscribed && currentPlan !== "free" ? [
-    { date: "Jan 1, 2026", amount: "$29.00", status: "Paid" },
-    { date: "Dec 1, 2025", amount: "$29.00", status: "Paid" },
-    { date: "Nov 1, 2025", amount: "$29.00", status: "Paid" },
+    { date: "Jan 1, 2026", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
+    { date: "Dec 1, 2025", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
+    { date: "Nov 1, 2025", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
   ] : [];
 
   return (
@@ -240,7 +320,7 @@ export default function BillingScreen() {
           </ThemedText>
         ) : (
           <ThemedText type="body" style={{ color: theme.textSecondary }}>
-            Upgrade to unlock more features and support team collaboration
+            Upgrade to Professional ($79/month) to protect your revenue with Scope Proof and client approvals
           </ThemedText>
         )}
       </GlassCard>
@@ -254,6 +334,10 @@ export default function BillingScreen() {
             key={plan.id}
             name={plan.name}
             price={plan.price}
+            period={plan.period}
+            badge={plan.badge}
+            tagline={plan.tagline}
+            color={plan.color}
             features={plan.features}
             isCurrent={plan.isCurrent || false}
             isPopular={plan.isPopular}

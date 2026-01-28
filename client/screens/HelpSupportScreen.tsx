@@ -48,7 +48,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: "3",
     question: "How do I manage my team?",
     answer:
-      "Team management is available on the Team and Enterprise plans. Navigate to the Teams section to invite team members and manage roles and permissions.",
+      "Team management and advanced features are available on the Professional and Enterprise plans.",
   },
   {
     id: "4",

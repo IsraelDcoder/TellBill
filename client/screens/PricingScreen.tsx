@@ -83,7 +83,7 @@ export default function PricingScreen({ route, navigation }: any) {
 
       // Initiate Flutterwave payment
       await initiatePayment(
-        tier.name as "solo" | "team" | "enterprise",
+        tier.name as "solo" | "professional" | "enterprise",
         tier.displayName,
         userEmail,
         userPhone,

@@ -4,6 +4,7 @@ import { db } from "./db";
 import { scopeProofs, scopeProofNotifications, users as usersTable } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailService";
+import { requirePlan } from "./utils/subscriptionGuard";
 
 /**
  * ✅ SCOPE PROOF & CLIENT APPROVAL ENGINE ROUTES
@@ -13,11 +14,14 @@ import { sendEmail } from "./emailService";
  * - Get client approval via secure link (no login)
  * - Auto-convert to invoice line items
  * - 24-hour expiry with 12-hour reminder
+ * 
+ * 🔒 PLAN GATING: Professional & Enterprise only
  */
 
 // Type for authenticated user
 interface AuthenticatedRequest {
   user?: { id: string };
+  subscription?: { plan: string };
   [key: string]: any;
 }
 
@@ -26,9 +30,10 @@ export function registerScopeProofRoutes(app: Express) {
    * GET /api/scope-proof
    * List all scope proofs for authenticated contractor
    * 
+   * 🔒 Requires: Professional or Enterprise plan
    * Query params: status (pending|approved|expired), projectId
    */
-  app.get("/api/scope-proof", async (req: any, res: Response) => {
+  app.get("/api/scope-proof", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
     try {
       const userId = req.user?.id;
 
@@ -73,9 +78,10 @@ export function registerScopeProofRoutes(app: Express) {
    * POST /api/scope-proof
    * Create a new scope proof (manually by contractor)
    * 
+   * 🔒 Requires: Professional or Enterprise plan
    * Body: { projectId?, description, estimatedCost, photos[] }
    */
-  app.post("/api/scope-proof", async (req: any, res: Response) => {
+  app.post("/api/scope-proof", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
     try {
       const userId = req.user?.id;
       const { projectId, description, estimatedCost, photos = [] } = req.body;
@@ -87,17 +93,6 @@ export function registerScopeProofRoutes(app: Express) {
       if (!description || !estimatedCost) {
         return res.status(400).json({ error: "Description and estimatedCost required" });
       }
-
-      // Check subscription
-      const user = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
-
-      if (user[0]?.currentPlan === "free") {
-        return res.status(403).json({
-          error: "Scope Proof is only available on paid plans",
           code: "SUBSCRIPTION_REQUIRED",
         });
       }
@@ -136,8 +131,10 @@ export function registerScopeProofRoutes(app: Express) {
   /**
    * POST /api/scope-proof/:id/request
    * Request client approval for a scope proof
+   * 
+   * 🔒 Requires: Professional or Enterprise plan
    */
-  app.post("/api/scope-proof/:id/request", async (req: any, res: Response) => {
+  app.post("/api/scope-proof/:id/request", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
     try {
       const userId = req.user?.id;
       const { id } = req.params;
@@ -258,8 +255,10 @@ export function registerScopeProofRoutes(app: Express) {
   /**
    * POST /api/scope-proof/:id/resend
    * Resend approval request to client
+   * 
+   * 🔒 Requires: Professional or Enterprise plan
    */
-  app.post("/api/scope-proof/:id/resend", async (req: any, res: Response) => {
+  app.post("/api/scope-proof/:id/resend", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
     try {
       const userId = req.user?.id;
       const { id } = req.params;
@@ -315,8 +314,10 @@ export function registerScopeProofRoutes(app: Express) {
   /**
    * DELETE /api/scope-proof/:id
    * Cancel approval request
+   * 
+   * 🔒 Requires: Professional or Enterprise plan
    */
-  app.delete("/api/scope-proof/:id", async (req: any, res: Response) => {
+  app.delete("/api/scope-proof/:id", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
     try {
       const userId = req.user?.id;
       const { id } = req.params;

@@ -14,7 +14,7 @@ import { capturePaymentEvent, captureException } from "./utils/sentry";
 
 interface InitiatePaymentRequest {
   userId: string;
-  planId: "solo" | "team" | "enterprise";
+  planId: "solo" | "professional" | "enterprise";
   email: string;
   phoneNumber: string;
   userFullName: string;
@@ -23,15 +23,15 @@ interface InitiatePaymentRequest {
 interface VerifyPaymentRequest {
   transactionId: string;
   reference: string;
-  planId: "solo" | "team" | "enterprise";
+  planId: "solo" | "professional" | "enterprise";
   userId: string;
 }
 
 const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY || "";
 
 const PLAN_PRICES: Record<string, number> = {
-  solo: 4999, // $49.99 in cents
-  team: 9999, // $99.99 in cents
+  solo: 2999, // $29.99 in cents
+  professional: 7999, // $79.99 in cents
   enterprise: 29999, // $299.99 in cents
 };
 
@@ -140,10 +140,10 @@ export function registerPaymentRoutes(app: Express) {
       }
 
       // Validate plan ID
-      if (!["solo", "team", "enterprise"].includes(planId)) {
+      if (!["solo", "professional", "enterprise"].includes(planId)) {
         return res.status(400).json({
           success: false,
-          error: "Invalid plan ID. Must be solo, team, or enterprise",
+          error: "Invalid plan ID. Must be solo, professional, or enterprise",
         });
       }
 
