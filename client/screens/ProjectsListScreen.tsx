@@ -170,15 +170,14 @@ export default function ProjectsListScreen() {
       }
 
       const baseUrl = getBackendUrl();
-      const url = `${baseUrl}/api/projects/${userId}`;
+      const url = `${baseUrl}/api/projects`;
       console.log(`[ProjectsList] Loading projects from: ${url}`);
       
       // ✅ Get auth token and include in Authorization header
       const token = await getAuthToken();
-      const headers: HeadersInit = {};
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      const headers: HeadersInit = {
+        "Authorization": `Bearer ${token}`,
+      };
       
       const response = await fetch(url, { headers });
       
@@ -231,19 +230,20 @@ export default function ProjectsListScreen() {
   };
 
   const handleStatusChange = async (newStatus: "active" | "completed" | "on_hold") => {
-    if (!selectedProjectForActions || !userId) return;
+    if (!selectedProjectForActions) return;
 
     try {
       const baseUrl = getBackendUrl();
+      const token = getAuthToken();
       const url = `${baseUrl}/api/projects/${selectedProjectForActions.id}`;
 
       const response = await fetch(url, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId,
           status: newStatus,
         }),
       });
@@ -271,16 +271,18 @@ export default function ProjectsListScreen() {
   };
 
   const handleDeleteProject = async () => {
-    if (!selectedProjectForActions || !userId) return;
+    if (!selectedProjectForActions) return;
 
     try {
       const baseUrl = getBackendUrl();
-      const url = `${baseUrl}/api/projects/${selectedProjectForActions.id}?userId=${userId}`;
+      const token = getAuthToken();
+      const url = `${baseUrl}/api/projects/${selectedProjectForActions.id}`;
 
       const response = await fetch(url, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
       });
 
@@ -338,14 +340,10 @@ export default function ProjectsListScreen() {
     status: "active" | "completed" | "on_hold";
     budget: number;
   }) => {
-    if (!userId) {
-      Alert.alert("Error", "User ID not found. Please log in again.");
-      return;
-    }
-
     try {
       setIsCreatingProject(true);
       const baseUrl = getBackendUrl();
+      const token = getAuthToken();
       const url = `${baseUrl}/api/projects`;
       console.log(`[ProjectsList] Creating project at: ${url}`);
       
@@ -353,9 +351,9 @@ export default function ProjectsListScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId,
           name: projectData.name,
           clientName: projectData.clientName,
           address: projectData.address,

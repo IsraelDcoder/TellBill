@@ -26,9 +26,10 @@ export function registerProjectRoutes(app: Express) {
    * POST /api/projects
    * Create a new project for a user
    */
-  app.post("/api/projects", async (req: Request, res: Response) => {
+  app.post("/api/projects", async (req: any, res: Response) => {
     try {
-      const { userId, name, clientName, address, status, budget } = req.body as CreateProjectRequest;
+      const userId = req.user?.id;
+      const { name, clientName, address, status, budget } = req.body;
 
       if (!userId || !name || !clientName || !address || !status) {
         return res.status(400).json({
@@ -102,12 +103,12 @@ export function registerProjectRoutes(app: Express) {
   });
 
   /**
-   * GET /api/projects/:userId
-   * Get all projects for a user
+   * GET /api/projects
+   * Get all projects for the authenticated user
    */
-  app.get("/api/projects/:userId", async (req: Request, res: Response) => {
+  app.get("/api/projects", async (req: any, res: Response) => {
     try {
-      const userId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+      const userId = req.user?.id;
 
       if (!userId) {
         return res.status(400).json({
@@ -139,10 +140,11 @@ export function registerProjectRoutes(app: Express) {
    * PUT /api/projects/:projectId
    * Update a project
    */
-  app.put("/api/projects/:projectId", async (req: Request, res: Response) => {
+  app.put("/api/projects/:projectId", async (req: any, res: Response) => {
     try {
       const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
-      const { userId, ...updates } = req.body as UpdateProjectRequest & { userId: string };
+      const userId = req.user?.id;
+      const updates = req.body as UpdateProjectRequest;
 
       if (!projectId || !userId) {
         return res.status(400).json({
@@ -203,10 +205,10 @@ export function registerProjectRoutes(app: Express) {
    * DELETE /api/projects/:projectId
    * Delete a project
    */
-  app.delete("/api/projects/:projectId", async (req: Request, res: Response) => {
+  app.delete("/api/projects/:projectId", async (req: any, res: Response) => {
     try {
       const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
-      const userId = Array.isArray(req.query.userId as string[]) ? (req.query.userId as string[])[0] : (req.query.userId as string);
+      const userId = req.user?.id;
 
       if (!projectId || !userId) {
         return res.status(400).json({
