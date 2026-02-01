@@ -31,7 +31,7 @@ export default function EnterpriseAuthCard({
   onPrivacyPress: () => void;
 }) {
   const { theme } = useTheme();
-  const { signInWithGoogle, signInWithApple, error, clearError } = useAuth();
+  const { signInWithApple, error, clearError } = useAuth();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -94,19 +94,6 @@ export default function EnterpriseAuthCard({
     }).start(() => {
       setTimeout(onSuccess, 600);
     });
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsLoading(true);
-      clearError();
-      await signInWithGoogle();
-      triggerSuccessAnimation();
-    } catch (err) {
-      triggerShakeAnimation();
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleAppleSignIn = async () => {
@@ -223,23 +210,6 @@ export default function EnterpriseAuthCard({
 
           {/* OAuth Buttons */}
           <View style={styles.oauthContainer}>
-            <Pressable
-              style={[styles.oauthButton, { borderColor: theme.border }]}
-              onPress={handleGoogleSignIn}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={theme.text} />
-              ) : (
-                <>
-                  <Feather name="globe" size={18} color={theme.text} />
-                  <ThemedText style={styles.oauthButtonText}>
-                    Continue with Google
-                  </ThemedText>
-                </>
-              )}
-            </Pressable>
-
             {Platform.OS === "ios" && (
               <Pressable
                 style={[styles.oauthButton, { borderColor: theme.border }]}

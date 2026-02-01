@@ -5,6 +5,7 @@ import { scopeProofs, scopeProofNotifications, users as usersTable } from "@shar
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailService";
 import { requirePlan } from "./utils/subscriptionGuard";
+import { verifyPlanAccess } from "./utils/subscriptionManager";
 
 /**
  * ✅ SCOPE PROOF & CLIENT APPROVAL ENGINE ROUTES
@@ -33,14 +34,30 @@ export function registerScopeProofRoutes(app: Express) {
    * 🔒 Requires: Professional or Enterprise plan
    * Query params: status (pending|approved|expired), projectId
    */
-  app.get("/api/scope-proof", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
+  app.get("/api/scope-proof", async (req: any, res: Response) => {
     try {
-      const userId = req.user?.id;
+      console.log(`[ScopeProof GET] Route handler called`);
+      console.log(`[ScopeProof GET] req.user:`, req.user);
+      console.log(`[ScopeProof GET] req.subscription:`, req.subscription);
+      
+      const userId = req.user?.userId || req.user?.id;
 
       if (!userId) {
+        console.log(`[ScopeProof GET] ❌ No user ID found. req.user:`, JSON.stringify(req.user));
         return res.status(401).json({
           success: false,
-          error: "Unauthorized",
+          error: "Unauthorized - no user ID",
+        });
+      }
+
+      // ✅ PLAN GATING: Only professional+ users can view scope proofs
+      try {
+        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+      } catch (err) {
+        return res.status(403).json({
+          success: false,
+          error: "Scope Proof feature requires Professional plan or higher",
+          upgradeRequired: true,
         });
       }
 
@@ -81,20 +98,33 @@ export function registerScopeProofRoutes(app: Express) {
    * 🔒 Requires: Professional or Enterprise plan
    * Body: { projectId?, description, estimatedCost, photos[] }
    */
-  app.post("/api/scope-proof", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
+  app.post("/api/scope-proof", async (req: any, res: Response) => {
     try {
-      const userId = req.user?.id;
+      console.log(`[ScopeProof POST] Route handler called`);
+      console.log(`[ScopeProof POST] req.user:`, req.user);
+      console.log(`[ScopeProof POST] req.subscription:`, req.subscription);
+      
+      const userId = req.user?.userId || req.user?.id;
       const { projectId, description, estimatedCost, photos = [] } = req.body;
 
       if (!userId) {
+        console.log(`[ScopeProof POST] ❌ No user ID found. req.user:`, JSON.stringify(req.user));
         return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // ✅ PLAN GATING: Only professional+ users can create scope proofs
+      try {
+        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+      } catch (err) {
+        return res.status(403).json({
+          success: false,
+          error: "Scope Proof feature requires Professional plan or higher",
+          upgradeRequired: true,
+        });
       }
 
       if (!description || !estimatedCost) {
         return res.status(400).json({ error: "Description and estimatedCost required" });
-      }
-          code: "SUBSCRIPTION_REQUIRED",
-        });
       }
 
       const approvalToken = randomUUID();
@@ -134,14 +164,28 @@ export function registerScopeProofRoutes(app: Express) {
    * 
    * 🔒 Requires: Professional or Enterprise plan
    */
-  app.post("/api/scope-proof/:id/request", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
+  app.post("/api/scope-proof/:id/request", async (req: any, res: Response) => {
     try {
-      const userId = req.user?.id;
+      console.log(`[ScopeProof Request] Starting request approval for ID: ${req.params.id}`);
+      const userId = req.user?.userId || req.user?.id;
       const { id } = req.params;
       const { clientEmail } = req.body;
 
+      console.log(`[ScopeProof Request] userId: ${userId}, clientEmail: ${clientEmail}`);
+
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
       if (!clientEmail) return res.status(400).json({ error: "clientEmail required" });
+
+      // ✅ PLAN GATING: Only professional+ users can request scope proof approvals
+      try {
+        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+      } catch (err) {
+        return res.status(403).json({
+          success: false,
+          error: "Scope Proof feature requires Professional plan or higher",
+          upgradeRequired: true,
+        });
+      }
 
       // Verify proof exists and belongs to user
       const proof = await db
@@ -178,13 +222,16 @@ export function registerScopeProofRoutes(app: Express) {
           <p>Thank you,<br>${contractorName}</p>
         `,
       });
+      console.log(`[ScopeProof] Email sent to ${clientEmail}`);
 
       // Record notification
       await db.insert(scopeProofNotifications).values({
         scopeProofId: id,
         notificationType: "initial",
         sentVia: "email",
+        sentAt: new Date(),
       });
+      console.log(`[ScopeProof] Notification recorded for ${id}`);
 
       console.log(`[ScopeProof] Approval requested for ${id}`);
 
@@ -258,14 +305,25 @@ export function registerScopeProofRoutes(app: Express) {
    * 
    * 🔒 Requires: Professional or Enterprise plan
    */
-  app.post("/api/scope-proof/:id/resend", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
+  app.post("/api/scope-proof/:id/resend", async (req: any, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId || req.user?.id;
       const { id } = req.params;
       const { clientEmail } = req.body;
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
       if (!clientEmail) return res.status(400).json({ error: "clientEmail required" });
+
+      // ✅ PLAN GATING: Only professional+ users can resend scope proof approvals
+      try {
+        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+      } catch (err) {
+        return res.status(403).json({
+          success: false,
+          error: "Scope Proof feature requires Professional plan or higher",
+          upgradeRequired: true,
+        });
+      }
 
       const proof = await db
         .select()
@@ -317,12 +375,23 @@ export function registerScopeProofRoutes(app: Express) {
    * 
    * 🔒 Requires: Professional or Enterprise plan
    */
-  app.delete("/api/scope-proof/:id", requirePlan("professional", "enterprise"), async (req: any, res: Response) => {
+  app.delete("/api/scope-proof/:id", async (req: any, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId || req.user?.id;
       const { id } = req.params;
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      // ✅ PLAN GATING: Only professional+ users can delete scope proofs
+      try {
+        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+      } catch (err) {
+        return res.status(403).json({
+          success: false,
+          error: "Scope Proof feature requires Professional plan or higher",
+          upgradeRequired: true,
+        });
+      }
 
       const proof = await db
         .select()
@@ -345,6 +414,199 @@ export function registerScopeProofRoutes(app: Express) {
       return res.json({ success: true, message: "Approval cancelled" });
     } catch (error: any) {
       console.error("[ScopeProof] Delete error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/scope-proof/:token
+   * CLIENT ENDPOINT (no auth required)
+   * Get scope proof details by approval token
+   */
+  app.get("/api/scope-proof/:token", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        return res.status(400).json({ error: "Token required" });
+      }
+
+      const proof = await db
+        .select()
+        .from(scopeProofs)
+        .where(eq(scopeProofs.approvalToken, token as string))
+        .limit(1);
+
+      if (proof.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Invalid approval link" 
+        });
+      }
+
+      const scopeProof = proof[0];
+
+      // Check if expired
+      if (scopeProof.tokenExpiresAt && new Date() > scopeProof.tokenExpiresAt) {
+        return res.status(410).json({ 
+          success: false, 
+          error: "Approval link has expired" 
+        });
+      }
+
+      // Check if already processed
+      if (scopeProof.status !== "pending") {
+        return res.status(400).json({ 
+          success: false, 
+          error: "This approval has already been processed" 
+        });
+      }
+
+      // Get contractor info
+      const contractor = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, scopeProof.userId))
+        .limit(1);
+
+      console.log(`[ScopeProof] Retrieved details for token: ${token}`);
+
+      return res.json({
+        success: true,
+        data: {
+          ...scopeProof,
+          photos: JSON.parse(scopeProof.photos || "[]"),
+          contractor: contractor[0],
+        },
+      });
+    } catch (error: any) {
+      console.error("[ScopeProof] Get error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/scope-proof/status/:id
+   * CONTRACTOR ENDPOINT (auth required)
+   * Get approval status of a scope proof
+   */
+  app.get("/api/scope-proof/status/:id", async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.userId || req.user?.id;
+      const { id } = req.params;
+
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const proof = await db
+        .select()
+        .from(scopeProofs)
+        .where(and(eq(scopeProofs.id, id), eq(scopeProofs.userId, userId)))
+        .limit(1);
+
+      if (proof.length === 0) {
+        return res.status(404).json({ error: "Scope proof not found" });
+      }
+
+      const scopeProof = proof[0];
+
+      console.log(`[ScopeProof] Status check: ${id} - ${scopeProof.status}`);
+
+      return res.json({
+        success: true,
+        data: {
+          id: scopeProof.id,
+          status: scopeProof.status,
+          approvedAt: scopeProof.approvedAt,
+          approvedBy: scopeProof.approvedBy,
+          feedback: scopeProof.feedback || null,
+        },
+      });
+    } catch (error: any) {
+      console.error("[ScopeProof] Status error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/scope-proof/feedback/:token
+   * CLIENT ENDPOINT (no auth required)
+   * Submit feedback on scope proof
+   */
+  app.post("/api/scope-proof/feedback/:token", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      const { clientEmail, feedback } = req.body;
+
+      if (!token || !clientEmail || !feedback) {
+        return res.status(400).json({ 
+          error: "Token, clientEmail, and feedback are required" 
+        });
+      }
+
+      const proof = await db
+        .select()
+        .from(scopeProofs)
+        .where(eq(scopeProofs.approvalToken, token as string))
+        .limit(1);
+
+      if (proof.length === 0) {
+        return res.status(404).json({ error: "Invalid approval link" });
+      }
+
+      const scopeProof = proof[0];
+
+      // Check if expired
+      if (scopeProof.tokenExpiresAt && new Date() > scopeProof.tokenExpiresAt) {
+        return res.status(410).json({ error: "Approval link has expired" });
+      }
+
+      // Check if already processed
+      if (scopeProof.status !== "pending") {
+        return res.status(400).json({ 
+          error: "This approval has already been processed" 
+        });
+      }
+
+      // Update scope proof with feedback
+      await db
+        .update(scopeProofs)
+        .set({
+          status: "feedback",
+          feedback: feedback,
+          feedbackFrom: clientEmail,
+          feedbackAt: new Date(),
+        })
+        .where(eq(scopeProofs.id, scopeProof.id));
+
+      console.log(`[ScopeProof] Feedback received: ${scopeProof.id}`);
+
+      // Send notification to contractor
+      const contractor = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, scopeProof.userId))
+        .limit(1);
+
+      if (contractor[0]?.email) {
+        await sendEmail({
+          to: contractor[0].email,
+          subject: "Client Feedback on Your Scope Proof",
+          html: `
+            <p>Hi ${contractor[0].companyName || contractor[0].name},</p>
+            <p>The client has provided feedback on your scope proof:</p>
+            <p><strong>"${feedback}"</strong></p>
+            <p>Please review and make any necessary adjustments.</p>
+            <p>Thank you,<br>TellBill Team</p>
+          `,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Feedback submitted successfully",
+      });
+    } catch (error: any) {
+      console.error("[ScopeProof] Feedback error:", error);
       return res.status(500).json({ error: error.message });
     }
   });

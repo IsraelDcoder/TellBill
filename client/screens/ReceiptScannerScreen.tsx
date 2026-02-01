@@ -5,8 +5,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  FlatList,
-  Pressable,
+  ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -16,13 +15,12 @@ import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Button } from "@/components/Button";
-import { ReceiptCamera } from "@/components/ReceiptCamera";
 import { GlassCard } from "@/components/GlassCard";
+import { LockedFeatureOverlay } from "@/components/LockedFeatureOverlay";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BrandColors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
-import { useProjectStore } from "@/stores/projectStore";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -31,50 +29,28 @@ export default function ReceiptScannerScreen() {
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { projects: allProjects } = useProjectStore();
+  const { currentPlan } = useSubscriptionStore();
   const [showCamera, setShowCamera] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [activeProjects, setActiveProjects] = useState<any[]>([]);
 
-  // Load active projects from store
-  useEffect(() => {
-    loadProjects();
-  }, [allProjects]);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadProjects();
-    }, [allProjects])
-  );
-
-  const loadProjects = () => {
-    try {
-      // Filter only active projects from the project store
-      const active = allProjects.filter((proj) => proj.status === "active");
-      setActiveProjects(active);
-    } catch (error) {
-      console.error("[ReceiptScanner] Failed to load projects:", error);
-    }
-  };
+  // ✅ LOCK: Receipt scanning only available for paid plans
+  const receiptScanningLocked = currentPlan === "free";
 
   const handleReceiptAdded = () => {
     // Show success and refresh
-    Alert.alert("Success!", "Receipt added to project.", [
+    Alert.alert("Success!", "Receipt added.", [
       {
         text: "OK",
         onPress: () => {
           setShowCamera(false);
-          setSelectedProjectId(null);
-          loadProjects();
         },
       },
     ]);
   };
 
-  const handleStartScanning = (projectId: string) => {
-    setSelectedProjectId(projectId);
-    setShowCamera(true);
-  };
+  // ✅ HARD PAYWALL: Receipt scanning locked for free users
+  if (receiptScanningLocked) {
+    return <LockedFeatureOverlay feature="receipt_scanning" />;
+  }
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
@@ -107,20 +83,20 @@ export default function ReceiptScannerScreen() {
                 type="body"
                 style={[styles.heroSubtitle, { color: theme.textSecondary }]}
               >
-                Capture material receipts and automatically extract details for your projects
+                Capture material receipts and automatically extract details
               </ThemedText>
             </View>
 
             {/* Quick Start */}
             <GlassCard
-              style={[
+              style={StyleSheet.flatten([
                 styles.card,
                 {
                   backgroundColor: isDark
                     ? theme.backgroundDefault
                     : theme.backgroundSecondary,
                 },
-              ]}
+              ]) as ViewStyle}
             >
               <View style={styles.cardHeader}>
                 <Feather name="zap" size={20} color={BrandColors.constructionGold} />
@@ -137,21 +113,6 @@ export default function ReceiptScannerScreen() {
                   </View>
                   <View style={styles.stepContent}>
                     <ThemedText type="body" style={{ fontWeight: "600" }}>
-                      Select a Project
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      Choose which project to add the receipt to
-                    </ThemedText>
-                  </View>
-                </View>
-                <View style={styles.step}>
-                  <View style={styles.stepNumber}>
-                    <ThemedText type="small" style={{ color: "white", fontWeight: "600" }}>
-                      2
-                    </ThemedText>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <ThemedText type="body" style={{ fontWeight: "600" }}>
                       Scan Receipt
                     </ThemedText>
                     <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -162,7 +123,7 @@ export default function ReceiptScannerScreen() {
                 <View style={styles.step}>
                   <View style={styles.stepNumber}>
                     <ThemedText type="small" style={{ color: "white", fontWeight: "600" }}>
-                      3
+                      2
                     </ThemedText>
                   </View>
                   <View style={styles.stepContent}>
@@ -177,99 +138,18 @@ export default function ReceiptScannerScreen() {
               </View>
             </GlassCard>
 
-            {/* Projects Section */}
-            <View>
-              <ThemedText type="h4" style={styles.sectionTitle}>
-                Your Active Projects
-              </ThemedText>
 
-              {activeProjects.length === 0 ? (
-                <GlassCard
-                  style={[
-                    styles.emptyCard,
-                    {
-                      backgroundColor: isDark
-                        ? theme.backgroundDefault
-                        : theme.backgroundSecondary,
-                    },
-                  ]}
-                >
-                  <Feather name="inbox" size={40} color={theme.textSecondary} />
-                  <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.md }}>
-                    No active projects yet
-                  </ThemedText>
-                  <Button
-                    size="small"
-                    style={{ marginTop: Spacing.lg }}
-                    onPress={() => navigation.navigate("Main", { screen: "ProjectsTab" } as any)}
-                  >
-                    Create Project
-                  </Button>
-                </GlassCard>
-              ) : (
-                <View style={styles.projectsList}>
-                  {activeProjects.map((project) => (
-                    <Pressable
-                      key={project.id}
-                      onPress={() => handleStartScanning(project.id)}
-                      style={({ pressed }) => [
-                        styles.projectCard,
-                        {
-                          backgroundColor: isDark
-                            ? theme.backgroundDefault
-                            : theme.backgroundSecondary,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                      ]}
-                    >
-                      <View style={styles.projectInfo}>
-                        <View style={styles.projectHeader}>
-                          <ThemedText type="body" style={{ fontWeight: "600", flex: 1 }}>
-                            {project.name}
-                          </ThemedText>
-                          <View
-                            style={[
-                              styles.statusBadge,
-                              {
-                                backgroundColor: `${BrandColors.constructionGold}20`,
-                              },
-                            ]}
-                          >
-                            <ThemedText
-                              type="small"
-                              style={{
-                                color: BrandColors.constructionGold,
-                                fontWeight: "600",
-                              }}
-                            >
-                              {project.status}
-                            </ThemedText>
-                          </View>
-                        </View>
-                        <ThemedText
-                          type="small"
-                          style={{ color: theme.textSecondary, marginTop: Spacing.xs }}
-                        >
-                          Tap to scan receipt
-                        </ThemedText>
-                      </View>
-                      <Feather name="chevron-right" size={24} color={BrandColors.constructionGold} />
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
 
             {/* Features */}
             <GlassCard
-              style={[
+              style={StyleSheet.flatten([
                 styles.card,
                 {
                   backgroundColor: isDark
                     ? theme.backgroundDefault
                     : theme.backgroundSecondary,
                 },
-              ]}
+              ]) as ViewStyle}
             >
               <ThemedText type="h4" style={styles.sectionTitle}>
                 AI-Powered Extraction
@@ -303,16 +183,6 @@ export default function ReceiptScannerScreen() {
             </GlassCard>
           </View>
         </ScrollView>
-      ) : selectedProjectId ? (
-        <ReceiptCamera
-          isVisible={showCamera}
-          projectId={selectedProjectId}
-          onReceiptAdded={handleReceiptAdded}
-          onClose={() => {
-            setShowCamera(false);
-            setSelectedProjectId(null);
-          }}
-        />
       ) : null}
     </ThemedView>
   );
@@ -384,24 +254,6 @@ const styles = StyleSheet.create({
   feature: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  projectsList: {
-    gap: Spacing.lg,
-  },
-  projectCard: {
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  projectInfo: {
-    flex: 1,
-  },
-  projectHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
   },
   statusBadge: {
     paddingHorizontal: Spacing.md,

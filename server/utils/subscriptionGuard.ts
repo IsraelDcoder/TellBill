@@ -9,8 +9,8 @@
 
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, invoices, activityLog, projects } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 
 export interface SubscriptionInfo {
   userId: string;
@@ -33,10 +33,19 @@ export async function attachSubscriptionMiddleware(
   res: Response,
   next: NextFunction
 ) {
+  console.log(`[SubMiddle-START] About to process middleware`);
+  console.log(`[SubMiddle-START] req.user value:`, req.user);
+  
   try {
-    const userId = req.user?.id;
+    console.log(`[Subscription Middleware] Processing ${req.method} ${req.path}`);
+    console.log(`[Subscription Middleware] req.user:`, req.user);
+    
+    const userId = req.user?.userId || req.user?.id;
+    
+    console.log(`[Subscription Middleware] Extracted userId: ${userId}`);
 
     if (!userId) {
+      console.log(`[Subscription Middleware] ❌ No user ID found`);
       return res.status(401).json({ error: "Unauthorized - no user ID" });
     }
 
@@ -48,25 +57,52 @@ export async function attachSubscriptionMiddleware(
       .limit(1);
 
     if (!userRecord || userRecord.length === 0) {
+      console.log(`[Subscription Middleware] ❌ User not found in database`);
       return res.status(401).json({ error: "User not found" });
     }
 
     const user = userRecord[0];
 
-    // Attach subscription info
+    // ✅ Count actual lifetime usage (not just this month)
+    // This ensures invoice limits work correctly regardless of month
+    
+    // Count ALL invoices created by this user (lifetime)
+    const invoiceCountResult = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(invoices)
+      .where(eq(invoices.userId, userId));
+    const invoiceCount = invoiceCountResult[0]?.count || 0;
+    console.log(`[Subscription Middleware] Invoice count for userId ${userId}:`, invoiceCount);
+
+    // Count ALL projects created by this user (lifetime)
+    const projectCountResult = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(projects)
+      .where(eq(projects.userId, userId));
+    const projectCount = projectCountResult[0]?.count || 0;
+    console.log(`[Subscription Middleware] Project count for userId ${userId}:`, projectCount);
+
+    // Voice recordings count from activity log (not implemented yet, using 0)
+    const voiceRecordingCount = 0;
+
+    // Attach subscription info with real data
     req.subscription = {
       userId: user.id,
       plan: (user.currentPlan || "free") as "free" | "solo" | "professional" | "enterprise",
       status: (user.subscriptionStatus || "inactive") as "active" | "inactive" | "canceled" | "expired",
-      subscriptionId: undefined,
-      currentPeriodEnd: undefined,
+      subscriptionId: user.revenuecatAppUserId, // RevenueCat customer ID
+      currentPeriodEnd: user.subscriptionRenewalDate || user.subscriptionExpiryDate, // Real renewal date
       usageThisMonth: {
-        voiceRecordings: 0,
-        invoices: 0,
-        projects: 0,
+        voiceRecordings: voiceRecordingCount,
+        invoices: invoiceCount,
+        projects: projectCount,
       },
     } as SubscriptionInfo;
 
+    console.log(`[Subscription Middleware] ✅ Attached subscription for userId: ${userId}, plan: ${req.subscription.plan}`);
+    console.log(`[Subscription Middleware] Usage this month:`, req.subscription.usageThisMonth);
+    console.log(`[Subscription Middleware] Subscription ID:`, req.subscription.subscriptionId);
+    console.log(`[Subscription Middleware] Current Period End:`, req.subscription.currentPeriodEnd);
     next();
   } catch (error) {
     console.error("[Subscription Middleware] Error:", error);

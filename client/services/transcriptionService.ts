@@ -1,5 +1,6 @@
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { speechToTextService } from "./speechToTextService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ============================================================================
 // BACKEND CONFIGURATION
@@ -11,7 +12,7 @@ import { speechToTextService } from "./speechToTextService";
 // PROD_URL: Production backend URL (for deployed app)
 // ============================================================================
 
-const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.64.118.139";
+const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.145.42.139";
 const DEV_PORT = 3000; // Your backend port
 const PROD_URL = process.env.EXPO_PUBLIC_BACKEND_URL || null;
 
@@ -136,13 +137,21 @@ class TranscriptionService {
         );
       }
 
-      // Send to backend for Groq Whisper transcription
+      // Get auth token
+      const authToken = await AsyncStorage.getItem("authToken");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
+      // Send to backend for Whisper transcription
       console.log("[Transcription] Sending audio to backend for transcription...");
       const response = await fetch(`${backendUrl}/api/transcribe`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           audioData: base64Audio,
           audioUri: audioUri,
@@ -198,10 +207,17 @@ class TranscriptionService {
       const extractUrl = `${BACKEND_URL}/api/extract-invoice`;
       console.log("[Invoice Extraction] Calling backend endpoint:", extractUrl);
 
+      // ✅ Get auth token from AsyncStorage
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("No authorization token found. Please log in.");
+      }
+
       const response = await fetch(extractUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // ✅ Add token to auth header
         },
         body: JSON.stringify({
           transcript,

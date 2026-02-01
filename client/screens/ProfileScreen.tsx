@@ -19,6 +19,12 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+interface ProfileStats {
+  invoicesCreated: number;
+  formattedRevenue: string;
+  timeSavedHours: number;
+}
+
 interface MenuItemProps {
   icon: keyof typeof Feather.glyphMap;
   label: string;
@@ -89,10 +95,15 @@ export default function ProfileScreen() {
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [avatarInitials, setAvatarInitials] = useState("U");
+  const [profileStats, setProfileStats] = useState<ProfileStats>({
+    invoicesCreated: 0,
+    formattedRevenue: "$0",
+    timeSavedHours: 0,
+  });
 
+  // Update display name from profileStore
   useFocusEffect(
     React.useCallback(() => {
-      // Update display name from profileStore
       const firstName = userProfile.firstName || user?.name?.split(" ")[0] || "";
       const lastName = userProfile.lastName || user?.name?.split(" ").slice(1).join(" ") || "";
       const fullName = [firstName, lastName].filter(Boolean).join(" ");
@@ -109,15 +120,31 @@ export default function ProfileScreen() {
     }, [userProfile, user])
   );
 
-  const stats = getStats();
-  const invoicesCreated = stats.sent + stats.paid + stats.pending + stats.overdue;
-  const revenueGenerated = stats.revenue;
-  const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
-  
-  // Format revenue as K (e.g., 32000 -> $32K, 5400 -> $5.4K)
-  const formattedRevenue = revenueGenerated >= 1000
-    ? `$${(revenueGenerated / 1000).toFixed(revenueGenerated % 1000 === 0 ? 0 : 1)}K`
-    : `$${revenueGenerated}`;
+  // ✅ Refresh stats when screen focuses (after invoice creation)
+  useFocusEffect(
+    React.useCallback(() => {
+      const stats = getStats();
+      // ✅ Count ALL invoices (draft, created, sent, pending, paid, overdue)
+      // timeSaved is calculated as: invoices.length * 0.5
+      // So timeSaved tells us total number of invoices
+      const invoicesCreated = Math.round(stats.timeSaved / 0.5);
+      const revenueGenerated = stats.revenue;
+      const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
+      
+      // Format revenue as K (e.g., 32000 -> $32K, 5400 -> $5.4K)
+      const formattedRevenue = revenueGenerated >= 1000
+        ? `$${(revenueGenerated / 1000).toFixed(revenueGenerated % 1000 === 0 ? 0 : 1)}K`
+        : `$${revenueGenerated}`;
+      
+      setProfileStats({
+        invoicesCreated,
+        formattedRevenue,
+        timeSavedHours,
+      });
+      
+      return () => {}; // cleanup function
+    }, [getStats])
+  );
 
   return (
     <ScrollView
@@ -135,9 +162,9 @@ export default function ProfileScreen() {
             { backgroundColor: `${BrandColors.constructionGold}20` },
           ]}
         >
-          <ThemedText type="display" style={{ color: BrandColors.constructionGold }}>
-            {avatarInitials}
-          </ThemedText>
+          <ThemedText type="h1" style={{ color: BrandColors.constructionGold }}>
+              {avatarInitials}
+            </ThemedText>
         </View>
         <ThemedText type="h2" style={styles.name}>
           {displayName}
@@ -157,7 +184,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {invoicesCreated}
+              {profileStats.invoicesCreated}
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Invoices Created
@@ -166,7 +193,7 @@ export default function ProfileScreen() {
           <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {formattedRevenue}
+              {profileStats.formattedRevenue}
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Revenue Generated
@@ -175,7 +202,7 @@ export default function ProfileScreen() {
           <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
           <View style={styles.statItem}>
             <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {timeSavedHours}h
+              {profileStats.timeSavedHours}h
             </ThemedText>
             <ThemedText type="caption" style={{ color: theme.textSecondary }}>
               Time Saved

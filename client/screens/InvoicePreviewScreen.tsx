@@ -171,7 +171,7 @@ export default function InvoicePreviewScreen() {
                 invoice.taxAmount > 0
                   ? `
                 <div class="total-row">
-                  <div class="total-label">Tax (${(invoice.taxRate * 100).toFixed(0)}%):</div>
+                  <div class="total-label">${invoice.taxName || "Tax"} (${(invoice.taxRate || 0).toFixed(1)}%):</div>
                   <div class="total-value">${formatCurrency(invoice.taxAmount)}</div>
                 </div>
               `

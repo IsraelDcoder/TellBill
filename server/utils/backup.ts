@@ -76,7 +76,9 @@ export function generateBackupFilename(
   type: "daily" | "weekly" | "monthly" = "daily"
 ): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").split("Z")[0];
-  const extension = process.env.BACKUP_COMPRESSION !== "false" ? ".sql.gz" : ".sql";
+  // Skip gzip extension on Windows since gzip is not available
+  const isWindows = process.platform === "win32";
+  const extension = (process.env.BACKUP_COMPRESSION !== "false" && !isWindows) ? ".sql.gz" : ".sql";
   return `tellbill_${type}_backup_${timestamp}${extension}`;
 }
 
@@ -144,8 +146,9 @@ export async function createBackup(
     command += ` --no-owner`;          // Don't include owner commands
     command += ` --no-privileges`;     // Don't include privilege commands
 
-    // Compression
-    if (config.compressionEnabled) {
+    // Compression (skip on Windows as gzip is not available)
+    const isWindows = process.platform === "win32";
+    if (config.compressionEnabled && !isWindows) {
       command += ` | gzip`;
     }
 
@@ -427,13 +430,24 @@ export function scheduleDailyBackup(): void {
   // Run backup at 2:00 AM every day
   const scheduleDailyBackupAtTime = () => {
     const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(2, 0, 0, 0);
+    let nextBackup = new Date(now);
+    nextBackup.setHours(2, 0, 0, 0);
 
-    const timeUntilNextRun = tomorrow.getTime() - now.getTime();
+    // If 2:00 AM has already passed today, schedule for tomorrow
+    if (nextBackup <= now) {
+      nextBackup.setDate(nextBackup.getDate() + 1);
+    }
 
-    console.log(`[Backup] Daily backup scheduled for ${tomorrow.toLocaleString()}`);
+    const timeUntilNextRun = nextBackup.getTime() - now.getTime();
+
+    // Ensure timeUntilNextRun is positive (safety check)
+    if (timeUntilNextRun < 0) {
+      console.error(`[Backup] ERROR: Daily backup scheduled in the past. Skipping to next day.`);
+      nextBackup.setDate(nextBackup.getDate() + 1);
+      return scheduleDailyBackupAtTime();
+    }
+
+    console.log(`[Backup] Daily backup scheduled for ${nextBackup.toLocaleString()}`);
     console.log(`[Backup] Time until next run: ${Math.round(timeUntilNextRun / 1000 / 60)} minutes`);
 
     setTimeout(() => {
@@ -461,13 +475,26 @@ export function scheduleWeeklyBackup(): void {
   // Run backup every Sunday at 3:00 AM
   const scheduleWeeklyBackupAtTime = () => {
     const now = new Date();
-    const nextSunday = new Date(now);
+    let nextSunday = new Date(now);
     nextSunday.setDate(
       nextSunday.getDate() + ((7 - nextSunday.getDay()) % 7 || 7)
     );
     nextSunday.setHours(3, 0, 0, 0);
 
-    const timeUntilNextRun = nextSunday.getTime() - now.getTime();
+    let timeUntilNextRun = nextSunday.getTime() - now.getTime();
+
+    // If we're past 3:00 AM on Sunday, move to next Sunday
+    if (timeUntilNextRun < 0) {
+      nextSunday.setDate(nextSunday.getDate() + 7);
+      timeUntilNextRun = nextSunday.getTime() - now.getTime();
+    }
+
+    // Ensure timeUntilNextRun is positive (safety check)
+    if (timeUntilNextRun <= 0) {
+      console.error(`[Backup] ERROR: Weekly backup scheduled in the past. Skipping to next week.`);
+      nextSunday.setDate(nextSunday.getDate() + 7);
+      return scheduleWeeklyBackupAtTime();
+    }
 
     console.log(`[Backup] Weekly backup scheduled for ${nextSunday.toLocaleString()}`);
     console.log(`[Backup] Time until next run: ${Math.round(timeUntilNextRun / 1000 / 60 / 60)} hours`);
@@ -492,12 +519,29 @@ export function scheduleMonthlyBackup(): void {
   // Run backup on the 1st of every month at 4:00 AM
   const scheduleMonthlyBackupAtTime = () => {
     const now = new Date();
-    const nextMonth = new Date(now);
+    let nextMonth = new Date(now);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     nextMonth.setDate(1);
     nextMonth.setHours(4, 0, 0, 0);
 
-    const timeUntilNextRun = nextMonth.getTime() - now.getTime();
+    let timeUntilNextRun = nextMonth.getTime() - now.getTime();
+
+    // If we're past 4:00 AM on the 1st, move to next month
+    if (timeUntilNextRun < 0) {
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      timeUntilNextRun = nextMonth.getTime() - now.getTime();
+    }
+
+    // Ensure timeUntilNextRun is positive (safety check)
+    if (timeUntilNextRun <= 0) {
+      console.error(`[Backup] ERROR: Monthly backup scheduled in the past. Skipping to next month.`);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      timeUntilNextRun = nextMonth.getTime() - now.getTime();
+      // Don't continue with zero or negative timeout
+      if (timeUntilNextRun <= 0) {
+        timeUntilNextRun = 24 * 60 * 60 * 1000; // Default to 24 hours
+      }
+    }
 
     console.log(`[Backup] Monthly backup scheduled for ${nextMonth.toLocaleString()}`);
     console.log(`[Backup] Time until next run: ${Math.round(timeUntilNextRun / 1000 / 60 / 60 / 24)} days`);
@@ -529,10 +573,26 @@ export function initializeBackupSystem(): void {
   // Ensure backup directory exists
   ensureBackupDir(config.backupDir);
 
-  // Schedule backups
-  scheduleDailyBackup();
-  scheduleWeeklyBackup();
-  scheduleMonthlyBackup();
+  // Schedule backups - Check every 30 minutes if a backup is due
+  setInterval(() => {
+    const now = new Date();
+    
+    // Daily backup at 2:00 AM
+    if (now.getHours() === 2 && now.getMinutes() < 30) {
+      createBackup("daily").catch(err => console.error("[Backup] Daily backup failed:", err));
+      cleanupOldBackups().catch(err => console.error("[Backup] Cleanup failed:", err));
+    }
+    
+    // Weekly backup every Sunday at 3:00 AM
+    if (now.getDay() === 0 && now.getHours() === 3 && now.getMinutes() < 30) {
+      createBackup("weekly").catch(err => console.error("[Backup] Weekly backup failed:", err));
+    }
+    
+    // Monthly backup on 1st at 4:00 AM
+    if (now.getDate() === 1 && now.getHours() === 4 && now.getMinutes() < 30) {
+      createBackup("monthly").catch(err => console.error("[Backup] Monthly backup failed:", err));
+    }
+  }, 30 * 60 * 1000); // Check every 30 minutes
 
   // Get initial stats
   const stats = getBackupStats();

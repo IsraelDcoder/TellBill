@@ -9,9 +9,15 @@ import {
   Modal,
   Image,
   ImageStyle,
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Button } from "@/components/Button";
@@ -40,13 +46,173 @@ export default function ApprovalsScreen() {
   const [clientEmail, setClientEmail] = useState("");
   const [selectedProof, setSelectedProof] = useState<any>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    description: "",
+    estimatedCost: "",
+    photos: [] as string[],
+  });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     store.fetchScopeProofs();
+
+    // Set up polling to check for approval updates every 5 seconds
+    const pollingInterval = setInterval(() => {
+      store.fetchScopeProofs();
+    }, 5000);
+
+    return () => clearInterval(pollingInterval);
   }, []);
 
+  // Calculate filtered proofs and counts
   const filteredProofs = store.scopeProofs.filter((p) => p.status === activeTab);
   const counts = store.getStatusCounts();
+
+  const handleAddPhoto = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: "images",
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        let photoUri = result.assets[0].uri;
+        
+        // Convert content:// to file:// on Android
+        if (Platform.OS === "android" && photoUri.startsWith("content://")) {
+          try {
+            const fileName = photoUri.split("/").pop() || "photo.jpg";
+            const cacheDir = `${FileSystem.cacheDirectory}`;
+            const targetPath = `${cacheDir}${fileName}`;
+            await FileSystem.copyAsync({
+              from: photoUri,
+              to: targetPath,
+            });
+            photoUri = targetPath;
+          } catch (copyError) {
+            console.error("Failed to convert URI:", copyError);
+          }
+        }
+        
+        try {
+          // Read file as base64
+          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+            encoding: "base64",
+          });
+          
+          // Store as data URI
+          const mimeType = "image/jpeg";
+          const dataUri = `data:${mimeType};base64,${base64}`;
+          
+          setCreateForm((prev) => ({
+            ...prev,
+            photos: [...prev.photos, dataUri],
+          }));
+        } catch (error) {
+          console.error("File reading error:", error);
+          Alert.alert("Error", "Failed to process image. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error("ImagePicker error:", error);
+      Alert.alert("Error", "Failed to pick image");
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setCreateForm((prev) => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: "images",
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        let photoUri = result.assets[0].uri;
+        
+        // Convert content:// to file:// on Android
+        if (Platform.OS === "android" && photoUri.startsWith("content://")) {
+          try {
+            const fileName = photoUri.split("/").pop() || "photo.jpg";
+            const cacheDir = `${FileSystem.cacheDirectory}`;
+            const targetPath = `${cacheDir}${fileName}`;
+            await FileSystem.copyAsync({
+              from: photoUri,
+              to: targetPath,
+            });
+            photoUri = targetPath;
+          } catch (copyError) {
+            console.error("Failed to convert URI:", copyError);
+          }
+        }
+        
+        try {
+          // Read file as base64
+          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+            encoding: "base64",
+          });
+          
+          // Store as data URI
+          const mimeType = "image/jpeg";
+          const dataUri = `data:${mimeType};base64,${base64}`;
+          
+          setCreateForm((prev) => ({
+            ...prev,
+            photos: [...prev.photos, dataUri],
+          }));
+        } catch (error) {
+          console.error("File reading error:", error);
+          Alert.alert("Error", "Failed to process image. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+      Alert.alert("Error", "Failed to take photo");
+    }
+  };
+
+  const handleCreateScopeProof = async () => {
+    if (!createForm.description.trim()) {
+      Alert.alert("Error", "Please enter a description");
+      return;
+    }
+    if (!createForm.estimatedCost.trim()) {
+      Alert.alert("Error", "Please enter estimated cost");
+      return;
+    }
+    if (createForm.photos.length === 0) {
+      Alert.alert("Error", "Please add at least one photo");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await store.createScopeProof({
+        description: createForm.description,
+        estimatedCost: parseFloat(createForm.estimatedCost),
+        photos: createForm.photos,
+      });
+
+      Alert.alert("Success", "Scope proof created! Now request client approval.");
+      setShowCreateModal(false);
+      setCreateForm({ description: "", estimatedCost: "", photos: [] });
+    } catch (error) {
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to create scope proof");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleRequestApproval = async () => {
     if (!clientEmail.trim()) {
@@ -236,16 +402,13 @@ export default function ApprovalsScreen() {
       status === "pending" ? "#FEF3C7" : status === "approved" ? "#ECFDF5" : "#FEE2E2",
   });
 
+  // ✅ LOCK: Scope Proof/Approvals only available for Professional and Enterprise plans
+  if (isLocked) {
+    return <LockedFeatureOverlay feature="scope_proof" />;
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      {/* Lock Overlay for Non-Professional Users */}
-      {isLocked && (
-        <LockedFeatureOverlay
-          featureName="Scope Proof"
-          requiredPlan="Professional"
-          description="Get client approval for extra work with dispute-ready proof"
-        />
-      )}
 
       {/* Header */}
       <View style={styles.header}>
@@ -295,6 +458,141 @@ export default function ApprovalsScreen() {
         </ScrollView>
       )}
 
+      {/* Create Scope Proof Modal */}
+      <Modal
+        visible={showCreateModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCreateModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundRoot, maxHeight: "90%" }]}>
+            <ScrollView showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
+              <View style={styles.modalHeader}>
+                <ThemedText style={{ fontSize: 18, fontWeight: "600" }}>Create Scope Proof</ThemedText>
+                <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                  <Feather name="x" size={24} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Description Input */}
+              <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.md, marginBottom: Spacing.xs, fontWeight: "600" }}>
+                Description
+              </ThemedText>
+              <TextInput
+                placeholder="What extra work was done?"
+                placeholderTextColor={theme.textSecondary}
+                value={createForm.description}
+                onChangeText={(text) =>
+                  setCreateForm((prev) => ({ ...prev, description: text }))
+                }
+                multiline={true}
+                numberOfLines={4}
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: theme.backgroundDefault,
+                    color: theme.text,
+                    borderColor: theme.primary,
+                  },
+                ]}
+              />
+
+              {/* Estimated Cost Input */}
+              <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.md, marginBottom: Spacing.xs, fontWeight: "600" }}>
+                Estimated Cost ($)
+              </ThemedText>
+              <TextInput
+                placeholder="0.00"
+                placeholderTextColor={theme.textSecondary}
+                value={createForm.estimatedCost}
+                onChangeText={(text) =>
+                  setCreateForm((prev) => ({ ...prev, estimatedCost: text }))
+                }
+                keyboardType="decimal-pad"
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: theme.backgroundDefault,
+                    color: theme.text,
+                    borderColor: theme.primary,
+                  },
+                ]}
+              />
+
+              {/* Photos */}
+              <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.md, marginBottom: Spacing.xs, fontWeight: "600" }}>
+                Photos (Required)
+              </ThemedText>
+
+              <View style={styles.photosGrid}>
+                {createForm.photos.map((photo, idx) => (
+                  <View key={idx} style={styles.photoContainer}>
+                    <Image source={{ uri: photo }} style={styles.photoThumbnail} />
+                    <TouchableOpacity
+                      style={styles.removePhotoButton}
+                      onPress={() => handleRemovePhoto(idx)}
+                    >
+                      <Feather name="x" size={16} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={[
+                    styles.photoThumbnail,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderWidth: 2,
+                      borderColor: BrandColors.constructionGold,
+                      borderStyle: "dashed",
+                    },
+                  ]}
+                  onPress={handleTakePhoto}
+                >
+                  <Feather name="camera" size={24} color={BrandColors.constructionGold} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.photoThumbnail,
+                    {
+                      backgroundColor: theme.backgroundDefault,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderWidth: 2,
+                      borderColor: BrandColors.constructionGold,
+                      borderStyle: "dashed",
+                    },
+                  ]}
+                  onPress={handleAddPhoto}
+                >
+                  <Feather name="image" size={24} color={BrandColors.constructionGold} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalActions}>
+                <Button
+                  onPress={handleCreateScopeProof}
+                  disabled={creating}
+                  style={{
+                    flex: 1,
+                    backgroundColor: BrandColors.constructionGold,
+                  }}
+                >
+                  <ThemedText style={{ color: "white", fontWeight: "600" }}>
+                    {creating ? "Creating..." : "Create Scope Proof"}
+                  </ThemedText>
+                </Button>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Request Approval Modal */}
       <Modal
         visible={showRequestModal}
@@ -302,65 +600,63 @@ export default function ApprovalsScreen() {
         transparent={true}
         onRequestClose={() => setShowRequestModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.backgroundRoot }]}>
-            <View style={styles.modalHeader}>
-              <ThemedText style={{ fontSize: 18, fontWeight: "600" }}>Request Client Approval</ThemedText>
-              <TouchableOpacity onPress={() => setShowRequestModal(false)}>
-                <Feather name="x" size={24} color={theme.text} />
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }} keyboardShouldPersistTaps="handled">
+            <View style={[styles.modalContent, { backgroundColor: theme.backgroundRoot }]}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={{ fontSize: 18, fontWeight: "600" }}>Request Client Approval</ThemedText>
+                <TouchableOpacity onPress={() => setShowRequestModal(false)}>
+                  <Feather name="x" size={24} color={theme.text} />
+                </TouchableOpacity>
+              </View>
 
-            <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.md }}>
-              Enter the client's email to send approval request
-            </ThemedText>
-
-            <View
-              style={[
-                styles.input,
-                {
-                  borderColor: theme.primary,
-                  backgroundColor: theme.backgroundDefault,
-                },
-              ]}
-            >
-              <ThemedText style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
-                Client Email
+              <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.md, marginBottom: Spacing.md }}>
+                Enter the client's email to send approval request
               </ThemedText>
-              <View
-                style={{
-                  borderWidth: 1,
-                  borderColor: theme.primary,
-                  borderRadius: 8,
-                  paddingHorizontal: Spacing.md,
-                  paddingVertical: Spacing.sm,
-                }}
-              >
-                <ThemedText
-                  style={{
+
+              <TextInput
+                placeholder="client@example.com"
+                placeholderTextColor={theme.textSecondary}
+                value={clientEmail}
+                onChangeText={setClientEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: theme.backgroundDefault,
                     color: theme.text,
-                    fontFamily: "monospace",
+                    borderColor: theme.primary,
+                  },
+                ]}
+              />
+
+              <View style={styles.modalActions}>
+                <Button
+                  onPress={handleRequestApproval}
+                  style={{
+                    flex: 1,
+                    backgroundColor: BrandColors.constructionGold,
                   }}
                 >
-                  {/* Placeholder for input - use native TextInput */}
-                </ThemedText>
+                  <ThemedText style={{ color: "white", fontWeight: "600" }}>Send Approval Request</ThemedText>
+                </Button>
               </View>
             </View>
-
-            <View style={styles.modalActions}>
-              <Button
-                onPress={handleRequestApproval}
-                style={{
-                  flex: 1,
-                  backgroundColor: BrandColors.constructionGold,
-                }}
-              >
-                <ThemedText style={{ color: "white", fontWeight: "600" }}>Send Request</ThemedText>
-              </Button>
-            </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
+
+      {/* Create Button (FAB) */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: BrandColors.constructionGold }]}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Feather name="plus" size={24} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -398,7 +694,9 @@ const styles = StyleSheet.create({
   },
   photosGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
     marginVertical: Spacing.md,
+    gap: Spacing.sm,
   } as const,
   photoThumbnail: {
     width: 80,
@@ -406,6 +704,21 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     borderRadius: 8,
   } as const,
+  photoContainer: {
+    position: "relative",
+    width: 80,
+    height: 80,
+  },
+  removePhotoButton: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    padding: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   costRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -466,8 +779,31 @@ const styles = StyleSheet.create({
   input: {
     marginVertical: Spacing.md,
   },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 16,
+    marginBottom: Spacing.md,
+  },
   modalActions: {
     marginTop: Spacing.xl,
     gap: Spacing.md,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 100,
+    right: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

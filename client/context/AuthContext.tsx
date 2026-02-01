@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import * as Google from "expo-auth-session/providers/google";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
-import { useProjectStore } from "@/stores/projectStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
@@ -22,7 +20,6 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -41,17 +38,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authToken, setAuthToken] = useState<string | null>(null); // ✅ JWT token
   const { resetSubscription, setCurrentPlan } = useSubscriptionStore();
   const { resetInvoices } = useInvoiceStore();
-  const { resetProjects } = useProjectStore();
   const { setCompanyInfo } = useProfileStore();
-  const { hydrateActivities } = useActivityStore();
-
-  // ✅ GOOGLE OAUTH SETUP
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "",
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "",
-    scopes: ["profile", "email"],
-  });
+  const { hydrateActivities, clearActivities } = useActivityStore();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   /**
    * ✅ Save JWT token to AsyncStorage
@@ -99,8 +88,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetDataForNewSignup = () => {
     console.log("[Auth] Resetting data for NEW user signup");
     resetInvoices();
-    resetProjects();
     resetSubscription();
+    clearActivities();
+  };
+
+  /**
+   * ✅ CRITICAL: Clear data when a different user logs in
+   * Prevents data leakage between users if they share the same device
+   * This ensures each user sees ONLY their own data
+   */
+  const clearDataForNewUser = () => {
+    console.log("[Auth] ⚠️  Clearing cached data - different user logging in");
+    // Clear all stores to prevent showing previous user's data
+    resetInvoices();
+    resetSubscription();
+    clearActivities();
   };
 
 
@@ -147,8 +149,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (storedToken) {
         console.log("[Auth] Found stored JWT token, restoring user session...");
-        // Token exists, user was previously authenticated
-        // Note: Verify token with backend in next step
+        
+        // ✅ CRITICAL: Validate token with backend
+        // Backend's /api/auth/verify endpoint checks if token is still valid
+        // This also returns the user data we need to restore the session
+        try {
+          // ⏱️ Add 30-second timeout to fetch
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => {
+            console.warn("[Auth] ⚠️  Token verification timeout (30s) - proceeding with login screen");
+            controller.abort();
+          }, 30000);
+
+          try {
+            const verifyResponse = await fetch(getApiUrl("/api/auth/verify"), {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${storedToken}`,
+              },
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (verifyResponse.ok) {
+              const verifyData = await verifyResponse.json();
+              
+              if (verifyData.user) {
+                console.log("[Auth] ✅ Token validated! Restoring user session for:", verifyData.user.email);
+                
+                // ✅ Restore user from verified token
+                const restoredUser: User = {
+                  id: verifyData.user.id,
+                  email: verifyData.user.email,
+                  name: verifyData.user.name,
+                  createdAt: verifyData.user.createdAt,
+                };
+                
+                setUser(restoredUser);
+                setSession({ user: restoredUser });
+                setCurrentUserId(restoredUser.id);
+                
+                // ✅ Set user's plan from response
+                if (verifyData.subscription) {
+                  setCurrentPlan(verifyData.subscription.currentPlan || "free");
+                }
+                
+                console.log("[Auth] ✅ Session restored! Loading user data from backend...");
+                // ✅ Load full user data in background (non-blocking)
+                loadUserDataFromBackend(restoredUser.id)
+                  .then(() => {
+                    console.log("[Auth] ✅ Background data rehydration complete");
+                  })
+                  .catch((err) => {
+                    console.error("[Auth] ⚠️  Background data rehydration failed:", err);
+                    // Non-blocking: User can still access app with cached data
+                  });
+              }
+            } else {
+              console.warn("[Auth] ⚠️  Token validation failed:", verifyResponse.status);
+              // Token is invalid/expired, clear it and let user login again
+              await clearToken();
+              setUser(null);
+              setSession(null);
+            }
+          } catch (fetchErr: any) {
+            clearTimeout(timeoutId);
+            
+            // If timeout, proceed anyway (user might have cached data)
+            if (fetchErr.name === "AbortError") {
+              console.warn("[Auth] ⚠️  Token verification timed out - proceeding with login screen");
+              // Don't clear token - keep user logged in with cached data if available
+            } else {
+              console.error("[Auth] ❌ Token verification fetch error:", fetchErr);
+              // Other network error - proceed anyway
+            }
+          }
+        } catch (verifyErr) {
+          console.error("[Auth] ❌ Token verification error:", verifyErr);
+          // Network error or server issue, proceed anyway
+        }
+      } else {
+        console.log("[Auth] No stored token found - user needs to login");
       }
       
       console.log("[Auth] Initialization complete");
@@ -267,6 +350,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: data.user.createdAt,
       };
 
+      // ✅ MULTI-USER SAFETY: Check if different user is logging in
+      // If currentUserId is set and different from newUser.id, clear cached data
+      if (currentUserId && currentUserId !== newUser.id) {
+        console.log(`[Auth] ⚠️  Different user detected! Clearing cached data for user switch`);
+        clearDataForNewUser();
+      }
+
       // ✅ SAVE JWT TOKEN to AsyncStorage
       if (data.token) {
         await saveToken(data.token);
@@ -289,6 +379,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Auth] Setting user and session...");
       setUser(newUser);
       setSession({ user: newUser });
+      setCurrentUserId(newUser.id); // ✅ Track current user for multi-user safety
       setCurrentPlan("free");
       
       console.log("[Auth] ✅ Login complete! Navigation should happen now");
@@ -296,12 +387,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Auth] About to exit signIn function...");
       
 
+      // ✅ CRITICAL: Wait a bit for Zustand persist middleware to hydrate from AsyncStorage
+      // Then call backend rehydration to OVERWRITE with fresh server data
+      // This prevents stale or mixed data from being shown
       setTimeout(() => {
-        console.log("[Auth] Background: Starting data rehydration...");
-        loadUserDataFromBackend(newUser.id).catch((err) => {
-          console.warn("[Auth] Background: Data rehydration failed:", err);
-        });
-      }, 100);
+        console.log("[Auth] Starting data rehydration from backend...");
+        loadUserDataFromBackend(newUser.id)
+          .then(() => {
+            console.log("[Auth] ✅ Data rehydration COMPLETE");
+          })
+          .catch((err) => {
+            console.error("[Auth] ❌ Data rehydration FAILED:", err);
+            // Non-blocking: User can still access cached data from AsyncStorage if backend fails
+          });
+      }, 500); // Longer delay to ensure persist middleware has loaded
       
       console.log("[Auth] Sign in successful:", email);
     } catch (err) {
@@ -318,87 +417,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("[Auth] FINALLY: Setting isLoading to false");
       setIsLoading(false);
       console.log("[Auth] FINALLY: isLoading set to false, function complete");
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    try {
-      setError(null);
-      setIsLoading(true);
-
-      // ✅ TRIGGER GOOGLE OAUTH FLOW
-      // Opens Google login prompt in device's OAuth handler
-      const result = await promptAsync();
-
-      if (result?.type !== "success") {
-        throw new Error("Google sign-in cancelled or failed");
-      }
-
-      if (!result.authentication?.accessToken) {
-        throw new Error("No access token received from Google");
-      }
-
-      // ✅ EXCHANGE TOKEN: Send Google token to backend
-      // Backend validates token with Google and creates/finds user
-      const response = await fetch(getApiUrl("/api/auth/google"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          googleToken: result.authentication.accessToken,
-          idToken: result.authentication.idToken,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.status !== 200 && response.status !== 201) {
-        throw new Error(data.error || "Google authentication failed");
-      }
-
-      if (!data.user) {
-        throw new Error("No user data returned from Google auth");
-      }
-
-      // ✅ NEW OR EXISTING USER
-      const newUser: User = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        createdAt: data.user.createdAt,
-      };
-
-      // If new user (201 status), reset data
-      if (response.status === 201) {
-        resetDataForNewSignup();
-        setCurrentPlan("free");
-      }
-
-      // Load company info if available
-      if (data.user.companyName || data.user.companyEmail) {
-        setCompanyInfo({
-          name: data.user.companyName || "",
-          phone: data.user.companyPhone || "",
-          email: data.user.companyEmail || "",
-          address: data.user.companyAddress || "",
-          website: data.user.companyWebsite || "",
-          taxId: data.user.companyTaxId || "",
-        });
-      }
-
-      setUser(newUser);
-      setSession({ user: newUser });
-
-      console.log("[Auth] Google sign in successful:", newUser.email);
-    } catch (err) {
-      setUser(null);
-      setSession(null);
-
-      const message = err instanceof Error ? err.message : "Google sign in failed";
-      setError(message);
-      console.error("[Auth] Google sign in error:", err);
-      throw err;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -453,71 +471,98 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * - Never initialize empty state for returning users
    * - Never overwrite backend data with defaults
    * - UI must immediately reflect existing user history
+   * 
+   * ✅ FIXED: This now waits for Zustand persist middleware to initialize,
+   * then overwrites with fresh backend data to prevent stale/mixed data
    */
   const loadUserDataFromBackend = async (userId: string) => {
     // Non-blocking data rehydration - never block login
     try {
-      console.log("[Auth] REHYDRATING USER STATE from backend:", userId);
+      console.log("[Auth] 🔄 REHYDRATING USER STATE from backend for userId:", userId);
       const backendUrl = getApiUrl(`/api/data/all?userId=${userId}`);
-      console.log("[Auth] Fetching from URL:", backendUrl);
+      console.log("[Auth] 📡 Fetching from URL:", backendUrl);
 
-      // Fetch all user data in one request (most efficient)
-      const response = await fetch(backendUrl);
-      console.log("[Auth] Data fetch response status:", response.status);
-
-      if (!response.ok) {
-        console.warn("[Auth] Failed to rehydrate data:", response.status);
+      // ✅ CRITICAL: Get the JWT token to send in Authorization header
+      // Backend's authMiddleware requires this header to authenticate the request
+      const token = await getStoredToken();
+      if (!token) {
+        console.error("[Auth] ❌ No JWT token available for data rehydration");
         return;
       }
 
-      const { success, data } = await response.json();
-      console.log("[Auth] Data rehydration response:", { success, hasData: !!data });
+      // Fetch all user data in one request (most efficient)
+      const response = await fetch(backendUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // ✅ Send JWT token
+        },
+      });
+      console.log("[Auth] 📦 Data fetch response status:", response.status);
+
+      if (!response.ok) {
+        console.error("[Auth] ❌ Failed to rehydrate data - HTTP " + response.status);
+        const errorText = await response.text();
+        console.error("[Auth] ❌ Response body:", errorText);
+        return;
+      }
+
+      const responseData = await response.json();
+      const { success, data } = responseData;
+      console.log("[Auth] 📥 Data rehydration response:", {
+        success,
+        hasData: !!data,
+        invoiceCount: data?.invoices?.length || 0,
+        projectCount: data?.projects?.length || 0,
+        activityCount: data?.activities?.length || 0,
+      });
 
       if (!success || !data) {
-        console.warn("[Auth] Invalid rehydration response");
+        console.error("[Auth] ❌ Invalid rehydration response - success:", success, "data:", !!data);
         return;
       }
 
       // ✅ CRITICAL: Hydrate invoiceStore from backend
       if (data.invoices && Array.isArray(data.invoices)) {
-        console.log(`[Auth] Rehydrating ${data.invoices.length} invoices`);
+        console.log(`[Auth] 📄 Rehydrating ${data.invoices.length} invoices from backend`);
         const { hydrateInvoices } = useInvoiceStore.getState();
         hydrateInvoices(data.invoices);
-      }
-
-      // ✅ CRITICAL: Hydrate projectStore from backend
-      if (data.projects && Array.isArray(data.projects)) {
-        console.log(`[Auth] Rehydrating ${data.projects.length} projects`);
-        const { hydrateProjects } = useProjectStore.getState();
-        hydrateProjects(data.projects);
+        console.log(`[Auth] ✅ Invoices hydrated successfully`);
+      } else {
+        console.warn(`[Auth] ⚠️  No invoices data received from backend`);
       }
 
       // ✅ CRITICAL: Hydrate profileStore from backend
       if (data.profile) {
-        console.log("[Auth] Rehydrating user profile");
+        console.log("[Auth] 👤 Rehydrating user profile from backend");
         const { hydrateProfile } = useProfileStore.getState();
         hydrateProfile(
           data.profile.userProfile || {},
           data.profile.companyInfo || {}
         );
+        console.log("[Auth] ✅ Profile hydrated successfully");
       }
 
       // ✅ CRITICAL: Hydrate subscriptionStore from backend
       if (data.subscription) {
-        console.log("[Auth] Rehydrating subscription data");
+        console.log("[Auth] 💳 Rehydrating subscription data from backend");
         const { hydrateSubscription } = useSubscriptionStore.getState();
         hydrateSubscription(data.subscription);
+        console.log("[Auth] ✅ Subscription hydrated successfully");
       }
 
       // ✅ NEW: Hydrate activityStore from backend
       if (data.activities && Array.isArray(data.activities)) {
-        console.log(`[Auth] Rehydrating ${data.activities.length} activities`);
+        console.log(`[Auth] 📊 Rehydrating ${data.activities.length} activities from backend`);
         hydrateActivities(data.activities);
+        console.log(`[Auth] ✅ Activities hydrated successfully`);
+      } else {
+        console.warn(`[Auth] ⚠️  No activities data received from backend`);
       }
 
-      console.log("[Auth] ✅ USER STATE REHYDRATION COMPLETE");
+      console.log("[Auth] ✅✅✅ ALL DATA REHYDRATION COMPLETE ✅✅✅");
     } catch (err) {
-      console.error("[Auth] Error rehydrating user state:", err);
+      console.error("[Auth] ❌ Error rehydrating user state:", err);
       // Non-blocking: Continue login even if rehydration fails
       // User can still access cached data from AsyncStorage
     }
@@ -530,6 +575,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Data is re-fetched from backend on next login
     setUser(null);
     setSession(null);
+    setCurrentUserId(null); // ✅ Clear current user tracking
     setError(null);
 
     console.log("[Auth] Signed out successfully");
@@ -568,7 +614,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user && !!session,
     signUp,
     signIn,
-    signInWithGoogle,
     signInWithApple,
     signOut,
     resetPassword,

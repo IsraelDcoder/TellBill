@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
-import { eq } from "drizzle-orm";
-import { users } from "@shared/schema";
+import { eq, sql, and } from "drizzle-orm";
+import { users, invoices, projects, activityLog } from "@shared/schema";
 import { db } from "./db";
 import {
   hashPassword,
@@ -8,7 +8,7 @@ import {
   validatePasswordStrength,
 } from "./utils/password";
 import { sendWelcomeEmail } from "./emailService";
-import { generateToken } from "./utils/jwt";
+import { generateToken, verifyToken } from "./utils/jwt";
 import {
   validateSignup,
   validateLogin,
@@ -597,6 +597,120 @@ export function registerAuthRoutes(app: Express) {
       return res.status(500).json({
         success: false,
         error: "Google authentication failed",
+      });
+    }
+  });
+
+  /**
+   * GET /api/auth/verify
+   * Verify JWT token and restore user session
+   * 
+   * Used for:
+   * - Session restoration on app launch (if token in AsyncStorage)
+   * - Checking if stored token is still valid
+   * - Returning fresh user data for session restoration
+   * 
+   * Returns:
+   * - 200 OK: Token is valid, user data included
+   * - 401 Unauthorized: Token is invalid or expired
+   */
+  app.get("/api/auth/verify", async (req: Request, res: Response) => {
+    try {
+      // Extract JWT from Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+          success: false,
+          error: "No token provided",
+        });
+      }
+
+      const token = authHeader.substring(7); // Remove "Bearer " prefix
+      
+      // Verify token validity using jwt utility
+      const payload = verifyToken(token);
+      
+      if (!payload || !payload.userId) {
+        console.log("[Auth] Token verification failed - invalid or expired token");
+        return res.status(401).json({
+          success: false,
+          error: "Invalid or expired token",
+        });
+      }
+
+      // ✅ Token is valid - fetch current user data
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, payload.userId))
+        .limit(1);
+
+      if (!user || user.length === 0) {
+        console.log("[Auth] User not found for token:", payload.userId);
+        return res.status(401).json({
+          success: false,
+          error: "User not found",
+        });
+      }
+
+      const currentUser = user[0];
+      
+      // ✅ Query subscription data for this user
+      const invoiceCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(invoices)
+        .where(eq(invoices.userId, payload.userId));
+      
+      const projectCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(projects)
+        .where(eq(projects.userId, payload.userId));
+
+      // ✅ Count voice recordings from activity log
+      const voiceRecordingCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(activityLog)
+        .where(and(eq(activityLog.userId, payload.userId), eq(activityLog.action, "transcribed_voice")));
+
+      const invoiceCount = invoiceCountResult[0]?.count || 0;
+      const projectCount = projectCountResult[0]?.count || 0;
+      const voiceRecordingCount = voiceRecordingCountResult[0]?.count || 0;
+
+      console.log("[Auth] ✅ Token verified for user:", currentUser.email);
+      console.log("[Auth] Usage counts - Invoices:", invoiceCount, "Projects:", projectCount, "Voice Recordings:", voiceRecordingCount);
+
+      return res.status(200).json({
+        success: true,
+        user: {
+          id: currentUser.id,
+          email: currentUser.email,
+          name: currentUser.name,
+          companyName: currentUser.companyName,
+          companyPhone: currentUser.companyPhone,
+          companyEmail: currentUser.companyEmail,
+          companyAddress: currentUser.companyAddress,
+          companyWebsite: currentUser.companyWebsite,
+          companyTaxId: currentUser.companyTaxId,
+          createdAt: currentUser.createdAt,
+        },
+        subscription: {
+          userEntitlement: currentUser.currentPlan || "free",
+          subscription: null,
+          currentPlan: currentUser.currentPlan || "free",
+          isSubscribed: currentUser.isSubscribed || false,
+          invoicesCreated: invoiceCount,
+          projectsCreated: projectCount,
+          projectsAccessed: 0, // TODO: Track project access in activity log
+          voiceRecordingsUsed: 0, // TODO: Track from activity log
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] Verification error:", error);
+      console.error("[Auth] Error type:", error instanceof Error ? error.message : String(error));
+      console.error("[Auth] Full error:", JSON.stringify(error, null, 2));
+      return res.status(500).json({
+        success: false,
+        error: "Token verification failed",
       });
     }
   });

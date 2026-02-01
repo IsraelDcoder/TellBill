@@ -41,7 +41,7 @@ interface AuthScreenProps {
 
 export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
   const { theme } = useTheme();
-  const { signIn, signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signIn, signUp } = useAuth();
 
   // Auth mode state
   const [mode, setMode] = useState<"signup" | "login">("signup");
@@ -559,18 +559,6 @@ export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
                 />
               </View>
 
-              {/* Google Sign Up */}
-              <Pressable
-                style={[styles.googleButton, { borderColor: theme.border }]}
-                onPress={signInWithGoogle}
-                disabled={isLoading}
-              >
-                <Feather name="globe" size={20} color={theme.text} />
-                <ThemedText style={styles.googleButtonText}>
-                  Continue with Google
-                </ThemedText>
-              </Pressable>
-
               {/* Footer CTA */}
               <View style={styles.footerCTA}>
                 <ThemedText style={styles.footerText}>
@@ -705,18 +693,6 @@ export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
                   style={[styles.divider, { backgroundColor: theme.border }]}
                 />
               </View>
-
-              {/* Google Login */}
-              <Pressable
-                style={[styles.googleButton, { borderColor: theme.border }]}
-                onPress={signInWithGoogle}
-                disabled={isLoading}
-              >
-                <Feather name="globe" size={20} color={theme.text} />
-                <ThemedText style={styles.googleButtonText}>
-                  Continue with Google
-                </ThemedText>
-              </Pressable>
 
               {/* Footer CTA */}
               <View style={styles.footerCTA}>
@@ -906,20 +882,6 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 12,
-    fontWeight: "600",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
-    marginBottom: Spacing.xl,
-  },
-  googleButtonText: {
-    fontSize: 15,
     fontWeight: "600",
   },
   footerCTA: {

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { getApiUrl } from "@/lib/backendUrl";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface ScopeProof {
   id: string;
@@ -9,14 +10,37 @@ export interface ScopeProof {
   description: string;
   estimatedCost: number | string;
   photos: string[];
-  status: "pending" | "approved" | "expired";
+  status: "pending" | "approved" | "feedback" | "expired";
   approvalToken: string;
   tokenExpiresAt?: string;
   approvedAt?: string;
   approvedBy?: string;
+  feedback?: string;
+  feedbackFrom?: string;
+  feedbackAt?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+// Helper function to get JWT token
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem("authToken");
+  } catch (error) {
+    console.error("Failed to get auth token:", error);
+    return null;
+  }
+};
+
+// Helper function to build fetch headers with auth
+const getAuthHeaders = async (additionalHeaders = {}) => {
+  const token = await getAuthToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...additionalHeaders,
+  };
+};
 
 interface ScopeProofStore {
   // State
@@ -51,16 +75,24 @@ export const useScopeProofStore = create<ScopeProofStore>((set, get) => ({
       if (filters.status) queryParams.append("status", filters.status);
       if (filters.projectId) queryParams.append("projectId", filters.projectId);
 
+      const headers = await getAuthHeaders();
       const response = await fetch(
-        getApiUrl(`/api/scope-proof${queryParams.toString() ? `?${queryParams}` : ""}`)
+        getApiUrl(`/api/scope-proof${queryParams.toString() ? `?${queryParams}` : ""}`),
+        { headers }
       );
       const data = await response.json();
 
-      if (data.success) {
-        set({ scopeProofs: data.data });
-      } else {
-        set({ error: data.error || "Failed to fetch scope proofs" });
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch scope proofs");
       }
+
+      // Backend returns array directly, parse photos if they're stringified
+      const proofs = Array.isArray(data) ? data : data.data || [];
+      const parsedProofs = proofs.map((proof: any) => ({
+        ...proof,
+        photos: typeof proof.photos === "string" ? JSON.parse(proof.photos) : proof.photos,
+      }));
+      set({ scopeProofs: parsedProofs });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : "Failed to fetch scope proofs" });
     } finally {
@@ -71,22 +103,27 @@ export const useScopeProofStore = create<ScopeProofStore>((set, get) => ({
   createScopeProof: async (proof) => {
     set({ loading: true, error: null });
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(getApiUrl("/api/scope-proof"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(proof),
       });
       const data = await response.json();
 
-      if (data.success) {
-        const newProof = data.data;
-        set((state) => ({
-          scopeProofs: [newProof, ...state.scopeProofs],
-        }));
-        return newProof;
-      } else {
+      if (!response.ok) {
         throw new Error(data.error || "Failed to create scope proof");
       }
+
+      const newProof = data.data || data;
+      const parsedProof = {
+        ...newProof,
+        photos: typeof newProof.photos === "string" ? JSON.parse(newProof.photos) : newProof.photos,
+      };
+      set((state) => ({
+        scopeProofs: [parsedProof, ...state.scopeProofs],
+      }));
+      return parsedProof;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to create scope proof";
       set({ error: errorMsg });
@@ -99,24 +136,25 @@ export const useScopeProofStore = create<ScopeProofStore>((set, get) => ({
   requestApproval: async (id, clientEmail) => {
     set({ loading: true, error: null });
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(getApiUrl(`/api/scope-proof/${id}/request`), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ clientEmail }),
       });
       const data = await response.json();
 
-      if (data.success) {
-        // Update proof status to pending
-        set((state) => ({
-          scopeProofs: state.scopeProofs.map((p) =>
-            p.id === id ? { ...p, status: "pending" } : p
-          ),
-        }));
-        return { approvalUrl: data.approvalUrl };
-      } else {
+      if (!response.ok) {
         throw new Error(data.error || "Failed to request approval");
       }
+
+      // Update proof status
+      set((state) => ({
+        scopeProofs: state.scopeProofs.map((p) =>
+          p.id === id ? { ...p, status: "pending" as const } : p
+        ),
+      }));
+      return { approvalUrl: data.approvalUrl || "" };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to request approval";
       set({ error: errorMsg });
@@ -129,14 +167,15 @@ export const useScopeProofStore = create<ScopeProofStore>((set, get) => ({
   resendApproval: async (id, clientEmail) => {
     set({ loading: true, error: null });
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(getApiUrl(`/api/scope-proof/${id}/resend`), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ clientEmail }),
       });
       const data = await response.json();
 
-      if (!data.success) {
+      if (!response.ok) {
         throw new Error(data.error || "Failed to resend approval");
       }
     } catch (error) {
@@ -151,18 +190,20 @@ export const useScopeProofStore = create<ScopeProofStore>((set, get) => ({
   cancelApproval: async (id) => {
     set({ loading: true, error: null });
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(getApiUrl(`/api/scope-proof/${id}`), {
         method: "DELETE",
+        headers,
       });
       const data = await response.json();
 
-      if (data.success) {
-        set((state) => ({
-          scopeProofs: state.scopeProofs.filter((p) => p.id !== id),
-        }));
-      } else {
+      if (!response.ok) {
         throw new Error(data.error || "Failed to cancel approval");
       }
+
+      set((state) => ({
+        scopeProofs: state.scopeProofs.filter((p) => p.id !== id),
+      }));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Failed to cancel approval";
       set({ error: errorMsg });

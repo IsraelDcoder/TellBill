@@ -2,10 +2,11 @@ import type { Express, Request, Response } from "express";
 import fetch from "node-fetch";
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 import { db } from "./db";
-import { users, scopeProofs } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, scopeProofs, activityLog } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { analyzeScopeDrift } from "./utils/scopeDriftDetection";
 import { notifyApprovalRequest } from "./services/notificationService";
+import { verifyPlanAccess } from "./utils/subscriptionManager";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -226,6 +227,7 @@ export function registerTranscriptionRoutes(app: Express): void {
    * POST /api/extract-invoice
    * Extract invoice data from transcript using Groq LLM
    * 
+   * ✅ PLAN GATING: Only solo+ users can extract invoices (receipt scanning feature)
    * NO MOCK DATA - PRODUCTION ONLY
    * Financial accuracy is critical.
    * If AI fails → return error
@@ -233,6 +235,41 @@ export function registerTranscriptionRoutes(app: Express): void {
    */
   app.post("/api/extract-invoice", async (req: Request, res: Response) => {
     try {
+      const userId = (req.user as any)?.userId || (req.user as any)?.sub || (req.user as any)?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          code: "UNAUTHORIZED",
+        });
+      }
+
+      // ✅ USAGE LIMIT: Free users get 3 voice recordings/extractions total
+      // Count actual usage from activity log
+      const voiceRecordingCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(activityLog)
+        .where(
+          and(
+            eq(activityLog.userId, userId),
+            eq(activityLog.action, "transcribed_voice")
+          )
+        );
+      const voiceRecordingUsed = voiceRecordingCountResult[0]?.count || 0;
+
+      const usageCheck = await checkUsageLimit(
+        req as any,
+        "voiceRecordings",
+        voiceRecordingUsed
+      );
+      if (!usageCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: usageCheck.error || "Usage limit exceeded",
+          upgradeRequired: true,
+        });
+      }
+
       const { transcript } = req.body;
 
       if (!transcript || typeof transcript !== "string") {
@@ -334,41 +371,50 @@ export function registerTranscriptionRoutes(app: Express): void {
 
   app.post("/api/transcribe", async (req: Request, res: Response) => {
     try {
+      console.log("[Transcribe] POST request received");
+      console.log("[Transcribe] req.user:", (req.user as any)?.userId ? "present" : "missing");
+      
       const { audioData, audioUri } = req.body;
 
       // ✅ CHECK VOICE RECORDING LIMIT
-      const contractorId = (req.user as any)?.sub || (req.user as any)?.id;
+      const contractorId = (req.user as any)?.userId || (req.user as any)?.sub || (req.user as any)?.id;
+      console.log("[Transcribe] Extracted contractorId:", contractorId ? "found" : "NOT FOUND");
       
       if (!contractorId) {
+        console.log("[Transcribe] ❌ No contractor ID - returning 401");
         return res.status(401).json({
           error: "Unauthorized",
           code: "UNAUTHORIZED",
         });
       }
 
-      const voiceRecordingCount = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, contractorId))
-        .limit(1);
-
-      if (voiceRecordingCount.length > 0) {
-        // For now, we'll just track usage. In production, you'd track actual count
-        // and enforce limits here. For this demonstration, we allow it but log it.
-        const limitCheck = await checkUsageLimit(
-          req as any,
-          "voiceRecordings",
-          0 // In production: query actual count from activity log
+      // ℹ️ NOTE: Voice recording is available to ALL users (free get 3, paid get unlimited)
+      // Usage limits are enforced by frontend counting + backend activity log tracking
+      // Count actual usage from activity log
+      const voiceRecordingCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)` })
+        .from(activityLog)
+        .where(
+          and(
+            eq(activityLog.userId, contractorId),
+            eq(activityLog.action, "transcribed_voice")
+          )
         );
+      const voiceRecordingUsed = voiceRecordingCountResult[0]?.count || 0;
 
-        if (!limitCheck.allowed && limitCheck.upgradeRequired) {
-          return res.status(403).json({
-            error: "Voice recording limit reached",
-            code: "LIMIT_EXCEEDED",
-            message: limitCheck.error,
-            upgradeRequired: true,
-          });
-        }
+      const limitCheck = await checkUsageLimit(
+        req as any,
+        "voiceRecordings",
+        voiceRecordingUsed
+      );
+
+      if (!limitCheck.allowed) {
+        return res.status(429).json({
+          error: "Voice recording limit reached",
+          code: "LIMIT_EXCEEDED",
+          message: limitCheck.error,
+          upgradeRequired: true,
+        });
       }
 
       if (!audioData) {
@@ -394,6 +440,7 @@ export function registerTranscriptionRoutes(app: Express): void {
       try {
         // Convert base64 to buffer
         const audioBuffer = Buffer.from(audioData, "base64");
+        console.log("[Transcription] Audio buffer created, size:", audioBuffer.length, "bytes");
 
         // Create FormData for Groq Whisper API
         const formData = new FormData();
@@ -401,7 +448,10 @@ export function registerTranscriptionRoutes(app: Express): void {
         formData.append("model", "whisper-large-v3-turbo");
         formData.append("language", "en");
 
-        console.log("[Transcription] Sending audio to Groq Whisper API...");
+        const groqApiKeyExists = !!GROQ_API_KEY;
+        console.log("[Transcription] GROQ_API_KEY configured:", groqApiKeyExists ? "✅ YES" : "❌ NO");
+        console.log("[Transcription] Sending audio to Groq Whisper API: https://api.groq.com/openai/v1/audio/transcriptions");
+        
         const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
           method: "POST",
           headers: {
@@ -412,12 +462,14 @@ export function registerTranscriptionRoutes(app: Express): void {
         });
 
         const responseText = await response.text();
+        console.log("[Transcription] Groq response status:", response.status, response.statusText);
 
         if (!response.ok) {
-          console.error("[Transcription] Groq API error:", {
+          const errorPreview = responseText.substring(0, 300);
+          console.error("[Transcription] ❌ Groq API error:", {
             status: response.status,
             statusText: response.statusText,
-            body: responseText,
+            bodyPreview: errorPreview,
           });
           return res.status(response.status).json({
             error: "Whisper transcription failed",
@@ -437,7 +489,7 @@ export function registerTranscriptionRoutes(app: Express): void {
           });
         }
 
-        console.log("[Transcription] Transcription successful");
+        console.log("[Transcription] ✅ Transcription successful");
         return res.json({
           transcript: data.text || "",
           confidence: 0.95,
@@ -456,6 +508,66 @@ export function registerTranscriptionRoutes(app: Express): void {
       return res.status(500).json({
         error: error.message || "Transcription failed",
         code: "INTERNAL_ERROR",
+      });
+    }
+  });
+
+  /**
+   * Health check endpoint for transcription service
+   * Verifies GROQ_API_KEY is configured and can reach Groq API
+   * GET /api/transcription/health (no auth required for health checks)
+   */
+  app.get("/api/transcription/health", async (req: Request, res: Response) => {
+    try {
+      const groqKeyConfigured = !!process.env.GROQ_API_KEY;
+      
+      console.log("[Transcription Health] GROQ_API_KEY:", groqKeyConfigured ? "✅ configured" : "❌ missing");
+      
+      if (!groqKeyConfigured) {
+        return res.status(503).json({
+          status: "unhealthy",
+          reason: "GROQ_API_KEY not configured",
+          message: "Please set GROQ_API_KEY in .env. Get free API key from https://console.groq.com/",
+        });
+      }
+
+      // Quick connectivity test to Groq (using a minimal request)
+      try {
+        const testResponse = await fetch("https://api.groq.com/openai/v1/models", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          },
+        });
+
+        if (testResponse.ok) {
+          console.log("[Transcription Health] ✅ Groq API reachable");
+          return res.json({
+            status: "healthy",
+            groqApiKey: "configured",
+            groqConnectivity: "ok",
+          });
+        } else {
+          console.warn("[Transcription Health] ⚠️ Groq API returned:", testResponse.status);
+          return res.status(503).json({
+            status: "degraded",
+            reason: "Groq API connectivity issue",
+            groqStatus: testResponse.status,
+          });
+        }
+      } catch (error) {
+        console.error("[Transcription Health] ❌ Groq connectivity error:", error);
+        return res.status(503).json({
+          status: "unhealthy",
+          reason: "Cannot reach Groq API",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    } catch (error) {
+      console.error("[Transcription Health] Error:", error);
+      return res.status(500).json({
+        status: "error",
+        error: error instanceof Error ? error.message : "Internal error",
       });
     }
   });

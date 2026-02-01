@@ -28,6 +28,15 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  // RevenueCat subscription fields (replaces Flutterwave)
+  revenuecatAppUserId: text("revenuecat_app_user_id"), // RevenueCat customer ID
+  subscriptionPlatform: text("subscription_platform"), // "ios" or "android"
+  subscriptionTier: text("subscription_tier").default("free"), // free, solo, professional, enterprise
+  subscriptionExpiryDate: timestamp("subscription_expiry_date", { withTimezone: true }),
+  subscriptionRenewalDate: timestamp("subscription_renewal_date", { withTimezone: true }),
+  subscriptionCancellationDate: timestamp("subscription_cancellation_date", { withTimezone: true }),
+  isTrialing: boolean("is_trialing").default(false),
+  subscriptionUpdatedAt: timestamp("subscription_updated_at", { withTimezone: true }).defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -107,6 +116,12 @@ export const invoices = pgTable("invoices", {
     .references(() => users.id, { onDelete: "set null" }),
   createdBy: text("created_by"),
   status: text("status").default("draft"),
+  // Financial breakdown (immutable snapshots at time of invoice creation)
+  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).default("0"),
+  taxName: text("tax_name"), // e.g., "Sales Tax", "VAT"
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }), // e.g., 7.5
+  taxAppliesto: text("tax_applies_to"), // labor_only, materials_only, labor_and_materials
+  taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).default("0"),
   total: numeric("total", { precision: 12, scale: 2 }).default("0"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -114,6 +129,30 @@ export const invoices = pgTable("invoices", {
 });
 
 export type Invoice = typeof invoices.$inferSelect;
+
+// Tax Profiles table - User-configurable tax settings
+export const taxProfiles = pgTable("tax_profiles", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g., "Sales Tax", "VAT", "GST"
+  rate: numeric("rate", { precision: 5, scale: 2 }).notNull(), // 0.00 to 30.00
+  appliesto: text("applies_to").notNull(), // labor_only, materials_only, labor_and_materials
+  enabled: boolean("enabled").default(false), // Tax turned on/off
+  isDefault: boolean("is_default").default(true), // User's default tax profile
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type TaxProfile = typeof taxProfiles.$inferSelect;
+export type InsertTaxProfile = typeof taxProfiles.$inferInsert;
 
 // Activity Log table
 export const activityLog = pgTable("activity_log", {
@@ -134,29 +173,52 @@ export const activityLog = pgTable("activity_log", {
 
 export type ActivityLog = typeof activityLog.$inferSelect;
 
-// Receipts table
+/**
+ * ✅ MATERIAL COST CAPTURE (Receipt Scanner v2)
+ *
+ * Paid-only feature for contractors to capture and track material costs
+ * Prevents contractors from eating material costs
+ * Forces billing decision for every receipt
+ */
 export const receipts = pgTable("receipts", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  projectId: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  fileName: text("file_name"),
-  fileSize: integer("file_size"),
-  mimeType: text("mime_type"),
-  cloudPath: text("cloud_path"),
-  isProcessed: boolean("is_processed").default(false),
-  extractedData: text("extracted_data"), // JSON
+  vendor: text("vendor").notNull(),
+  totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").default("USD"),
+  purchaseDate: timestamp("purchase_date", { withTimezone: true }).notNull(),
+  imageUrl: text("image_url").notNull(),
+  
+  // Billing decision
+  billable: boolean("billable").notNull(), // true = bill to client, false = not billable
+  notBillableReason: text("not_billable_reason"), // personal, overhead, warranty, other
+  
+  // Client info (if billable)
+  clientName: text("client_name"),
+  clientEmail: text("client_email"),
+  
+  // Invoice linkage
+  linkedInvoiceId: text("linked_invoice_id")
+    .references(() => invoices.id, { onDelete: "set null" }),
+  
+  // Extracted items (JSON array of {name, quantity, unitPrice, total})
+  items: text("items").default("[]"),
+  
+  // Timestamps
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
 
 export type Receipt = typeof receipts.$inferSelect;
+export type InsertReceipt = typeof receipts.$inferInsert;
 
 // Payments table
 export const payments = pgTable("payments", {
@@ -250,6 +312,11 @@ export const scopeProofs = pgTable("scope_proofs", {
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   approvedBy: text("approved_by"), // Client email
 
+  // Client feedback (if they have questions or concerns)
+  feedback: text("feedback"), // Client's feedback/questions
+  feedbackFrom: text("feedback_from"), // Client email who gave feedback
+  feedbackAt: timestamp("feedback_at", { withTimezone: true }),
+
   // Timestamps
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -282,3 +349,27 @@ export const scopeProofNotifications = pgTable("scope_proof_notifications", {
 
 export type ScopeProofNotification = typeof scopeProofNotifications.$inferSelect;
 export type InsertScopeProofNotification = typeof scopeProofNotifications.$inferInsert;
+
+/**
+ * Material Cost Events - Audit trail for material cost captures
+ * Tracks all actions taken on receipts
+ */
+export const materialCostEvents = pgTable("material_cost_events", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  receiptId: text("receipt_id")
+    .notNull()
+    .references(() => receipts.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // CREATED | MARKED_BILLABLE | MARKED_NON_BILLABLE | ATTACHED_TO_INVOICE
+  metadata: text("metadata"), // JSON for additional context
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type MaterialCostEvent = typeof materialCostEvents.$inferSelect;
+export type InsertMaterialCostEvent = typeof materialCostEvents.$inferInsert;

@@ -27,7 +27,10 @@ export interface Invoice {
   laborTotal: number;
   materialsTotal: number;
   subtotal: number;
-  taxRate: number;
+  // ✅ Tax snapshot (immutable - stored at time of invoice creation)
+  taxName?: string; // e.g., "Sales Tax", "VAT"
+  taxRate?: number; // e.g., 7.5
+  taxAppliesto?: "labor_only" | "materials_only" | "labor_and_materials";
   taxAmount: number;
   total: number;
   status: "draft" | "created" | "sent" | "pending" | "paid" | "overdue";
@@ -103,9 +106,11 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const pending = invoices.filter((i) => i.status === "pending").length;
         const overdue = invoices.filter((i) => i.status === "overdue").length;
         // ✅ FIXED: Revenue calculation properly handles undefined values
+        // Only count paid invoices toward revenue
         const revenue = invoices
           .filter((i) => i.status === "paid")
           .reduce((sum, i) => sum + (i.total || 0), 0);
+        // ✅ Time saved: count all invoices (draft, created, sent, pending, paid, overdue)
         const timeSaved = invoices.length * 0.5;
 
         return { sent, paid, pending, overdue, revenue, timeSaved };

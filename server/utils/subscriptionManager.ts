@@ -348,3 +348,38 @@ export async function getUserPlan(userId: string): Promise<PlanType> {
   const subscription = await getUserSubscription(userId);
   return subscription.plan;
 }
+
+/**
+ * Check if a plan has access to a feature
+ * @param requiredPlans - Array of plans that have access (e.g., ["solo", "professional", "enterprise"])
+ * @param userPlan - User's current plan
+ * @returns true if user's plan is in the requiredPlans array
+ */
+export function hasPlanAccess(requiredPlans: PlanType[], userPlan: PlanType): boolean {
+  const planHierarchy: Record<PlanType, number> = {
+    free: 0,
+    solo: 1,
+    professional: 2,
+    enterprise: 3,
+  };
+
+  // Find minimum required plan level
+  const minRequired = Math.max(...requiredPlans.map(p => planHierarchy[p]));
+  const userLevel = planHierarchy[userPlan];
+
+  return userLevel >= minRequired;
+}
+
+/**
+ * Verify user's plan gives access to a feature
+ * Throws error if user doesn't have access
+ */
+export async function verifyPlanAccess(userId: string, requiredPlans: PlanType[]): Promise<void> {
+  const userPlan = await getUserPlan(userId);
+  
+  if (!hasPlanAccess(requiredPlans, userPlan)) {
+    throw new Error(
+      `Access denied. Required plan: ${requiredPlans.join(" or ")}. Your plan: ${userPlan}`
+    );
+  }
+}

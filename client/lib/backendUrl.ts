@@ -30,7 +30,7 @@ export function getBackendUrl(): string {
 
   // Default: Use localhost for development web app
   // For native emulators/phones, set EXPO_PUBLIC_BACKEND_IP environment variable
-  const DEFAULT_IP = "10.64.118.139"; // Your machine IP for phone testing
+  const DEFAULT_IP = "localhost"; // Falls back to localhost if env var not set
   const url = `http://${DEFAULT_IP}:${DEV_PORT}`;
   console.log("[Backend] Using development URL:", url);
   return url;

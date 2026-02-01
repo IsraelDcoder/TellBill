@@ -32,7 +32,7 @@ interface ReceiptMetadata {
 }
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 export class ReceiptProcessingService {
   /**

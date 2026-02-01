@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet, Pressable, Platform } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
@@ -8,23 +9,64 @@ import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 interface LockedFeatureOverlayProps {
-  title: string;
-  subtitle: string;
-  onUnlock: () => void;
+  feature?: "scope_proof" | "projects" | "receipt_scanning" | "material_cost_capture";
+  title?: string;
+  subtitle?: string;
+  onUnlock?: () => void;
   isVisible?: boolean;
 }
 
+// Feature configuration
+const FEATURE_CONFIG: Record<string, { title: string; subtitle: string; minPlan: string }> = {
+  scope_proof: {
+    title: "Approvals",
+    subtitle: "Manage client approvals for extra work",
+    minPlan: "Professional",
+  },
+  projects: {
+    title: "Projects",
+    subtitle: "Organize and track your projects",
+    minPlan: "Solo",
+  },
+  receipt_scanning: {
+    title: "Receipt Scanning",
+    subtitle: "Scan and process receipts automatically",
+    minPlan: "Solo",
+  },
+  material_cost_capture: {
+    title: "Material Costs",
+    subtitle: "Track and bill material costs to clients",
+    minPlan: "Solo",
+  },
+};
+
 /**
  * LockedFeatureOverlay - High-quality blurred overlay with golden lock icon
- * Used for Team and Project tabs when user is not on appropriate plan
+ * Used for premium features when user is not on appropriate plan
  */
 export function LockedFeatureOverlay({
+  feature,
   title,
   subtitle,
   onUnlock,
   isVisible = true,
 }: LockedFeatureOverlayProps) {
   const { theme } = useTheme();
+  const navigation = useNavigation();
+
+  // Get feature config or use provided props
+  const featureTitle = title || (feature ? FEATURE_CONFIG[feature]?.title : "Feature");
+  const featureSubtitle = subtitle || (feature ? FEATURE_CONFIG[feature]?.subtitle : "Unlock this feature");
+  const minPlan = feature ? FEATURE_CONFIG[feature]?.minPlan : "Solo";
+
+  const handleUnlock = () => {
+    if (onUnlock) {
+      onUnlock();
+    } else {
+      // Default: navigate to billing
+      navigation.navigate("Billing" as never);
+    }
+  };
 
   if (!isVisible) return null;
 
@@ -40,8 +82,6 @@ export function LockedFeatureOverlay({
           { backgroundColor: theme.backgroundDefault + "E6" }, // Semi-transparent
         ]}
       >
-        {/* Close Button */}
-
         {/* Golden Lock Icon */}
         <View
           style={[
@@ -57,18 +97,15 @@ export function LockedFeatureOverlay({
         </View>
 
         {/* Text Content */}
-        <ThemedText
-          type="h1"
-          style={styles.title}
-        >
-          {title}
+        <ThemedText type="h1" style={styles.title}>
+          {featureTitle}
         </ThemedText>
 
         <ThemedText
           type="body"
           style={[styles.subtitle, { color: theme.tabIconDefault }]}
         >
-          {subtitle}
+          {featureSubtitle}
         </ThemedText>
 
         {/* Unlock Button */}
@@ -80,7 +117,7 @@ export function LockedFeatureOverlay({
               opacity: pressed ? 0.8 : 1,
             },
           ]}
-          onPress={onUnlock}
+          onPress={handleUnlock}
         >
           <Feather name="unlock" size={18} color={theme.text} />
           <ThemedText
@@ -89,7 +126,7 @@ export function LockedFeatureOverlay({
               { color: theme.backgroundRoot },
             ]}
           >
-            Unlock {title}
+            Upgrade Now
           </ThemedText>
         </Pressable>
 
@@ -107,7 +144,7 @@ export function LockedFeatureOverlay({
               { color: theme.tabIconDefault, marginLeft: Spacing.md },
             ]}
           >
-            Upgrade to Team or Enterprise to unlock collaboration features
+            Upgrade to {minPlan} plan or higher to unlock {featureTitle}
           </ThemedText>
         </View>
       </View>

@@ -10,8 +10,7 @@ import InvoiceDraftScreen from "@/screens/InvoiceDraftScreen";
 import InvoicePreviewScreen from "@/screens/InvoicePreviewScreen";
 import SendInvoiceScreen from "@/screens/SendInvoiceScreen";
 import InvoiceDetailScreen from "@/screens/InvoiceDetailScreen";
-import ProjectHubScreen from "@/screens/ProjectHubScreen";
-import ReceiptScannerScreen from "@/screens/ReceiptScannerScreen";
+import MaterialCostCaptureScreen from "@/screens/MaterialCostCaptureScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import BillingScreen from "@/screens/BillingScreen";
 import HelpSupportScreen from "@/screens/HelpSupportScreen";
@@ -39,8 +38,7 @@ export type RootStackParamList = {
   InvoicePreview: { invoiceId: string };
   SendInvoice: { invoiceId: string };
   InvoiceDetail: { invoiceId: string };
-  ProjectHub: { projectId: string; projectName?: string };
-  ReceiptScanner: undefined;
+  MaterialCostCapture: undefined;
   Settings: undefined;
   EditProfile: undefined;
   CompanyInfo: undefined;
@@ -130,19 +128,11 @@ export default function RootStackNavigator() {
             }}
           />
           <Stack.Screen
-            name="ProjectHub"
-            component={ProjectHubScreen}
+            name="MaterialCostCapture"
+            component={MaterialCostCaptureScreen}
             options={{
-              headerTitle: "Project Hub",
-              headerTintColor: BrandColors.constructionGold,
-            }}
-          />
-          <Stack.Screen
-            name="ReceiptScanner"
-            component={ReceiptScannerScreen}
-            options={{
-              headerTitle: "Scan Receipt",
-              headerTintColor: BrandColors.constructionGold,
+              headerTitle: "Material Costs",
+              presentation: "modal",
             }}
           />
           <Stack.Screen

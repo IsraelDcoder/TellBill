@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 import Voice from "@react-native-voice/voice";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * Speech-to-Text Service using Groq Whisper API
@@ -133,11 +134,19 @@ class SpeechToTextService {
         throw new Error("Backend URL not configured. Check EXPO_PUBLIC_BACKEND_URL in .env");
       }
 
+      // Get auth token
+      const authToken = await AsyncStorage.getItem("authToken");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+
       const response = await fetch(`${backendUrl}/api/transcribe`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           audioData: audioData,
           audioUri: audioUri,

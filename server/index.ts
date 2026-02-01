@@ -17,11 +17,19 @@ import { setupCorsSecurely } from "./utils/cors";
 const app = express();
 const log = console.log;
 
-// Verify API key is loaded
+// Verify API keys are loaded
 if (!process.env.OPENROUTER_API_KEY) {
   console.warn(
-    "[WARNING] OPENROUTER_API_KEY not set. Transcription will fail. Check .env file."
+    "[WARNING] OPENROUTER_API_KEY not set. Invoice extraction may fail. Check .env file."
   );
+}
+
+if (!process.env.GROQ_API_KEY) {
+  console.warn(
+    "[WARNING] GROQ_API_KEY not set. Audio transcription will fail. Get free API key from https://console.groq.com/"
+  );
+} else {
+  console.log("[Config] ✅ GROQ_API_KEY configured");
 }
 
 declare module "http" {
@@ -214,34 +222,42 @@ function setupErrorHandler(app: express.Application) {
 }
 
 (async () => {
-  // Initialize Sentry error tracking FIRST
-  initializeSentry();
+  try {
+    // Initialize Sentry error tracking FIRST
+    initializeSentry();
 
-  // Initialize backup system (schedules daily, weekly, monthly backups)
-  initializeBackupSystem();
+    // Initialize backup system (schedules daily, weekly, monthly backups)
+    initializeBackupSystem();
 
-  // Initialize scope proof scheduler (handles reminders and expiry)
-  initScopeProofScheduler();
+    // Initialize scope proof scheduler (handles reminders and expiry)
+    initScopeProofScheduler();
 
-  setupCors(app);
-  setupBodyParsing(app);
-  setupRequestLogging(app);
+    setupCors(app);
+    setupBodyParsing(app);
+    setupRequestLogging(app);
 
-  // Attach Sentry request handlers early in middleware chain
-  attachSentryMiddleware(app);
+    // Attach Sentry request handlers early in middleware chain
+    attachSentryMiddleware(app);
 
-  // Register API routes BEFORE static middleware to avoid conflicts
-  const server = await registerRoutes(app);
+    // Register API routes BEFORE static middleware to avoid conflicts
+    const server = await registerRoutes(app);
 
-  configureExpoAndLanding(app);
+    configureExpoAndLanding(app);
 
-  setupErrorHandler(app);
+    setupErrorHandler(app);
 
-  // Attach Sentry error handler LAST
-  attachSentryErrorHandler(app);
+    // Attach Sentry error handler LAST
+    attachSentryErrorHandler(app);
 
-  const port = parseInt(process.env.PORT || "3000", 10);
-  server.listen(port, "0.0.0.0", () => {
-    log(`express server serving on port ${port}`);
-  });
-})();
+    const port = parseInt(process.env.PORT || "3000", 10);
+    server.listen(port, "0.0.0.0", () => {
+      log(`express server serving on port ${port}`);
+    });
+  } catch (error) {
+    console.error("[Server] Fatal initialization error:", error);
+    process.exit(1);
+  }
+})().catch((error) => {
+  console.error("[Server] Unhandled promise rejection:", error);
+  process.exit(1);
+});

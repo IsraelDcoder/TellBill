@@ -402,4 +402,169 @@ export function registerInvoiceRoutes(app: Express) {
       }
     }
   );
+
+  /**
+   * POST /api/invoices
+   * Create and save invoice to database
+   * 
+   * ⚠️ CRITICAL: Tax is calculated SERVER-SIDE ONLY
+   * Any tax values sent from client are IGNORED
+   * Server fetches user's tax profile and applies it
+   * 
+   * Body: { projectId?, clientName, clientEmail, clientPhone, clientAddress, jobAddress, items[], laborHours, laborRate, materialsTotal, notes, safetyNotes, paymentTerms, dueDate? }
+   * If projectId not provided, uses first user project or creates "General" project
+   */
+  app.post("/api/invoices", async (req: Request, res: Response) => {
+    try {
+      console.log("[Invoice] 📤 POST /api/invoices - Save to database");
+      console.log("[Invoice] Request body:", JSON.stringify(req.body, null, 2));
+      console.log("[Invoice] Request user:", (req as any).user);
+      
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      console.log("[Invoice] Extracted userId:", userId);
+      
+      if (!userId) {
+        console.error("[Invoice] ❌ No user ID found in request");
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized - no user ID",
+        });
+      }
+
+      let { projectId, clientName, clientEmail, clientPhone, clientAddress, jobAddress, items = [], laborHours = 0, laborRate = 0, materialsTotal = 0, notes = "", safetyNotes = "", paymentTerms = "", dueDate } = req.body;
+
+      // ⚠️ IGNORE any tax fields sent from client - we calculate on server
+      // This prevents frontend from manipulating tax calculations
+
+      if (!clientName) {
+        console.error("[Invoice] ❌ Missing required field: clientName");
+        return res.status(400).json({
+          success: false,
+          error: "Missing required field: clientName",
+        });
+      }
+
+      const { db } = await import("./db");
+      const { invoices, projects } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const { applyTax } = await import("./taxService");
+
+      // If projectId not provided, get first user project or create "General"
+      if (!projectId) {
+        console.log("[Invoice] No projectId provided, finding or creating default project");
+        
+        // Try to get first project
+        const userProjects = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.userId, userId))
+          .limit(1);
+
+        if (userProjects.length > 0) {
+          projectId = userProjects[0].id;
+          console.log(`[Invoice] Using existing project: ${projectId}`);
+        } else {
+          // Create "General" project
+          const newProject = await db
+            .insert(projects)
+            .values({
+              userId,
+              name: "General",
+              clientName: "General Client",
+              address: "",
+              status: "active",
+            })
+            .returning();
+          
+          projectId = newProject[0]?.id;
+          console.log(`[Invoice] Created default project: ${projectId}`);
+        }
+      }
+
+      // ✅ Convert to cents for server-side calculation (safe integer arithmetic)
+      const laborTotalCents = Math.round(laborHours * laborRate * 100);
+      const materialsTotalCents = Math.round(materialsTotal * 100);
+      const itemsTotalCents = Math.round(
+        items.reduce((sum: number, item: any) => sum + (item.total || 0), 0) * 100
+      );
+
+      // ✅ SERVER-SIDE TAX CALCULATION (immutable, secure)
+      const taxCalc = await applyTax(
+        db,
+        userId,
+        laborTotalCents + itemsTotalCents,
+        materialsTotalCents
+      );
+
+      console.log("[Invoice] Tax calculated:", {
+        subtotal: taxCalc.subtotal,
+        taxName: taxCalc.taxName,
+        taxRate: taxCalc.taxRate,
+        taxAmount: taxCalc.taxAmount,
+        total: taxCalc.total,
+      });
+
+      const invoiceData = {
+        projectId,
+        userId,
+        createdBy: (req as any).user?.name || (req as any).user?.email || "Unknown",
+        status: "draft",
+        // ✅ Store tax snapshot (immutable)
+        subtotal: (taxCalc.subtotal / 100).toFixed(2),
+        taxName: taxCalc.taxName,
+        taxRate: taxCalc.taxRate ? taxCalc.taxRate.toString() : null,
+        taxAppliesto: taxCalc.taxAppliesto,
+        taxAmount: (taxCalc.taxAmount / 100).toFixed(2),
+        total: (taxCalc.total / 100).toFixed(2),
+      };
+
+      console.log("[Invoice] Creating invoice:", invoiceData);
+
+      const newInvoice = await db
+        .insert(invoices)
+        .values(invoiceData)
+        .returning();
+
+      const invoiceId = newInvoice[0]?.id;
+      console.log(`[Invoice] Saved to database: ${invoiceId}`);
+
+      return res.status(201).json({
+        success: true,
+        invoice: {
+          id: invoiceId,
+          projectId,
+          userId,
+          clientName,
+          clientEmail,
+          clientPhone,
+          clientAddress,
+          jobAddress,
+          items,
+          laborHours,
+          laborRate,
+          laborTotal: (laborTotalCents / 100).toFixed(2),
+          materialsTotal: (materialsTotalCents / 100).toFixed(2),
+          itemsTotal: (itemsTotalCents / 100).toFixed(2),
+          subtotal: (taxCalc.subtotal / 100).toFixed(2),
+          taxName: taxCalc.taxName,
+          taxRate: taxCalc.taxRate,
+          taxAmount: (taxCalc.taxAmount / 100).toFixed(2),
+          total: (taxCalc.total / 100).toFixed(2),
+          notes,
+          safetyNotes,
+          paymentTerms,
+          dueDate,
+          status: "draft",
+          createdAt: newInvoice[0]?.createdAt,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Invoice] Error saving to database:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to save invoice",
+        details: error.message,
+      });
+    }
+  });
 }

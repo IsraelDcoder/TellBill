@@ -131,9 +131,9 @@ export default function HomeScreen() {
               }
             />
             <QuickActionButton
-              title="Scan Receipt"
-              icon="camera"
-              onPress={() => navigation.navigate("ReceiptScanner" as any)}
+              title="Material Costs"
+              icon="box"
+              onPress={() => navigation.navigate("MaterialCostCapture" as any)}
             />
           </View>
         </View>

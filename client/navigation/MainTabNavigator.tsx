@@ -5,7 +5,6 @@ import { BlurView } from "expo-blur";
 import { Platform, StyleSheet } from "react-native";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
-import ProjectsStackNavigator from "@/navigation/ProjectsStackNavigator";
 import InvoicesStackNavigator from "@/navigation/InvoicesStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import ApprovalsScreen from "@/screens/ApprovalsScreen";
@@ -14,7 +13,6 @@ import { BrandColors, Spacing } from "@/constants/theme";
 
 export type MainTabParamList = {
   HomeTab: undefined;
-  ProjectsTab: undefined;
   InvoicesTab: undefined;
   ApprovalsTab: undefined;
   ProfileTab: undefined;
@@ -65,16 +63,6 @@ export default function MainTabNavigator() {
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ProjectsTab"
-        component={ProjectsStackNavigator}
-        options={{
-          title: "Projects",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="folder" size={size} color={color} />
           ),
         }}
       />

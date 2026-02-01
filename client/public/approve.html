@@ -360,8 +360,6 @@
             approveBtn.textContent = 'Processing...';
 
             try {
-                // For this demo, we'll use a placeholder client email
-                // In production, you'd ask for email confirmation
                 const response = await fetch(`/api/scope-proof/approve/${token}`, {
                     method: 'POST',
                     headers: {

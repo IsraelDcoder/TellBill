@@ -28,6 +28,8 @@ import { Button } from "@/components/Button";
 import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import { useActivityStore } from "@/stores/activityStore";
+import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { PLAN_LIMITS } from "@/constants/planLimits";
@@ -44,6 +46,8 @@ export default function VoiceRecordingScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { currentPlan, voiceRecordingsUsed, incrementVoiceRecordings } = useSubscriptionStore();
+  const { addActivity } = useActivityStore();
+  const { user } = useAuth();
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -141,8 +145,8 @@ export default function VoiceRecordingScreen() {
   };
 
   const handleRecordPress = async () => {
-    console.log("[AudioRecorder] Start button pressed");
-    console.log("[AudioRecorder] Current recording status:", recordingStatus);
+    console.log("[VoiceRecording] Start button pressed");
+    console.log("[VoiceRecording] Usage check:", { voiceRecordingsUsed, recordingLimit, currentPlan, hasReachedLimit });
     
     // Check recording status before allowing recording
     if (!isRecording) {
@@ -194,9 +198,11 @@ export default function VoiceRecordingScreen() {
 
       // Check if user has reached recording limit
       if (hasReachedLimit) {
+        console.log("[VoiceRecording] ❌ Recording limit reached!", { voiceRecordingsUsed, recordingLimit, currentPlan });
         setShowUpgradeModal(true);
         return;
       }
+      console.log("[VoiceRecording] ✅ Recording allowed", { voiceRecordingsUsed, recordingLimit, remaining: recordingLimit - voiceRecordingsUsed });
     }
 
     if (Platform.OS !== "web") {
@@ -233,6 +239,21 @@ export default function VoiceRecordingScreen() {
 
         setTranscript(result.text);
         incrementVoiceRecordings();
+        console.log("[VoiceRecording] ✅ Voice recording count incremented");
+        
+        // ✅ Log transcription activity for backend tracking
+        addActivity({
+          userId: user?.id || "unknown",
+          userName: user?.name || user?.email || "Unknown User",
+          action: "transcribed_voice",
+          resourceType: "voice_recording",
+          resourceId: recordingSession.uri,
+          resourceName: "Voice Recording",
+          details: {
+            duration: recordingSession.duration,
+            textLength: result.text.length,
+          },
+        });
         
         setIsProcessing(false);
       } catch (error) {

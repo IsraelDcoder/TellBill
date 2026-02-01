@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 
-export type ActivityStatus = "created" | "sent" | "paid" | "pending" | "overdue";
+export type ActivityStatus = "draft" | "created" | "sent" | "paid" | "pending" | "overdue";
 
 interface ActivityItemProps {
   clientName: string;
@@ -29,6 +29,7 @@ const statusConfig: Record<
   ActivityStatus,
   { color: string; icon: keyof typeof Feather.glyphMap; label: string }
 > = {
+  draft: { color: "#6B7280", icon: "edit-3", label: "Draft" },
   created: { color: BrandColors.constructionGold, icon: "file-plus", label: "Created" },
   sent: { color: "#3B82F6", icon: "send", label: "Sent" },
   paid: { color: "#22C55E", icon: "check-circle", label: "Paid" },

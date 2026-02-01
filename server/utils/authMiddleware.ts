@@ -18,8 +18,12 @@ export function authMiddleware(
   next: NextFunction
 ) {
   try {
+    const authHeader = req.get("Authorization");
+    console.log(`[Auth Middleware] Request to ${req.method} ${req.path}`);
+    console.log(`[Auth Middleware] Authorization header present: ${authHeader ? "✅ YES" : "❌ NO"}`);
     
-    const token = extractTokenFromHeader(req.get("Authorization"));
+    const token = extractTokenFromHeader(authHeader);
+    console.log(`[Auth Middleware] Token extracted: ${token ? "✅ YES (length: " + token.length + ")" : "❌ NO"}`);
 
     if (!token) {
       console.log("[Auth Middleware] No token provided");
@@ -44,7 +48,7 @@ export function authMiddleware(
     req.user = payload;
     req.token = token;
 
-    console.log(`[Auth Middleware] ✅ User authenticated: ${payload.email}`);
+    console.log(`[Auth Middleware] ✅ User authenticated: ${payload.email} (userId: ${payload.userId})`);
     next();
   } catch (error) {
     console.error("[Auth Middleware] Error:", error);

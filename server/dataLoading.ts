@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { invoices, projects, preferences, users, activityLog, projectEvents } from "@shared/schema";
+import { invoices, preferences, users, activityLog } from "@shared/schema";
 import { db } from "./db";
 
 /**
@@ -45,40 +45,6 @@ export function registerDataLoadingRoutes(app: Express) {
       return res.status(500).json({
         success: false,
         error: "Failed to fetch invoices",
-      });
-    }
-  });
-
-  /**
-   * GET /api/data/projects?userId={userId}
-   * Get all projects belonging to a user
-   */
-  app.get("/api/data/projects", async (req: Request, res: Response) => {
-    try {
-      const { userId } = req.query;
-
-      if (!userId || typeof userId !== "string") {
-        return res.status(400).json({
-          success: false,
-          error: "userId query parameter is required",
-        });
-      }
-
-      // ✅ Filter by userId for security
-      const userProjects = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.userId, userId));
-
-      return res.status(200).json({
-        success: true,
-        data: userProjects,
-      });
-    } catch (error) {
-      console.error("[Data] Error fetching projects:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to fetch projects",
       });
     }
   });
@@ -164,8 +130,10 @@ export function registerDataLoadingRoutes(app: Express) {
   app.get("/api/data/all", async (req: Request, res: Response) => {
     try {
       const { userId } = req.query;
+      console.log("[Data] 📥 GET /api/data/all for userId:", userId);
 
       if (!userId || typeof userId !== "string") {
+        console.error("[Data] ❌ Missing userId parameter");
         return res.status(400).json({
           success: false,
           error: "userId query parameter is required",
@@ -173,16 +141,12 @@ export function registerDataLoadingRoutes(app: Express) {
       }
 
       // ✅ Fetch all user data in parallel (efficient)
-      const [userInvoices, userProjects, userPreferences, userProfile, userActivities] =
+      const [userInvoices, userPreferences, userProfile, userActivities] =
         await Promise.all([
           db
             .select()
             .from(invoices)
             .where(eq(invoices.userId, userId)),
-          db
-            .select()
-            .from(projects)
-            .where(eq(projects.userId, userId)),
           db
             .select()
             .from(preferences)
@@ -201,13 +165,17 @@ export function registerDataLoadingRoutes(app: Express) {
             .limit(50),
         ]);
 
+      console.log("[Data] ✅ Fetched data:", {
+        invoiceCount: userInvoices.length,
+        activityCount: userActivities.length,
+      });
+
       // ✅ Build rehydration response
       // Frontend will use this to restore all app state
       return res.status(200).json({
         success: true,
         data: {
           invoices: userInvoices,
-          projects: userProjects,
           preferences: userPreferences,
           activities: userActivities.reverse(), // Most recent first
           // Profile data from users table
@@ -226,16 +194,20 @@ export function registerDataLoadingRoutes(app: Express) {
               taxId: userProfile[0].companyTaxId || "",
             },
           } : null,
-          // TODO: Add subscription data when available
+          // ✅ Real subscription data from users table
           subscription: {
-            userEntitlement: "free",
-            subscription: null,
-            voiceRecordingsUsed: 0,
+            userEntitlement: userProfile[0]?.currentPlan || "free",
+            subscription: userProfile[0]?.isSubscribed ? {
+              plan: userProfile[0].currentPlan || "free",
+              status: (userProfile[0].subscriptionStatus || "inactive") as "active" | "inactive" | "canceled" | "expired",
+              currentPeriodStart: new Date().toISOString(),
+              currentPeriodEnd: userProfile[0].subscriptionRenewalDate?.toISOString() || new Date().toISOString(),
+              isAnnual: false,
+            } : null,
+            voiceRecordingsUsed: 0, // Track voice recordings from activity log if needed
             invoicesCreated: userInvoices.length,
-            projectsCreated: 0,
-            projectsAccessed: 0,
-            currentPlan: "free",
-            isSubscribed: false,
+            currentPlan: (userProfile[0]?.currentPlan || "free") as "free" | "solo" | "professional" | "enterprise",
+            isSubscribed: userProfile[0]?.isSubscribed || false,
           },
         },
       });
@@ -244,117 +216,6 @@ export function registerDataLoadingRoutes(app: Express) {
       return res.status(500).json({
         success: false,
         error: "Failed to fetch user data",
-      });
-    }
-  });
-
-  /**
-   * GET /api/data/project-events/:projectId
-   * Get all events for a specific project
-   * 
-   * IMPORTANT: Verify user is member of project before returning events
-   */
-  app.get("/api/data/project-events/:projectId", async (req: Request, res: Response) => {
-    try {
-      const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
-      const userId = Array.isArray(req.query.userId) ? (req.query.userId as string[])[0] : (req.query.userId as string);
-
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          error: "userId query parameter is required",
-        });
-      }
-
-      // Verify user has access to this project
-      const project = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, projectId));
-
-      if (project.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: "Project not found",
-        });
-      }
-
-      // ✅ Fetch all events for this project
-      const events = await db
-        .select()
-        .from(projectEvents)
-        .where(eq(projectEvents.projectId, projectId));
-
-      return res.status(200).json({
-        success: true,
-        data: events,
-      });
-    } catch (error) {
-      console.error("[Data] Error fetching project events:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to fetch project events",
-      });
-    }
-  });
-
-  /**
-   * POST /api/data/project-events/:projectId
-   * Save a new event for a project
-   * 
-   * Body: { eventType, data, source, confidence, audioId }
-   */
-  app.post("/api/data/project-events/:projectId", async (req: Request, res: Response) => {
-    try {
-      const projectId = Array.isArray(req.params.projectId) ? req.params.projectId[0] : req.params.projectId;
-      const userId = Array.isArray(req.query.userId) ? (req.query.userId as string[])[0] : (req.query.userId as string);
-      const { eventType, data, source = "MANUAL", confidence, audioId } = req.body;
-
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          error: "userId query parameter is required",
-        });
-      }
-
-      // Verify user has access to this project
-      const project = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, projectId));
-
-      if (project.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: "Project not found",
-        });
-      }
-
-      // ✅ Insert the new event
-      const newEvent = await db
-        .insert(projectEvents)
-        .values({
-          projectId: projectId,
-          userId: userId,
-          eventType: eventType || "LABOR",
-          source: source,
-          confidence: confidence,
-          data: typeof data === "string" ? data : JSON.stringify(data),
-          audioId: audioId,
-          visibleToClient: true,
-          approvalStatus: "PENDING",
-        })
-        .returning();
-
-      return res.status(201).json({
-        success: true,
-        data: newEvent[0],
-      });
-    } catch (error) {
-      console.error("[Data] Error saving project event:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to save project event",
       });
     }
   });
