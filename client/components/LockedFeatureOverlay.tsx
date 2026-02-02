@@ -9,7 +9,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 interface LockedFeatureOverlayProps {
-  feature?: "scope_proof" | "projects" | "receipt_scanning" | "material_cost_capture";
+  feature?: "scope_proof" | "projects" | "receipt_scanning" | "material_cost_capture" | "money_alerts";
   title?: string;
   subtitle?: string;
   onUnlock?: () => void;
@@ -36,6 +36,11 @@ const FEATURE_CONFIG: Record<string, { title: string; subtitle: string; minPlan:
   material_cost_capture: {
     title: "Material Costs",
     subtitle: "Track and bill material costs to clients",
+    minPlan: "Solo",
+  },
+  money_alerts: {
+    title: "Money Alerts",
+    subtitle: "Track unbilled work and missed revenue",
     minPlan: "Solo",
   },
 };

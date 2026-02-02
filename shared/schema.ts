@@ -373,3 +373,59 @@ export const materialCostEvents = pgTable("material_cost_events", {
 
 export type MaterialCostEvent = typeof materialCostEvents.$inferSelect;
 export type InsertMaterialCostEvent = typeof materialCostEvents.$inferInsert;
+
+/**
+ * Money Alerts - Detects unbilled work (receipts, scope, voice logs, unsent invoices)
+ * Paid-only feature (Solo+)
+ */
+export const moneyAlerts = pgTable("money_alerts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // RECEIPT_UNBILLED | SCOPE_APPROVED_NO_INVOICE | VOICE_LOG_NO_INVOICE | INVOICE_NOT_SENT
+  status: text("status").notNull().default("open"), // OPEN | RESOLVED | FIXED
+  sourceType: text("source_type").notNull(), // RECEIPT | SCOPE | TRANSCRIPT | INVOICE
+  sourceId: text("source_id").notNull(), // points to receipt/scope/transcript/invoice record
+  clientName: text("client_name"),
+  clientEmail: text("client_email"),
+  estimatedAmount: numeric("estimated_amount", { precision: 12, scale: 2 }),
+  currency: text("currency").default("USD"),
+  confidence: integer("confidence"), // 0-100
+  reasonResolved: text("reason_resolved"), // why it was dismissed/resolved
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type MoneyAlert = typeof moneyAlerts.$inferSelect;
+export type InsertMoneyAlert = typeof moneyAlerts.$inferInsert;
+
+/**
+ * Money Alert Events - Audit trail for money alert actions
+ */
+export const moneyAlertEvents = pgTable("money_alert_events", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  alertId: text("alert_id")
+    .notNull()
+    .references(() => moneyAlerts.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // CREATED | FIXED | RESOLVED
+  metadata: text("metadata"), // JSON for additional context
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type MoneyAlertEvent = typeof moneyAlertEvents.$inferSelect;
+export type InsertMoneyAlertEvent = typeof moneyAlertEvents.$inferInsert;

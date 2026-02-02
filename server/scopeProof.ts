@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import { sendEmail } from "./emailService";
 import { requirePlan } from "./utils/subscriptionGuard";
 import { verifyPlanAccess } from "./utils/subscriptionManager";
+import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 
 /**
  * ✅ SCOPE PROOF & CLIENT APPROVAL ENGINE ROUTES
@@ -288,6 +289,13 @@ export function registerScopeProofRoutes(app: Express) {
         .where(eq(scopeProofs.id, scopeProof.id));
 
       console.log(`[ScopeProof] Approved: ${scopeProof.id}`);
+
+      // Trigger Money Alerts detection for approved scope with no invoice (paid users only)
+      if (scopeProof.userId) {
+        MoneyAlertsEngine.processEvent(scopeProof.userId, "SCOPE_APPROVED", scopeProof.id).catch(
+          (err) => console.error("[ScopeProof] Error in Money Alerts detection:", err)
+        );
+      }
 
       return res.json({
         success: true,

@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { receipts, materialCostEvents, invoices, users } from "@shared/schema";
 import { db } from "./db";
 import { authMiddleware } from "./utils/authMiddleware";
+import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 import { v4 as uuidv4 } from "uuid";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -268,6 +269,11 @@ export function registerMaterialCostRoutes(app: Express) {
             amount: extractedData.total,
           }),
         });
+
+        // Trigger Money Alerts detection for unbilled receipts (paid users only)
+        MoneyAlertsEngine.processEvent(userId, "RECEIPT_CREATED", createdReceipt.id).catch(
+          (err) => console.error("[MaterialCosts] Error in Money Alerts detection:", err)
+        );
 
         return res.status(200).json({
           success: true,

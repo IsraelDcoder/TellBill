@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import * as schema from "../shared/schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
@@ -28,8 +29,8 @@ pool.on("connect", () => {
   console.log("[DB] New connection established");
 });
 
-// Initialize drizzle with PostgreSQL client
-export const db = drizzle(pool);
+// Initialize drizzle with PostgreSQL client and schema
+export const db = drizzle(pool, { schema });
 
 // ✅ Graceful shutdown
 export async function closeDb() {

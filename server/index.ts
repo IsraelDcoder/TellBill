@@ -11,6 +11,7 @@ import {
 } from "./utils/sentry";
 import { initializeBackupSystem } from "./utils/backup";
 import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
+import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
 import { securityHeaders } from "./utils/sanitize";
 import { setupCorsSecurely } from "./utils/cors";
 
@@ -232,6 +233,9 @@ function setupErrorHandler(app: express.Application) {
     // Initialize scope proof scheduler (handles reminders and expiry)
     initScopeProofScheduler();
 
+    // Initialize Money Alerts scheduled jobs (detects unbilled work every 6 hours)
+    startMoneyAlertsJobs();
+
     setupCors(app);
     setupBodyParsing(app);
     setupRequestLogging(app);
@@ -252,6 +256,19 @@ function setupErrorHandler(app: express.Application) {
     const port = parseInt(process.env.PORT || "3000", 10);
     server.listen(port, "0.0.0.0", () => {
       log(`express server serving on port ${port}`);
+    });
+
+    // Graceful shutdown
+    process.on("SIGTERM", () => {
+      console.log("[Server] SIGTERM received, shutting down gracefully...");
+      stopMoneyAlertsJobs();
+      process.exit(0);
+    });
+
+    process.on("SIGINT", () => {
+      console.log("[Server] SIGINT received, shutting down gracefully...");
+      stopMoneyAlertsJobs();
+      process.exit(0);
     });
   } catch (error) {
     console.error("[Server] Fatal initialization error:", error);

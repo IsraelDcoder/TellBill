@@ -14,6 +14,7 @@ import {
   respondWithValidationErrors,
 } from "./utils/validation";
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
+import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 
 interface SendInvoiceRequest {
   invoiceId: string;
@@ -32,6 +33,7 @@ interface SendInvoiceResponse {
   message?: string;
   error?: string;
   details?: string;
+  upgradeRequired?: boolean;
 }
 
 export function registerInvoiceRoutes(app: Express) {
@@ -129,6 +131,15 @@ export function registerInvoiceRoutes(app: Express) {
                 "", // Empty HTML for now, can be enhanced
                 invoiceData
               );
+              
+              // Trigger Money Alerts detection for invoice sent (paid users only)
+              const userId = (req as any).user?.id;
+              if (userId) {
+                MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
+                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                );
+              }
+              
               return res.status(200).json({
                 success: true,
                 message: result.message,
@@ -156,6 +167,15 @@ export function registerInvoiceRoutes(app: Express) {
                 invoiceId,
                 clientName
               );
+              
+              // Trigger Money Alerts detection for invoice sent (paid users only)
+              const userId = (req as any).user?.id;
+              if (userId) {
+                MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
+                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                );
+              }
+              
               return res.status(200).json({
                 success: true,
                 message: result.message,
@@ -175,6 +195,15 @@ export function registerInvoiceRoutes(app: Express) {
                 invoiceId,
                 clientName
               );
+              
+              // Trigger Money Alerts detection for invoice sent (paid users only)
+              const userId = (req as any).user?.id;
+              if (userId) {
+                MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
+                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                );
+              }
+              
               return res.status(200).json({
                 success: true,
                 message: result.message,

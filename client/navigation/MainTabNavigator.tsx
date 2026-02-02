@@ -8,12 +8,14 @@ import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import InvoicesStackNavigator from "@/navigation/InvoicesStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
 import ApprovalsScreen from "@/screens/ApprovalsScreen";
+import MoneyAlertsScreen from "@/screens/MoneyAlertsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 export type MainTabParamList = {
   HomeTab: undefined;
   InvoicesTab: undefined;
+  MoneyAlertsTab: undefined;
   ApprovalsTab: undefined;
   ProfileTab: undefined;
 };
@@ -73,6 +75,16 @@ export default function MainTabNavigator() {
           title: "Invoices",
           tabBarIcon: ({ color, size }) => (
             <Feather name="file-text" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MoneyAlertsTab"
+        component={MoneyAlertsScreen}
+        options={{
+          title: "Money Alerts",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="alert-circle" size={size} color={color} />
           ),
         }}
       />
