@@ -1,8 +1,3 @@
-#!/bin/bash
-
-# Simple transcription flow test script
-# Usage: ./test-transcription.sh [backend_url] [email] [password]
-
 BACKEND_URL="${1:-http://localhost:3000}"
 EMAIL="${2:-test@example.com}"
 PASSWORD="${3:-password123}"

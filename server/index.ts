@@ -14,24 +14,12 @@ import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
 import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
 import { securityHeaders } from "./utils/sanitize";
 import { setupCorsSecurely } from "./utils/cors";
+import { logger, attachRequestLogging } from "./utils/logger";
 
 const app = express();
-const log = console.log;
 
-// Verify API keys are loaded
-if (!process.env.OPENROUTER_API_KEY) {
-  console.warn(
-    "[WARNING] OPENROUTER_API_KEY not set. Invoice extraction may fail. Check .env file."
-  );
-}
-
-if (!process.env.GROQ_API_KEY) {
-  console.warn(
-    "[WARNING] GROQ_API_KEY not set. Audio transcription will fail. Get free API key from https://console.groq.com/"
-  );
-} else {
-  console.log("[Config] ✅ GROQ_API_KEY configured");
-}
+// ✅ Initialize structured logging first
+logger.info(`[Server] Starting TellBill backend (${process.env.NODE_ENV || "development"})`);
 
 declare module "http" {
   interface IncomingMessage {
@@ -62,36 +50,8 @@ function setupBodyParsing(app: express.Application) {
 }
 
 function setupRequestLogging(app: express.Application) {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    const path = req.path;
-    let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
-
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
-
-    res.on("finish", () => {
-      if (!path.startsWith("/api")) return;
-
-      const duration = Date.now() - start;
-
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    });
-
-    next();
-  });
+  // ✅ Use structured logging middleware
+  app.use(attachRequestLogging);
 }
 
 function getAppName(): string {
@@ -167,7 +127,7 @@ function configureExpoAndLanding(app: express.Application) {
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
 
-  log("Serving static Expo files with dynamic manifest routing");
+  logger.info("Serving static Expo files with dynamic manifest routing");
 
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith("/api")) {
@@ -198,11 +158,11 @@ function configureExpoAndLanding(app: express.Application) {
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use(express.static(path.resolve(process.cwd(), "static-build")));
 
-  log("Expo routing: Checking expo-platform header on / and /manifest");
+  logger.info("Expo routing: Checking expo-platform header on / and /manifest");
 }
 
 function setupErrorHandler(app: express.Application) {
-  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
     const error = err as {
       status?: number;
       statusCode?: number;
@@ -212,7 +172,17 @@ function setupErrorHandler(app: express.Application) {
     const status = error.status || error.statusCode || 500;
     const message = error.message || "Internal Server Error";
 
-    console.error("Internal Server Error:", err);
+    const requestId = (req as any).requestId || "unknown";
+    logger.error(
+      {
+        requestId,
+        status,
+        path: req.path,
+        method: req.method,
+        error: err,
+      },
+      "Internal Server Error"
+    );
 
     if (res.headersSent) {
       return next(err);
@@ -229,12 +199,15 @@ function setupErrorHandler(app: express.Application) {
 
     // Initialize backup system (schedules daily, weekly, monthly backups)
     initializeBackupSystem();
+    logger.info("✅ Backup system initialized");
 
     // Initialize scope proof scheduler (handles reminders and expiry)
     initScopeProofScheduler();
+    logger.info("✅ Scope proof scheduler initialized");
 
     // Initialize Money Alerts scheduled jobs (detects unbilled work every 6 hours)
     startMoneyAlertsJobs();
+    logger.info("✅ Money Alerts jobs initialized");
 
     setupCors(app);
     setupBodyParsing(app);
@@ -255,23 +228,24 @@ function setupErrorHandler(app: express.Application) {
 
     const port = parseInt(process.env.PORT || "3000", 10);
     server.listen(port, "0.0.0.0", () => {
-      log(`express server serving on port ${port}`);
+      logger.info(`✅ Express server listening on port ${port}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
     // Graceful shutdown
     process.on("SIGTERM", () => {
-      console.log("[Server] SIGTERM received, shutting down gracefully...");
+      logger.info("SIGTERM received, shutting down gracefully...");
       stopMoneyAlertsJobs();
       process.exit(0);
     });
 
     process.on("SIGINT", () => {
-      console.log("[Server] SIGINT received, shutting down gracefully...");
+      logger.info("SIGINT received, shutting down gracefully...");
       stopMoneyAlertsJobs();
       process.exit(0);
     });
   } catch (error) {
-    console.error("[Server] Fatal initialization error:", error);
+    logger.error({ error }, "Fatal initialization error");
     process.exit(1);
   }
 })().catch((error) => {

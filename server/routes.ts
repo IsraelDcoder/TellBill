@@ -14,6 +14,16 @@ import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ✅ HEALTH CHECK (No auth required - for Docker healthchecks and load balancers)
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      version: process.env.APP_VERSION || "1.0.0",
+    });
+  });
+
   // ✅ AUTHENTICATION ROUTES (No auth required)
   registerAuthRoutes(app);
 

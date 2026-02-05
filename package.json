@@ -23,7 +23,14 @@
     "lint:fix": "npx expo lint --fix",
     "check:types": "tsc --noEmit",
     "check:format": "prettier --check \"**/*.{js,ts,tsx,css,json}\"",
-    "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\""
+    "format": "prettier --write \"**/*.{js,ts,tsx,css,json}\"",
+    "docker:build": "docker build -t tellbill:latest .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f server",
+    "docker:db-push": "docker-compose exec server npm run db:push",
+    "docker:restart": "docker-compose restart",
+    "load-test:money-alerts": "tsx scripts/load-test-money-alerts.ts"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
@@ -82,6 +89,8 @@
     "p-limit": "^7.2.0",
     "p-retry": "^7.1.1",
     "pg": "^8.16.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^11.2.2",
     "postgres": "^3.4.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
