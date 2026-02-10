@@ -18,6 +18,8 @@ const pool = new Pool({
   max: 20,           // Maximum connections in pool
   idleTimeoutMillis: 30000,  // Close idle connections after 30 seconds
   connectionTimeoutMillis: 2000,  // Fail fast if can't get connection
+  // ✅ Force IPv4 (fixes Render free tier IPv6 connectivity issues)
+  family: 4,  // Use IPv4 only, not IPv6
 });
 
 // Log connection pool events
