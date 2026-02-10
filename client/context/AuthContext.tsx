@@ -277,7 +277,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       // ✅ SAVE JWT TOKEN to AsyncStorage
-      if (data.token) {
+      if (data.accessToken) {
+        await saveToken(data.accessToken);
+      } else if (data.token) {
+        // Fallback for older response format
         await saveToken(data.token);
       } else {
         console.warn("[Auth] No JWT token received from signup");
@@ -358,7 +361,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // ✅ SAVE JWT TOKEN to AsyncStorage
-      if (data.token) {
+      if (data.accessToken) {
+        await saveToken(data.accessToken);
+      } else if (data.token) {
+        // Fallback for older response format
         await saveToken(data.token);
       } else {
         console.warn("[Auth] No JWT token received from login");
