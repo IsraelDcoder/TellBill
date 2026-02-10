@@ -15,6 +15,7 @@ import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob
 import { securityHeaders } from "./utils/sanitize";
 import { setupCorsSecurely } from "./utils/cors";
 import { logger, attachRequestLogging } from "./utils/logger";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
 
@@ -105,8 +106,7 @@ function serveLandingPage({
   const baseUrl = `${protocol}://${host}`;
   const expsUrl = `${host}`;
 
-  log(`baseUrl`, baseUrl);
-  log(`expsUrl`, expsUrl);
+  logger.info({ baseUrl, expsUrl }, "Routing URLs");
 
   const html = landingPageTemplate
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
@@ -162,34 +162,13 @@ function configureExpoAndLanding(app: express.Application) {
 }
 
 function setupErrorHandler(app: express.Application) {
-  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-    const error = err as {
-      status?: number;
-      statusCode?: number;
-      message?: string;
-    };
+  // ✅ 404 NOT FOUND - Must come before error handler
+  // Handles unmatched routes (must be after all other routes)
+  app.use(notFoundHandler);
 
-    const status = error.status || error.statusCode || 500;
-    const message = error.message || "Internal Server Error";
-
-    const requestId = (req as any).requestId || "unknown";
-    logger.error(
-      {
-        requestId,
-        status,
-        path: req.path,
-        method: req.method,
-        error: err,
-      },
-      "Internal Server Error"
-    );
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    return res.status(status).json({ message });
-  });
+  // ✅ GLOBAL ERROR HANDLER - Must be last
+  // Catches all errors from route handlers and other middleware
+  app.use(errorHandler);
 }
 
 (async () => {

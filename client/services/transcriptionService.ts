@@ -12,7 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 // PROD_URL: Production backend URL (for deployed app)
 // ============================================================================
 
-const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.145.42.139";
+const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.16.215.139";
 const DEV_PORT = 3000; // Your backend port
 const PROD_URL = process.env.EXPO_PUBLIC_BACKEND_URL || null;
 

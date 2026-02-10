@@ -39,8 +39,8 @@
     "node_modules",
     "build",
     "dist",
+    "server_dist",
     "**/*.test.ts",
     ".expo"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

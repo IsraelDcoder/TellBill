@@ -18,7 +18,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileStore } from "@/stores/profileStore";
 import { useSubscriptionStore, PLAN_LIMITS } from "@/stores/subscriptionStore";
-import { useFlutterwavePayment } from "@/hooks/useFlutterwavePayment";
+import { stripeService } from "@/services/stripeService";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 
 interface PlanCardProps {
@@ -135,52 +135,37 @@ export default function BillingScreen() {
   const { currentPlan, pricingTiers, isSubscribed } = useSubscriptionStore();
   const { user } = useAuth();
   const { userProfile, companyInfo } = useProfileStore();
-  const { isProcessing, initiatePayment } = useFlutterwavePayment();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleUpgradePress = async (planId: string) => {
-    // Get user email - try auth context first, then profileStore
-    const userEmail = user?.email;
-    
-    // Get user name - combine firstName and lastName from profileStore, or use auth context
-    const userFullName = userProfile.firstName || userProfile.lastName
-      ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
-      : user?.name;
-
-    // Validate we have at least email
-    if (!userEmail) {
+    // Validate we have email
+    if (!user?.email) {
       Alert.alert(
         "Missing Information",
-        "We need your email to process the payment. Please sign in again or complete your profile."
-      );
-      return;
-    }
-
-    // Validate we have a name (use generic default if not)
-    if (!userFullName || userFullName.trim().length === 0) {
-      Alert.alert(
-        "Missing Name",
-        "Please add your name in your profile before upgrading."
+        "We need your email to process the payment. Please sign in again."
       );
       return;
     }
 
     setLoadingPlan(planId);
+    setIsProcessing(true);
 
-    const planName =
-      planId.charAt(0).toUpperCase() + planId.slice(1);
-
-    const userPhone = companyInfo.phone || "+1234567890";
-
-    await initiatePayment(
-      planId as "solo" | "professional" | "enterprise",
-      planName,
-      userEmail,
-      userPhone,
-      userFullName.trim() || "User"
-    );
-
-    setLoadingPlan(null);
+    try {
+      // Initiate Stripe checkout
+      await stripeService.initiateCheckout(
+        planId as "solo" | "professional" | "enterprise"
+      );
+    } catch (error) {
+      Alert.alert(
+        "Checkout Error",
+        error instanceof Error ? error.message : "Failed to redirect to checkout. Please try again."
+      );
+      console.error("Checkout error:", error);
+    } finally {
+      setLoadingPlan(null);
+      setIsProcessing(false);
+    }
   };
 
   // Build plans array with current pricing from store

@@ -40,6 +40,8 @@ export function registerInvoiceRoutes(app: Express) {
   /**
    * POST /api/invoices/send
    * Send an invoice via email, SMS, or WhatsApp using real email service
+   * 
+   * ✅ REQUIRES: Email verification (user.emailVerifiedAt must be set)
    */
   app.post(
     "/api/invoices/send",
@@ -97,6 +99,19 @@ export function registerInvoiceRoutes(app: Express) {
 
         if (errors.length > 0) {
           return respondWithValidationErrors(res, errors);
+        }
+
+        // ✅ EMAIL VERIFICATION REQUIRED
+        // Users must verify their email address before sending invoices
+        const user = (req as any).user;
+        if (!user || !user.emailVerifiedAt) {
+          console.log("[Invoice] ❌ User email not verified, blocking invoice send");
+          return res.status(403).json({
+            success: false,
+            error: "Email verification required",
+            message: "Please verify your email address before sending invoices. Check your inbox for the verification link.",
+            details: "User email has not been verified"
+          });
         }
 
         // ✅ CHECK INVOICE SEND LIMIT (for free tier users)

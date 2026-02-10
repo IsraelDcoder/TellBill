@@ -3,6 +3,8 @@ import { createServer, type Server } from "node:http";
 import { registerTranscriptionRoutes } from "./transcription";
 import { registerAuthRoutes } from "./auth";
 import { registerRevenueCatRoutes } from "./revenuecat";
+import { registerStripeRoutes } from "./payments/stripe";
+import { registerStripeWebhookRoutes } from "./payments/stripeWebhook";
 import { registerInvoiceRoutes } from "./invoices";
 import { registerDataLoadingRoutes } from "./dataLoading";
 import { registerActivityLogRoutes } from "./activityLog";
@@ -30,6 +32,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ✅ REVENUCAT SUBSCRIPTION ROUTES
   // Webhook route (no auth) + protected routes (auth required)
   registerRevenueCatRoutes(app);
+
+  // ✅ STRIPE PAYMENT ROUTES
+  // Webhook (no auth) + protected checkout/portal routes
+  registerStripeWebhookRoutes(app);
+  registerStripeRoutes(app);
 
   // ✅ PROTECTED ROUTES (Auth + Subscription required)
   // Apply auth middleware first, then subscription middleware

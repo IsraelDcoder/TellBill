@@ -1,0 +1,544 @@
+# TellBill 🏗️📱
+
+**TellBill** is a construction business management app that helps contractors manage projects, invoices, scope proofs, and payments all in one place. Use voice-to-invoice transcription, client approval workflows, receipt scanning, and subscription-based billing to run your construction business efficiently.
+
+
+## ✨ Features
+
+### Core Features
+- **Voice-to-Invoice**: Record work details via voice and auto-generate professional invoices
+- **Scope Proof & Approvals**: Capture scope of work with photos and timestamps, request client approval
+- **Receipt Scanning**: Extract data from receipts automatically for expense tracking
+- **Project Management**: Organize work by projects with status tracking
+- **Invoicing**: Create, manage, and track invoices with custom tax settings
+- **Payment Tracking**: Monitor invoice payments and subscription status
+
+### Subscription Plans
+- **Free**: 3 voice recordings, 3 invoices lifetime
+- **Solo** ($29/month): Unlimited voice-to-invoice, projects, receipt scanning
+- **Professional** ($99/month): Everything in Solo + scope proof & client approvals
+- **Enterprise**: Custom pricing with dedicated support
+
+### Technical Features
+- Cross-platform (iOS/Android via React Native + Expo)
+- Real-time voice transcription (Groq AI)
+- Email & WhatsApp invoice delivery
+- Structured logging & monitoring
+- Docker deployment ready
+- Automated CI/CD pipeline
+
+---
+
+## 🛠 Tech Stack
+
+### Backend
+- **Runtime**: Node.js 22+
+- **Framework**: Express.js + TypeScript
+- **Database**: PostgreSQL (Drizzle ORM)
+- **Payments**: Stripe
+- **Email**: Resend
+- **SMS/WhatsApp**: Twilio
+- **AI/Transcription**: Groq, OpenRouter
+- **Logging**: Pino
+- **Deployment**: Docker, GitHub Actions
+
+### Frontend
+- **Framework**: React Native + Expo
+- **Language**: TypeScript
+- **State Management**: Zustand
+- **Styling**: Native styling + theme system
+- **HTTP Client**: Axios
+- **Navigation**: React Navigation
+
+### Infrastructure
+- **Database**: PostgreSQL 17
+- **Container**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **Secrets**: Environment variables
+
+---
+
+## 📦 Prerequisites
+
+### System Requirements
+- **Node.js**: 22.0.0 or higher
+- **npm**: 10.0.0 or higher
+- **PostgreSQL**: 13+ (or Docker)
+- **Git**: Latest version
+- **Expo CLI**: Optional (for mobile development)
+
+### Accounts Required
+- GitHub 
+- OpenRouter or Groq (for AI transcription)
+- Stripe (for payments)
+- Resend (for email)
+- Twilio (for SMS/WhatsApp)
+
+---
+
+## 🚀 Installation
+
+### 1. Clone the Repository
+```bash
+git clone <your-repo-url>
+cd TellBill
+```
+
+### 2. Install Dependencies
+```bash
+npm install
+```
+
+### 3. Set Up Environment Variables
+Copy `.env.example` to `.env` and fill in your values:
+```bash
+cp .env.example .env
+```
+
+See [Configuration](#configuration) section for details on each variable.
+
+### 4. Set Up Database
+Create a PostgreSQL database:
+```bash
+psql -U postgres -c "CREATE DATABASE tellbill_dev;"
+```
+
+Or use Docker Compose (see [Database Setup](#database-setup)).
+
+### 5. Apply Migrations
+```bash
+npm run db:push
+```
+
+This creates all necessary tables and indexes.
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+#### Database
+```env
+# PostgreSQL connection
+DATABASE_URL=postgresql://postgres:password@localhost:5432/tellbill_dev
+DATABASE_SSL=false
+```
+
+#### Server
+```env
+NODE_ENV=production  # or 'development'
+PORT=3000
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+```
+
+#### AI & Transcription
+```env
+OPENROUTER_API_KEY=your-openrouter-api-key
+GROQ_API_KEY=your-groq-api-key
+```
+
+#### Payments (Stripe)
+```env
+STRIPE_SECRET_KEY=sk_test_xxxxx  # Use sk_live_xxxxx for production
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+STRIPE_SOLO_PRICE_ID=price_xxxxx
+STRIPE_PROFESSIONAL_PRICE_ID=price_xxxxx
+STRIPE_ENTERPRISE_PRICE_ID=price_xxxxx
+```
+
+#### Email (Resend)
+```env
+RESEND_API_KEY=your-resend-api-key
+RESEND_FROM_EMAIL=noreply@yourdomain.com
+```
+
+#### SMS/WhatsApp (Twilio)
+```env
+TWILIO_ACCOUNT_SID=your-account-sid
+TWILIO_AUTH_TOKEN=your-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+WHATSAPP_BUSINESS_ACCOUNT_ID=your-account-id
+WHATSAPP_ACCESS_TOKEN=your-access-token
+```
+
+#### Frontend (Expo)
+```env
+EXPO_PUBLIC_BACKEND_IP=10.16.215.139  # Backend server IP/domain
+EXPO_PUBLIC_BACKEND_URL=http://10.16.215.139:3000
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=your-android-client-id
+```
+
+#### Monitoring (Optional)
+```env
+SENTRY_DSN=your-sentry-dsn
+```
+
+---
+
+## 🏃 Running the App
+
+### Option 1: Local Development (Recommended)
+
+#### Terminal 1: Start PostgreSQL (with Docker)
+```bash
+docker-compose up -d postgres
+```
+
+Or start PostgreSQL locally.
+
+#### Terminal 2: Start Backend Server
+```bash
+npm run server:dev
+```
+
+Server runs on `http://localhost:3000`
+
+#### Terminal 3: Start Mobile App
+```bash
+npm run client:dev
+```
+
+### Option 2: Docker (Production-Like)
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# In another terminal, run migrations
+docker exec tellbill npm run db:push
+```
+
+Backend runs on `http://localhost:3000`
+PostgreSQL available on `localhost:5432`
+
+### Option 3: Manual Development
+
+**Backend**:
+```bash
+# Development with auto-reload
+npm run server:dev
+
+# Build for production
+npm run server:build
+
+# Start production build
+npm start
+```
+
+**Frontend**:
+```bash
+# Development with Expo
+npm run client:dev
+
+# Build APK (Android)
+npm run client:build:android
+
+# Build IPA (iOS)
+npm run client:build:ios
+```
+
+---
+
+## 🗄️ Database Setup
+
+### With Docker Compose
+```bash
+docker-compose up -d postgres
+npm run db:push
+```
+
+### With Local PostgreSQL
+Ensure PostgreSQL is running, then:
+```bash
+npm run db:push
+```
+
+### Viewing Database
+```bash
+# Connect via psql
+psql postgresql://postgres:password@localhost:5432/tellbill_dev
+
+# View all tables
+\dt
+
+# View users table structure
+\d+ users
+
+# Exit
+\q
+```
+
+### Database Backup
+```bash
+# Create backup
+pg_dump postgresql://postgres:password@localhost:5432/tellbill_dev > backup.sql
+
+# Restore from backup
+psql postgresql://postgres:password@localhost:5432/tellbill_dev < backup.sql
+```
+
+### Resetting Database (Development Only)
+```bash
+npm run db:reset
+```
+
+---
+
+## 💳 Payment Setup (Stripe)
+
+### 1. Create Stripe Account
+- Go to [stripe.com](https://stripe.com)
+- Sign up and verify your business
+
+### 2. Get API Keys
+- Dashboard → Developers → API Keys
+- Copy **Secret Key** (starts with `sk_test_` or `sk_live_`)
+- Add to `.env` as `STRIPE_SECRET_KEY`
+
+### 3. Create Subscription Prices
+- Dashboard → Products → Create Product
+- Create 3 products:
+  - **Solo**: $29/month recurring
+  - **Professional**: $99/month recurring
+  - **Enterprise**: Custom (set as one-time for custom pricing)
+- Copy each **Price ID** (starts with `price_`)
+- Add to `.env`:
+  ```env
+  STRIPE_SOLO_PRICE_ID=price_xxxxx
+  STRIPE_PROFESSIONAL_PRICE_ID=price_xxxxx
+  STRIPE_ENTERPRISE_PRICE_ID=price_xxxxx
+  ```
+
+### 4. Set Up Webhook
+- Dashboard → Developers → Webhooks → Add endpoint
+- Endpoint URL: `https://yourdomain.com/api/webhooks/stripe`
+- Events to select:
+  - `checkout.session.completed`
+  - `invoice.payment_succeeded`
+  - `subscription.deleted`
+  - `subscription.updated`
+- Copy **Webhook Secret**
+- Add to `.env` as `STRIPE_WEBHOOK_SECRET`
+
+### 5. Testing Payments
+```bash
+# Use test mode with test card
+Card Number: 4242 4242 4242 4242
+Expiry: Any future date (e.g., 12/25)
+CVC: Any 3 digits (e.g., 123)
+```
+
+### 6. Go Live
+- Switch to **Live API Keys** (starts with `sk_live_`)
+- Update `.env` with production keys
+- Test full flow with real payment
+- Monitor Stripe Dashboard for issues
+
+---
+
+## 🧪 Testing
+
+### Run Tests
+```bash
+# Unit tests
+npm run test
+
+# Watch mode (re-runs on file changes)
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+```
+
+### Load Testing (Money Alerts)
+```bash
+npm run load-test:money-alerts
+```
+
+### API Testing
+```bash
+# Start server
+npm run server:dev
+
+# In another terminal, test endpoints
+curl -X POST http://localhost:3000/api/health
+
+# Test with authentication
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password"}'
+```
+
+### Manual Mobile Testing
+1. Start app on phone: `npm run client:dev`
+2. Navigate to different screens
+3. Test voice recording
+4. Try invoice generation
+5. Test payment flow (non-payment in test mode)
+6. Check logs in backend terminal
+
+---
+
+## 🚀 Deployment
+
+### Deploy to Production
+
+#### Option 1: Docker + Cloud (Recommended)
+```bash
+# Build Docker image
+docker build -t tellbill:latest .
+
+# Push to Docker registry (Docker Hub, ECR, etc.)
+docker tag tellbill:latest yourusername/tellbill:latest
+docker push yourusername/tellbill:latest
+
+# Deploy to cloud platform (AWS ECS, Azure Container Instances, etc.)
+# Follow your cloud provider's documentation
+```
+
+#### Option 2: GitHub Actions (Automated)
+Push to `main` branch triggers:
+1. Linting & type checking
+2. Build verification
+3. Security audit
+4. Docker image build
+5. Deployment (if configured)
+
+### Pre-Deployment Checklist
+- [ ] Update JWT_SECRET in production `.env`
+- [ ] Switch Stripe keys to live mode
+- [ ] Set NODE_ENV=production
+- [ ] Configure webhook URLs to production domain
+- [ ] Set up database backups
+- [ ] Enable SSL/HTTPS
+- [ ] Configure CI/CD deployment step
+- [ ] Set up monitoring (Sentry, CloudWatch, etc.)
+- [ ] Load test with expected user count
+
+### Production Domains/IPs
+```env
+# Update these for production
+EXPO_PUBLIC_BACKEND_URL=https://api.tellbill.com
+STRIPE_WEBHOOK_SECRET=whsec_live_xxxxx
+STRIPE_SECRET_KEY=sk_live_xxxxx
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### 1. Database Connection Failed
+```bash
+# Check PostgreSQL is running
+psql -U postgres -d postgres -c "SELECT version();"
+
+# Check DATABASE_URL in .env
+echo $DATABASE_URL
+
+# Verify credentials
+psql <your-database-url>
+```
+
+#### 2. "Cannot find module" Errors
+```bash
+# Clean install
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### 3. Port Already in Use
+```bash
+# Find process using port 3000
+lsof -i :3000  # macOS/Linux
+Get-NetTCPConnection -LocalPort 3000 | Format-Table  # Windows
+
+# Kill process
+kill -9 <PID>  # macOS/Linux
+Stop-Process -Name node  # Windows
+```
+
+#### 4. Stripe Webhook Not Firing
+```bash
+# Check webhook configuration in Stripe Dashboard
+# Verify endpoint URL is correct (HTTPS in production)
+# Test by sending test event from Stripe Dashboard
+# Check backend logs for error messages
+```
+
+#### 5. Voice Transcription Not Working
+```bash
+# Verify API keys
+echo $GROQ_API_KEY
+echo $OPENROUTER_API_KEY
+
+# Check transcription service logs
+npm run server:dev  # Look for transcription errors
+```
+
+#### 6. Email Not Sending
+```bash
+# Verify Resend API key
+echo $RESEND_API_KEY
+
+# Check email configuration
+# Verify sender email is verified in Resend
+
+# Test endpoint
+curl -X POST http://localhost:3000/api/test-email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+```
+
+#### 7. Mobile App Can't Reach Backend
+```bash
+# Check IP address in .env
+EXPO_PUBLIC_BACKEND_URL=http://10.16.215.139:3000
+
+# Verify backend is running on that IP
+ifconfig  
+ipconfig  
+
+### Backend
+```bash
+npm run server:dev           # Start dev server with auto-reload
+npm run server:build         # Build TypeScript to JavaScript
+npm start                    # Start production build
+npm run db:push             # Apply database migrations
+npm run db:pull             # Pull latest schema from database
+npm run lint                # Run ESLint
+npm run type-check          # Run TypeScript compiler
+```
+
+### Frontend
+```bash
+npm run client:dev          # Start Expo dev server
+npm run client:build:ios    # Build iOS app
+npm run client:build:android # Build Android APK
+
+## 📄 License
+
+© 2026 TellBill. All rights reserved.
+
+---
+
+## ✅ Quick Start Checklist
+
+- [ ] Clone repository
+- [ ] Run `npm install`
+- [ ] Copy `.env.example` to `.env`
+- [ ] Fill in API keys (at minimum: Groq, Resend, Stripe)
+- [ ] Start PostgreSQL: `docker-compose up -d postgres`
+- [ ] Run migrations: `npm run db:push`
+- [ ] Start backend: `npm run server:dev`
+- [ ] Start frontend: `npm run client:dev` (in another terminal)
+- [ ] Open app in Expo Go or emulator
+- [ ] Test core features
+
+**You're ready to go! 🚀**

@@ -480,3 +480,73 @@ export async function sendPaymentConfirmationEmail(
   }
 }
 
+/**
+ * Send email verification link to user
+ * Used during signup to verify email ownership before account activation
+ * @param email - Recipient email address
+ * @param verificationToken - JWT token containing userId, valid for 24 hours
+ * @param appUrl - Frontend URL (e.g., https://tellbill.app)
+ */
+export async function sendVerificationEmail(
+  email: string,
+  verificationToken: string,
+  appUrl: string = "https://tellbill.app"
+): Promise<void> {
+  try {
+    const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+
+    await sendEmail({
+      to: email,
+      subject: "Verify your TellBill email",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to TellBill</h1>
+          </div>
+          
+          <div style="padding: 40px; background: #ffffff; border: 1px solid #eee;">
+            <p style="color: #333; margin-top: 0; font-size: 16px;">Hi there!</p>
+            
+            <p style="color: #666; font-size: 16px; line-height: 1.6;">
+              Thank you for signing up. Click the button below to verify your email address and activate your account.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-weight: bold; font-size: 16px;">
+                Verify Email Address
+              </a>
+            </div>
+            
+            <p style="color: #999; font-size: 14px; margin-bottom: 0;">
+              Or paste this link in your browser:
+            </p>
+            <p style="color: #667eea; font-size: 12px; word-break: break-all; margin-top: 10px;">
+              ${verifyUrl}
+            </p>
+            
+            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+              <p style="color: #999; font-size: 12px; margin: 0;">
+                This link expires in 24 hours. If you didn't sign up for TellBill, you can ignore this email.
+              </p>
+            </div>
+          </div>
+          
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+            <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    console.log(`[EmailService] ✅ Verification email sent to ${email}`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending verification email to ${email}:`,
+      errorMessage
+    );
+    throw error;
+  }
+}
+

@@ -37,13 +37,62 @@ export const users = pgTable("users", {
   subscriptionCancellationDate: timestamp("subscription_cancellation_date", { withTimezone: true }),
   isTrialing: boolean("is_trialing").default(false),
   subscriptionUpdatedAt: timestamp("subscription_updated_at", { withTimezone: true }).defaultNow(),
+  // Stripe subscription fields
+  stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
+  stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
+  stripePriceId: text("stripe_price_id"), // Current Stripe price ID (solo, professional, enterprise)
+  // Security: Email verification
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }), // NULL = not verified, timestamp = verified time
+  // Security: Account lockout
+  failedLoginAttempts: integer("failed_login_attempts").default(0), // Counter for failed login attempts
+  lockedUntil: timestamp("locked_until", { withTimezone: true }), // NULL = not locked, timestamp = lock expiration time
 });
+
+/**
+ * Webhook Processing Tracking Table
+ * Used to prevent duplicate webhook processing from Stripe
+ * (Stripe retries webhooks if they timeout, this prevents double-charging)
+ */
+export const webhookProcessed = pgTable("webhook_processed", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  stripeEventId: text("stripe_event_id").notNull().unique(), // Unique Stripe event ID
+  eventType: text("event_type").notNull(), // checkout.session.completed, invoice.payment_succeeded, etc
+  processedAt: timestamp("processed_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  metadata: text("metadata"), // JSON metadata if needed
+});
+
+export type WebhookProcessed = typeof webhookProcessed.$inferSelect;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   password: true,
   name: true,
 });
+
+/**
+ * Refresh Token Storage Table
+ * Allows secure refresh token rotation without storing sensitive data in local storage
+ */
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull(), // Hashed refresh token
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), // When this refresh token expires
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }), // NULL = active, timestamp = revoked time
+});
+
+export type RefreshToken = typeof refreshTokens.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

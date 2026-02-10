@@ -21,7 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { useSubscriptionStore, Entitlement, PricingTier } from "@/stores/subscriptionStore";
-import { useFlutterwavePayment } from "@/hooks/useFlutterwavePayment";
+import { stripeService } from "@/services/stripeService";
 
 export default function PricingScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -38,7 +38,7 @@ export default function PricingScreen({ route, navigation }: any) {
     showLimitModal,
     setShowLimitModal,
   } = useSubscriptionStore();
-  const { isProcessing: isPaymentProcessing, initiatePayment } = useFlutterwavePayment();
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
   const [isAnnual, setIsAnnual] = useState(false);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
@@ -69,34 +69,22 @@ export default function PricingScreen({ route, navigation }: any) {
       }
 
       setIsProcessing(true);
+      setIsPaymentProcessing(true);
       setSelectedTier(tier.name);
 
-      // Get user details
-      const userFullName = user?.name || "Customer";
-      const userEmail = user.email;
-      const userPhone = user.name?.split(" ")[0] || ""; // Fallback to first name
-
-      // Get plan amount
-      const amount = isAnnual 
-        ? Math.floor(tier.monthlyPrice * 12 * 0.8) / 100 
-        : tier.monthlyPrice / 100;
-
-      // Initiate Flutterwave payment
-      await initiatePayment(
-        tier.name as "solo" | "professional" | "enterprise",
-        tier.displayName,
-        userEmail,
-        userPhone,
-        userFullName
+      // Initiate Stripe checkout
+      await stripeService.initiateCheckout(
+        tier.name as "solo" | "professional" | "enterprise"
       );
     } catch (error) {
       Alert.alert(
         "Payment Error",
-        error instanceof Error ? error.message : "Failed to process payment. Please try again."
+        error instanceof Error ? error.message : "Failed to redirect to checkout. Please try again."
       );
-      console.error("Payment error:", error);
+      console.error("Checkout error:", error);
     } finally {
       setIsProcessing(false);
+      setIsPaymentProcessing(false);
     }
   };
 
