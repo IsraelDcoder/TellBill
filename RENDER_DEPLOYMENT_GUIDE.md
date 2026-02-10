@@ -68,8 +68,8 @@ DATABASE_URL=postgresql://[username]:[password]@[internal-host]:5432/tellbill
 ALLOWED_DOMAINS=tellbill.app,api.tellbill.app,www.tellbill.app,app.tellbill.app
 
 # Stripe (Test Keys)
-STRIPE_SECRET_KEY=sk_test_51SxST9FGtZ5bJIbUzbmoOJHwJGtooPtmms6iOAo7yMCM154gRKQkDwdhLAaFahZKZA9oinkrvOOAR5R6oF139iU700GcU9HBvN
-STRIPE_PUBLISHABLE_KEY=pk_test_51SxST9FGtZ5bJIbUu8zCTBTSKcPJe78g4Mk5L4q3sloMvqMsBZncUrAuJKacIOPZMUJssohfOW2b6yIBvuICH2uu004nzey02v
+STRIPE_SECRET_KEY=sk_test_[GET_FROM_STRIPE_DASHBOARD]
+STRIPE_PUBLISHABLE_KEY=pk_test_[GET_FROM_STRIPE_DASHBOARD]
 STRIPE_WEBHOOK_SECRET=(get from Stripe webhook)
 
 # Email
