@@ -42,5 +42,6 @@
     "server_dist",
     "**/*.test.ts",
     ".expo"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

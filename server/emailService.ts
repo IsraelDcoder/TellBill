@@ -550,3 +550,98 @@ export async function sendVerificationEmail(
   }
 }
 
+/**
+ * Send password reset email with reset link
+ * @param email - User's email address
+ * @param name - User's name
+ * @param resetUrl - Full password reset URL with token
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  name: string,
+  resetUrl: string
+): Promise<void> {
+  try {
+    console.log(`[EmailService] Sending password reset email to ${email}`);
+
+    // Validate email address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error(`Invalid email address: ${email}`);
+    }
+
+    const userName = name || email.split("@")[0];
+
+    // Professional password reset email template
+    const resetHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f5f5f5; padding: 20px;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; border-radius: 8px 8px 0 0; color: white;">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 600;">Password Reset Request 🔐</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">We received a request to reset your TellBill password</p>
+        </div>
+
+        <!-- Main Content -->
+        <div style="background-color: white; padding: 40px 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #333; font-size: 16px; margin: 0 0 20px 0;">
+            Hi <strong>${userName}</strong>,
+          </p>
+
+          <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 20px 0;">
+            We received a request to reset the password for your TellBill account. If you made this request, you can reset your password by clicking the button below.
+          </p>
+
+          <!-- Security Notice -->
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #ffc107;">
+            <p style="color: #856404; margin: 0; font-size: 14px;">
+              <strong>⚠️ Security Notice:</strong> This link will expire in 15 minutes for your security. If you didn't request a password reset, you can ignore this email.
+            </p>
+          </div>
+
+          <!-- Call to Action -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 40px; border-radius: 6px; font-weight: 600; font-size: 15px;">
+              Reset Password
+            </a>
+          </div>
+
+          <!-- Alternative Link -->
+          <div style="text-align: center; margin: 25px 0;">
+            <p style="color: #999; font-size: 14px; margin-bottom: 0;">
+              Or paste this link in your browser:
+            </p>
+            <p style="color: #667eea; font-size: 12px; word-break: break-all; margin-top: 10px;">
+              ${resetUrl}
+            </p>
+            
+            <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
+              <p style="color: #999; font-size: 12px; margin: 0;">
+                This link expires in 15 minutes. If you didn't request a password reset, please ignore this email or contact us immediately if you suspect unauthorized activity.
+              </p>
+            </div>
+          </div>
+          
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+            <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+          </div>
+        </div>
+      `;
+
+    await sendEmail({
+      to: email,
+      subject: "Reset Your TellBill Password",
+      html: resetHtml,
+    });
+
+    console.log(`[EmailService] ✅ Password reset email sent to ${email}`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending password reset email to ${email}:`,
+      errorMessage
+    );
+    throw error;
+  }
+}
+

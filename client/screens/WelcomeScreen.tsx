@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { View } from "react-native";
 import { useAuth } from "@/context/AuthContext";
+import * as Linking from "expo-linking";
+import * as SecureStore from "expo-secure-store";
 
 import SplashScreen from "@/screens/SplashScreen";
 import OnboardingCarousel from "@/screens/OnboardingCarousel";
@@ -8,7 +10,48 @@ import AuthenticationScreen from "@/screens/AuthenticationScreen";
 
 export default function WelcomeScreen() {
   const [stage, setStage] = useState<"splash" | "onboarding" | "auth">("splash");
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
+
+  // Handle deep links for password reset
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      
+      // Parse reset-password?token=xxxx
+      if (url.includes("reset-password")) {
+        try {
+          const urlObj = new URL(url);
+          const token = urlObj.searchParams.get("token");
+          
+          if (token) {
+            setResetToken(token);
+            // Store token temporarily for AuthenticationScreen to access
+            await SecureStore.setItemAsync("_temp_reset_token", token);
+          }
+        } catch (error) {
+          console.error("[WelcomeScreen] Failed to parse deep link:", error);
+        }
+      }
+    };
+
+    // Get initial URL (if app was opened with a link)
+    const getInitialURL = async () => {
+      const url = await Linking.getInitialURL();
+      if (url != null) {
+        handleDeepLink({ url });
+      }
+    };
+
+    getInitialURL();
+
+    // Listen for deep links while app is in foreground
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   // Monitor auth state and exit if authenticated
   useEffect(() => {
@@ -24,8 +67,13 @@ export default function WelcomeScreen() {
       // Auth guard will handle navigation to main app
       return;
     }
-    // Show onboarding carousel
-    setStage("onboarding");
+    // If we have a reset token, skip onboarding and go straight to auth
+    if (resetToken) {
+      setStage("auth");
+    } else {
+      // Show onboarding carousel
+      setStage("onboarding");
+    }
   };
 
   // Handle "Get Started" from onboarding
@@ -49,7 +97,7 @@ export default function WelcomeScreen() {
       )}
 
       {stage === "auth" && (
-        <AuthenticationScreen onSuccess={handleAuthSuccess} />
+        <AuthenticationScreen onSuccess={handleAuthSuccess} initialResetToken={resetToken} />
       )}
     </View>
   );

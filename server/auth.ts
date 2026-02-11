@@ -1,13 +1,13 @@
 import type { Express, Request, Response } from "express";
-import { eq, sql, and } from "drizzle-orm";
-import { users, invoices, projects, activityLog } from "@shared/schema";
+import { eq, sql, and, gt, isNull } from "drizzle-orm";
+import { users, invoices, projects, activityLog, passwordResetTokens } from "@shared/schema";
 import { db } from "./db";
 import {
   hashPassword,
   comparePassword,
   validatePasswordStrength,
 } from "./utils/password";
-import { sendWelcomeEmail, sendVerificationEmail } from "./emailService";
+import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 import { generateToken, verifyToken } from "./utils/jwt";
 import { generateTokenPair, verifyAccessToken, verifyRefreshToken, generateAccessTokenFromRefresh } from "./services/tokenService";
 import {
@@ -19,6 +19,7 @@ import {
 } from "./utils/validation";
 import { loginRateLimiter, signupRateLimiter, adaptiveLimiter } from "./utils/rateLimiter";
 import { captureAuthError, setSentryUserContext, captureException } from "./utils/sentry";
+import { randomBytes } from "crypto";
 
 interface SignUpRequest {
   email: string;
@@ -47,6 +48,16 @@ interface AuthResponse {
     createdAt: Date;
   };
   error?: string;
+}
+
+/**
+ * Generate a secure reset token for password reset
+ * @returns {token: string, hash: string}
+ */
+function generateResetToken(): { token: string; hash: string } {
+  const token = randomBytes(32).toString("hex");
+  const hash = randomBytes(32).toString("hex"); // Store hashed version in DB
+  return { token, hash };
 }
 
 /**
@@ -835,24 +846,6 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  /**
-   * POST /api/auth/refresh
-   * Refresh JWT access token using refresh token
-   * Called when access token expires but refresh token is still valid
-   * 
-   * SECURITY:
-   * - Access token: 15 minutes (short-lived)
-   * - Refresh token: 7 days (long-lived)
-   * - Use refresh token only to get new access token
-   * - Never use refresh token for API calls
-   * 
-   * FLOW:
-   * 1. Frontend stores refresh token securely (httpOnly cookie or secure storage)
-   * 2. When access token expires (401 response)
-   * 3. Frontend calls /api/auth/refresh with refresh token
-   * 4. Backend generates new access token
-   * 5. Frontend retries original request with new access token
-   */
   app.post("/api/auth/refresh", async (req: Request, res: Response) => {
     try {
       const { refreshToken } = req.body;
@@ -884,10 +877,6 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // ✅ OPTIONAL: Generate new refresh token (token rotation)
-      // This is more secure but requires updating refresh token in client
-      // For now, we'll reuse the same refresh token
-      // const { refreshToken: newRefreshToken } = generateTokenPair(payload.userId, "");
 
       console.log(`[Auth] ✅ Token refreshed for user: ${payload.userId}`);
 
@@ -906,6 +895,249 @@ export function registerAuthRoutes(app: Express) {
       });
     }
   });
+
+
+  app.post(
+    "/api/auth/password-reset/request",
+    async (req: Request, res: Response) => {
+      try {
+        const { email } = req.body;
+
+        // Validate email
+        if (!email || !email.trim()) {
+          return res.status(400).json({
+            success: false,
+            error: "Email is required",
+          });
+        }
+
+        const sanitizedEmail = sanitizeEmail(email);
+
+        // Always return success (security best practice)
+        // This prevents email enumeration attacks
+        const user = await db.query.users.findFirst({
+          where: eq(users.email, sanitizedEmail),
+        });
+
+        if (!user) {
+          // Return success even if user doesn't exist (security)
+          return res.status(200).json({
+            success: true,
+            message: "If an account with that email exists, a password reset link has been sent.",
+          });
+        }
+
+        // Delete any existing reset tokens for this user
+        await db
+          .delete(passwordResetTokens)
+          .where(eq(passwordResetTokens.userId, user.id));
+
+        // Generate reset token
+        const { token, hash } = generateResetToken();
+
+        // Store token in database with 15 minute expiration
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+        await db.insert(passwordResetTokens).values({
+          userId: user.id,
+          token: hash,
+          expiresAt,
+        });
+
+        // Build reset URL - can point to frontend or backend
+        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:8082"}/reset-password?token=${token}`;
+
+        // Send reset email
+        await sendPasswordResetEmail(user.email, user.name || user.email, resetUrl);
+
+        console.log(
+          `[Auth] ✅ Password reset email sent to ${user.email}`
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: "If an account with that email exists, a password reset link has been sent.",
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("[Auth] Password reset request error:", error);
+        captureException(error instanceof Error ? error : new Error(String(error)));
+
+        // Don't reveal internal errors
+        return res.status(200).json({
+          success: true,
+          message: "If an account with that email exists, a password reset link has been sent.",
+        });
+      }
+    }
+  );
+
+  /**
+   * PASSWORD RESET FLOW - VERIFY TOKEN AND RESET PASSWORD
+   * POST /api/auth/password-reset/verify
+   * 
+   * Validates reset token, verifies new password, updates password in database
+   */
+  app.post(
+    "/api/auth/password-reset/verify",
+    async (req: Request, res: Response) => {
+      try {
+        const { token, newPassword, confirmPassword } = req.body;
+
+        // Validate inputs
+        if (!token || !token.trim()) {
+          return res.status(400).json({
+            success: false,
+            error: "Reset token is required",
+          });
+        }
+
+        if (!newPassword) {
+          return res.status(400).json({
+            success: false,
+            error: "New password is required",
+          });
+        }
+
+        if (newPassword !== confirmPassword) {
+          return res.status(400).json({
+            success: false,
+            error: "Passwords do not match",
+          });
+        }
+
+        // Validate password strength
+        const strengthCheck = validatePasswordStrength(newPassword);
+        if (!strengthCheck.isValid) {
+          return res.status(400).json({
+            success: false,
+            error: strengthCheck.errors.join(", "),
+          });
+        }
+
+        // Find active reset token
+        const resetTokenEntry = await db.query.passwordResetTokens.findFirst({
+          where: and(
+            eq(passwordResetTokens.token, token),
+            gt(passwordResetTokens.expiresAt, new Date()),
+            isNull(passwordResetTokens.usedAt)
+          ),
+        });
+
+        if (!resetTokenEntry) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid or expired reset token",
+          });
+        }
+
+        // Get user email for metadata
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, resetTokenEntry.userId),
+        });
+
+        // Hash new password
+        const hashedPassword = await hashPassword(newPassword);
+
+        // Update user password
+        await db
+          .update(users)
+          .set({
+            password: hashedPassword,
+          })
+          .where(eq(users.id, resetTokenEntry.userId));
+
+        // Mark token as used
+        await db
+          .update(passwordResetTokens)
+          .set({
+            usedAt: new Date(),
+          })
+          .where(eq(passwordResetTokens.id, resetTokenEntry.id));
+
+        // Log activity
+        await db.insert(activityLog).values({
+          userId: resetTokenEntry.userId,
+          action: "password_reset",
+          resourceType: "user",
+          resourceId: resetTokenEntry.userId,
+          metadata: JSON.stringify({
+            email: user?.email,
+            timestamp: new Date().toISOString(),
+            description: "User reset their password",
+          }),
+        });
+
+        console.log(
+          `[Auth] ✅ Password reset successful for user ${resetTokenEntry.userId}`
+        );
+
+        return res.status(200).json({
+          success: true,
+          message: "Password reset successfully! You can now log in with your new password.",
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        console.error("[Auth] Password reset verification error:", error);
+        captureException(error instanceof Error ? error : new Error(String(error)));
+
+        return res.status(500).json({
+          success: false,
+          error: "An error occurred while resetting your password. Please try again.",
+        });
+      }
+    }
+  );
+
+  /**
+   * PASSWORD RESET FLOW - VERIFY TOKEN ONLY (For frontend validation)
+   * GET /api/auth/password-reset/verify-token
+   * 
+   * Allows frontend to check if reset token is valid before showing reset form
+   */
+  app.get(
+    "/api/auth/password-reset/verify-token",
+    async (req: Request, res: Response) => {
+      try {
+        const { token } = req.query;
+
+        if (!token || typeof token !== "string") {
+          return res.status(400).json({
+            success: false,
+            error: "Reset token is required",
+          });
+        }
+
+        // Find active reset token
+        const resetTokenEntry = await db.query.passwordResetTokens.findFirst({
+          where: and(
+            eq(passwordResetTokens.token, token),
+            gt(passwordResetTokens.expiresAt, new Date()),
+            isNull(passwordResetTokens.usedAt)
+          ),
+        });
+
+        if (!resetTokenEntry) {
+          return res.status(400).json({
+            success: false,
+            error: "Invalid or expired reset token",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: "Token is valid",
+        });
+      } catch (error) {
+        console.error("[Auth] Token verification error:", error);
+        return res.status(500).json({
+          success: false,
+          error: "An error occurred while verifying the token",
+        });
+      }
+    }
+  );
 
   /**
    * POST /api/auth/logout

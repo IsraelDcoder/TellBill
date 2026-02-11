@@ -32,14 +32,17 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { LegalModal } from "./LegalModal";
+import ForgotPasswordScreen from "./ForgotPasswordScreen";
+import ResetPasswordScreen from "./ResetPasswordScreen";
 
 const { width, height } = Dimensions.get("window");
 
 interface AuthScreenProps {
   onSuccess: () => void;
+  initialResetToken?: string | null;
 }
 
-export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
+export default function AuthenticationScreen({ onSuccess, initialResetToken }: AuthScreenProps) {
   const { theme } = useTheme();
   const { signIn, signUp } = useAuth();
 
@@ -47,6 +50,16 @@ export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [passwordResetMode, setPasswordResetMode] = useState<"none" | "forgot" | "reset">("none");
+  const [resetToken, setResetToken] = useState<string | null>(initialResetToken || null);
+
+  // Handle initial reset token from deep link
+  useEffect(() => {
+    if (initialResetToken) {
+      setPasswordResetMode("reset");
+      setResetToken(initialResetToken);
+    }
+  }, [initialResetToken]);
 
   // Sign-up fields
   const [fullName, setFullName] = useState("");
@@ -291,6 +304,46 @@ export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
     isLoading;
 
   const loginDisabled = !loginEmail || !loginPassword || isLoading;
+
+  // Handle password reset flow - show forget password screen
+  if (passwordResetMode === "forgot") {
+    return (
+      <ForgotPasswordScreen
+        onBack={() => setPasswordResetMode("none")}
+        onResetRequested={() => {
+          // After successful request, return to login
+          setPasswordResetMode("none");
+          Alert.alert(
+            "Email Sent",
+            "Check your email for password reset instructions."
+          );
+        }}
+      />
+    );
+  }
+
+  // Show reset password screen when token is available
+  if (passwordResetMode === "reset" && resetToken) {
+    return (
+      <ResetPasswordScreen
+        token={resetToken}
+        onBack={() => {
+          setPasswordResetMode("none");
+          setResetToken(null);
+        }}
+        onSuccess={() => {
+          setPasswordResetMode("none");
+          setResetToken(null);
+          setTimeout(() => {
+            Alert.alert(
+              "Success",
+              "Password reset successfully! Please log in with your new password."
+            );
+          }, 500);
+        }}
+      />
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
@@ -620,7 +673,7 @@ export default function AuthenticationScreen({ onSuccess }: AuthScreenProps) {
               <View style={styles.inputGroup}>
                 <View style={styles.passwordHeader}>
                   <ThemedText style={styles.inputLabel}>Password</ThemedText>
-                  <Pressable onPress={() => Alert.alert("Password Reset", "Feature coming soon")}>
+                  <Pressable onPress={() => setPasswordResetMode("forgot")} disabled={isLoading}>
                     <ThemedText
                       style={[
                         styles.forgotPassword,
