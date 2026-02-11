@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { View } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import * as Linking from "expo-linking";
-import * as SecureStore from "expo-secure-store";
 
 import SplashScreen from "@/screens/SplashScreen";
 import OnboardingCarousel from "@/screens/OnboardingCarousel";
@@ -26,8 +25,6 @@ export default function WelcomeScreen() {
           
           if (token) {
             setResetToken(token);
-            // Store token temporarily for AuthenticationScreen to access
-            await SecureStore.setItemAsync("_temp_reset_token", token);
           }
         } catch (error) {
           console.error("[WelcomeScreen] Failed to parse deep link:", error);

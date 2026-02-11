@@ -125,6 +125,7 @@
     "@types/react": "~19.1.0",
     "@types/react-native": "^0.72.8",
     "babel-plugin-module-resolver": "^5.0.2",
+    "baseline-browser-mapping": "^2.9.19",
     "drizzle-kit": "^0.31.4",
     "esbuild": "^0.21.0",
     "eslint": "^9.25.0",
