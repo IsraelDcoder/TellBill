@@ -17,6 +17,7 @@ import {
   respondWithValidationErrors,
 } from "./utils/validation";
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
+import { authMiddleware } from "./utils/authMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 import { applyTax } from "./taxService";
 
@@ -49,6 +50,7 @@ export function registerInvoiceRoutes(app: Express) {
    */
   app.post(
     "/api/invoices/send",
+    authMiddleware,
     async (req: Request, res: Response<SendInvoiceResponse>) => {
       try {
         console.log("[Invoice] POST /api/invoices/send received");
@@ -275,7 +277,7 @@ export function registerInvoiceRoutes(app: Express) {
    * POST /api/invoices/send-email
    * Dedicated endpoint for real email sending via Resend
    */
-  app.post("/api/invoices/send-email", async (req: Request, res: Response) => {
+  app.post("/api/invoices/send-email", authMiddleware, async (req: Request, res: Response) => {
     try {
       const { invoiceId, email, clientName, invoiceData } = req.body;
 
@@ -338,7 +340,7 @@ export function registerInvoiceRoutes(app: Express) {
    * POST /api/invoices/send-sms
    * Dedicated endpoint for SMS sending (requires Twilio or similar)
    */
-  app.post("/api/invoices/send-sms", async (req: Request, res: Response) => {
+  app.post("/api/invoices/send-sms", authMiddleware, async (req: Request, res: Response) => {
     try {
       const { invoiceId, phoneNumber, clientName } = req.body;
 
@@ -396,6 +398,7 @@ export function registerInvoiceRoutes(app: Express) {
    */
   app.post(
     "/api/invoices/send-whatsapp",
+    authMiddleware,
     async (req: Request, res: Response) => {
       try {
         const { invoiceId, phoneNumber, clientName } = req.body;
@@ -462,7 +465,7 @@ export function registerInvoiceRoutes(app: Express) {
    * Body: { projectId?, clientName, clientEmail, clientPhone, clientAddress, jobAddress, items[], laborHours, laborRate, materialsTotal, notes, safetyNotes, paymentTerms, dueDate? }
    * If projectId not provided, uses first user project or creates "General" project
    */
-  app.post("/api/invoices", async (req: Request, res: Response) => {
+  app.post("/api/invoices", authMiddleware, async (req: Request, res: Response) => {
     try {
       console.log("[Invoice] 📤 POST /api/invoices - Save to database");
       console.log("[Invoice] Request body:", JSON.stringify(req.body, null, 2));
