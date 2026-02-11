@@ -555,13 +555,35 @@ export function registerInvoiceRoutes(app: Express) {
         userId,
         createdBy: (req as any).user?.name || (req as any).user?.email || "Unknown",
         status: "draft",
-        // ✅ Store tax snapshot (immutable)
+        // ✅ Client information
+        clientName,
+        clientEmail: clientEmail || null,
+        clientPhone: clientPhone || null,
+        clientAddress: clientAddress || null,
+        // ✅ Job information
+        jobAddress: jobAddress || null,
+        jobDescription: jobDescription || null,
+        // ✅ Items (stored as JSON)
+        items: JSON.stringify(items || []),
+        // ✅ Labor details
+        laborHours: laborHours || 0,
+        laborRate: laborRate || 0,
+        laborTotal: (laborTotalCents / 100).toFixed(2),
+        // ✅ Materials
+        materialsTotal: (materialsTotalCents / 100).toFixed(2),
+        // ✅ Calculated amounts (SERVER-SIDE, immutable)
         subtotal: (taxCalc.subtotal / 100).toFixed(2),
         taxName: taxCalc.taxName,
         taxRate: taxCalc.taxRate ? taxCalc.taxRate.toString() : null,
         taxAppliesto: taxCalc.taxAppliesto,
         taxAmount: (taxCalc.taxAmount / 100).toFixed(2),
         total: (taxCalc.total / 100).toFixed(2),
+        // ✅ Invoice metadata
+        invoiceNumber: `INV-${Date.now()}`,
+        notes: notes || null,
+        safetyNotes: safetyNotes || null,
+        paymentTerms: paymentTerms || "net30",
+        dueDate: dueDate || null,
       };
 
       console.log("[Invoice] Creating invoice:", invoiceData);
