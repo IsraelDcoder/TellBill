@@ -10,16 +10,14 @@ if (!process.env.DATABASE_URL) {
 // Reuses connections for better performance and resource management
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // SSL configuration for production
-  ssl: process.env.DATABASE_SSL === "true" ? {
-    rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
-  } : false,
+  // SSL configuration for Supabase
+  ssl: {
+    rejectUnauthorized: false,
+  },
   // Connection pool settings
   max: 20,           // Maximum connections in pool
   idleTimeoutMillis: 30000,  // Close idle connections after 30 seconds
   connectionTimeoutMillis: 2000,  // Fail fast if can't get connection
-  // ✅ Force IPv4 (fixes Render free tier IPv6 connectivity issues)
-  family: 4,  // Use IPv4 only, not IPv6
 });
 
 // Log connection pool events
