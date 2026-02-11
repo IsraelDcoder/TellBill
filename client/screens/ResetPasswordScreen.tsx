@@ -57,7 +57,7 @@ export default function ResetPasswordScreen({
   const verifyToken = async () => {
     try {
       const response = await fetch(
-        `${getApiUrl('')}/api/auth/password-reset/verify-token?token=${token}`
+        `${getApiUrl('/api/auth/password-reset/verify-token')}?token=${token}`
       );
 
       if (response.ok) {
@@ -131,7 +131,7 @@ export default function ResetPasswordScreen({
 
     try {
       const response = await fetch(
-        `${getApiUrl('')}/api/auth/password-reset/verify`,
+        `${getApiUrl('/api/auth/password-reset/verify')}`,
         {
           method: "POST",
           headers: {
@@ -175,7 +175,7 @@ export default function ResetPasswordScreen({
       <ThemedView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={BrandColors.constructionGold} />
-          <ThemedText style={[styles.loadingText, { marginTop: Spacing.medium }]}>
+          <ThemedText style={[styles.loadingText, { marginTop: Spacing.lg }]}>
             Verifying reset link...
           </ThemedText>
         </View>
@@ -325,7 +325,7 @@ export default function ResetPasswordScreen({
                   </Pressable>
                 </View>
                 {errors.newPassword && (
-                  <ThemedText style={styles.errorMessage}>
+                  <ThemedText style={styles.errorInputMessage}>
                     {errors.newPassword}
                   </ThemedText>
                 )}
@@ -429,7 +429,7 @@ export default function ResetPasswordScreen({
                   </Pressable>
                 </View>
                 {errors.confirmPassword && (
-                  <ThemedText style={styles.errorMessage}>
+                  <ThemedText style={styles.errorInputMessage}>
                     {errors.confirmPassword}
                   </ThemedText>
                 )}
@@ -584,6 +584,11 @@ const styles = StyleSheet.create({
   strengthItemText: {
     fontSize: 12,
     flex: 1,
+  },
+  strengthItemErrorMessage: {
+    color: BrandColors.error,
+    fontSize: 12,
+    marginTop: Spacing.sm,
   },
   primaryButton: {
     paddingVertical: Spacing["4xl"],
