@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -33,6 +34,27 @@ interface SendInvoiceModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+// ✅ Helper function to get auth token
+const getAuthToken = async (): Promise<string | null> => {
+  try {
+    const token = await AsyncStorage.getItem("authToken");
+    return token;
+  } catch (error) {
+    console.error("[SendInvoiceModal] Error getting auth token:", error);
+    return null;
+  }
+};
+
+// ✅ Helper function to build fetch headers with auth
+const getAuthHeaders = async (additionalHeaders = {}) => {
+  const token = await getAuthToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...additionalHeaders,
+  };
+};
 
 export function SendInvoiceModal({
   visible,
@@ -129,11 +151,12 @@ export function SendInvoiceModal({
       setIsLoading(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+      // ✅ Get authorization headers
+      const authHeaders = await getAuthHeaders();
+
       const response = await fetch(getApiUrl("/api/invoices/send"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           invoiceId,
           method,
