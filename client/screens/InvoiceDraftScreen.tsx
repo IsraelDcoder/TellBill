@@ -81,6 +81,45 @@ export default function InvoiceDraftScreen() {
     }).format(dollars);
   };
 
+  // ✅ CALCULATION FUNCTION: Calculate all totals for manual invoice creation
+  const calculateInvoiceTotals = (data: any) => {
+    // ✅ Calculate subtotal in cents
+    // Sum: items total + labor total + materials total
+    const itemsTotal = safeArray(data.items).reduce(
+      (sum: number, item: any) => sum + safeNumber(item.total),
+      0
+    );
+    
+    const laborTotalCents = safeNumber(data.laborHours) * safeNumber(data.laborRate);
+    const materialsTotalCents = safeNumber(data.materialsTotal);
+    
+    const subtotalCents = itemsTotal + laborTotalCents + materialsTotalCents;
+
+    // ✅ Calculate tax in cents (tax rate is a decimal, e.g., 0.08 for 8%)
+    const taxRate = safeNumber(data.taxRate) || 0.08; // Default 8% if not set
+    const taxAmountCents = Math.round(subtotalCents * taxRate);
+
+    // ✅ Calculate total in cents
+    const totalCents = subtotalCents + taxAmountCents;
+
+    console.log("[InvoiceDraft] ✅ Calculations complete:", {
+      itemsTotal: itemsTotal / 100,
+      laborTotal: laborTotalCents / 100,
+      materialsTotal: materialsTotalCents / 100,
+      subtotal: subtotalCents / 100,
+      taxRate,
+      taxAmount: taxAmountCents / 100,
+      total: totalCents / 100,
+    });
+
+    return {
+      ...data,
+      subtotal: subtotalCents,
+      taxAmount: taxAmountCents,
+      total: totalCents,
+    };
+  };
+
   const handleApprove = () => {
     // ✅ DEBUG: Log invoice limit check
     console.log("[InvoiceDraft] Invoice limit check:");
@@ -99,9 +138,12 @@ export default function InvoiceDraftScreen() {
     console.log("[InvoiceDraft] ✅ Invoice limit check passed, proceeding with invoice creation");
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     
+    // ✅ CALCULATE ALL TOTALS before creating invoice
+    const calculatedInvoiceData = calculateInvoiceTotals(invoiceData);
+    
     // ✅ Add userId and createdBy to invoice data
     const invoiceWithUser = {
-      ...invoiceData,
+      ...calculatedInvoiceData,
       userId: user?.id,
       createdBy: user?.name || user?.email || "Unknown",
     };

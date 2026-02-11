@@ -68,6 +68,46 @@ export default function InvoicePreviewScreen() {
     }).format(dollars);
   };
 
+  // ✅ CALCULATION FUNCTION: Ensure all totals are calculated (fallback for incomplete data)
+  const ensureCalculatedTotals = (inv: any) => {
+    // If totals are already calculated correctly, return as is
+    if (safeNumber(inv.subtotal) > 0 || safeNumber(inv.total) > 0) {
+      return inv;
+    }
+
+    // Otherwise, recalculate (for invoices created before fix)
+    console.log("[InvoicePreview] ⚠️ Detected uncalculated invoice data, calculating now...");
+    
+    const itemsTotal = safeArray(inv.items).reduce(
+      (sum: number, item: any) => sum + safeNumber(item.total),
+      0
+    );
+    
+    const laborTotalCents = safeNumber(inv.laborHours) * safeNumber(inv.laborRate);
+    const materialsTotalCents = safeNumber(inv.materialsTotal);
+    
+    const subtotalCents = itemsTotal + laborTotalCents + materialsTotalCents;
+    const taxRate = safeNumber(inv.taxRate) || 0.08;
+    const taxAmountCents = Math.round(subtotalCents * taxRate);
+    const totalCents = subtotalCents + taxAmountCents;
+
+    console.log("[InvoicePreview] ✅ Recalculated totals:", {
+      subtotal: subtotalCents / 100,
+      taxAmount: taxAmountCents / 100,
+      total: totalCents / 100,
+    });
+
+    return {
+      ...inv,
+      subtotal: subtotalCents,
+      taxAmount: taxAmountCents,
+      total: totalCents,
+    };
+  };
+
+  // ✅ Ensure invoice has calculated totals
+  const calculatedInvoice = ensureCalculatedTotals(invoice);
+
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
@@ -257,7 +297,7 @@ export default function InvoicePreviewScreen() {
                 INVOICE
               </ThemedText>
               <ThemedText type="small" style={{ color: "#6B7280" }}>
-                {invoice.invoiceNumber}
+                {calculatedInvoice.invoiceNumber}
               </ThemedText>
             </View>
           </View>
@@ -368,15 +408,15 @@ export default function InvoicePreviewScreen() {
                 Subtotal
               </ThemedText>
               <ThemedText type="small" style={{ color: "#374151" }}>
-                {formatCurrency(invoice.subtotal)}
+                {formatCurrency(safeNumber(calculatedInvoice.subtotal))}
               </ThemedText>
             </View>
             <View style={styles.totalLine}>
               <ThemedText type="small" style={{ color: "#6B7280" }}>
-                Tax ({(invoice.taxRate * 100).toFixed(0)}%)
+                Tax ({(safeNumber(calculatedInvoice.taxRate) * 100).toFixed(0)}%)
               </ThemedText>
               <ThemedText type="small" style={{ color: "#374151" }}>
-                {formatCurrency(invoice.taxAmount)}
+                {formatCurrency(safeNumber(calculatedInvoice.taxAmount))}
               </ThemedText>
             </View>
             <View
@@ -393,7 +433,7 @@ export default function InvoicePreviewScreen() {
                 type="h3"
                 style={{ color: BrandColors.constructionGold }}
               >
-                {formatCurrency(invoice.total)}
+                {formatCurrency(safeNumber(calculatedInvoice.total))}
               </ThemedText>
             </View>
           </View>

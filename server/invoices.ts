@@ -1,4 +1,7 @@
 import type { Express, Request, Response } from "express";
+import { db } from "./db";
+import * as schema from "../shared/schema";
+import { eq } from "drizzle-orm";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
@@ -15,6 +18,7 @@ import {
 } from "./utils/validation";
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
+import { applyTax } from "./taxService";
 
 interface SendInvoiceRequest {
   invoiceId: string;
@@ -488,11 +492,6 @@ export function registerInvoiceRoutes(app: Express) {
         });
       }
 
-      const { db } = await import("./db");
-      const { invoices, projects } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
-      const { applyTax } = await import("./taxService");
-
       // If projectId not provided, get first user project or create "General"
       if (!projectId) {
         console.log("[Invoice] No projectId provided, finding or creating default project");
@@ -500,8 +499,8 @@ export function registerInvoiceRoutes(app: Express) {
         // Try to get first project
         const userProjects = await db
           .select()
-          .from(projects)
-          .where(eq(projects.userId, userId))
+          .from(schema.projects)
+          .where(eq(schema.projects.userId, userId))
           .limit(1);
 
         if (userProjects.length > 0) {
@@ -510,7 +509,7 @@ export function registerInvoiceRoutes(app: Express) {
         } else {
           // Create "General" project
           const newProject = await db
-            .insert(projects)
+            .insert(schema.projects)
             .values({
               userId,
               name: "General",
@@ -565,7 +564,7 @@ export function registerInvoiceRoutes(app: Express) {
       console.log("[Invoice] Creating invoice:", invoiceData);
 
       const newInvoice = await db
-        .insert(invoices)
+        .insert(schema.invoices)
         .values(invoiceData)
         .returning();
 
