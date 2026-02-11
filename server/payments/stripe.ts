@@ -24,8 +24,15 @@ export function registerStripeRoutes(app: Express) {
    */
   app.post("/api/payments/stripe/checkout", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = (req as any).user?.userId;
       const { plan } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "No authentication token provided",
+        });
+      }
 
       logger.info({ userId, plan }, "Checkout session requested");
 
@@ -101,7 +108,14 @@ export function registerStripeRoutes(app: Express) {
    */
   app.post("/api/payments/stripe/portal", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = (req as any).user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "No authentication token provided",
+        });
+      }
 
       logger.info({ userId }, "Portal session requested");
 
@@ -151,7 +165,14 @@ export function registerStripeRoutes(app: Express) {
    */
   app.post("/api/payments/stripe/subscription-status", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).userId;
+      const userId = (req as any).user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "No authentication token provided",
+        });
+      }
 
       const userRecord = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (userRecord.length === 0) {
