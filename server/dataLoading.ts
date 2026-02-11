@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
 import { invoices, preferences, users, activityLog } from "@shared/schema";
 import { db } from "./db";
+import { authMiddleware } from "./utils/authMiddleware";
 
 /**
  * Data Loading Routes
@@ -127,18 +128,21 @@ export function registerDataLoadingRoutes(app: Express) {
    * Never returns empty defaults for returning users
    * Always returns backend source of truth
    */
-  app.get("/api/data/all", async (req: Request, res: Response) => {
+  app.get("/api/data/all", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const { userId } = req.query;
-      console.log("[Data] 📥 GET /api/data/all for userId:", userId);
+      // ✅ Use authenticated user ID, not query parameter
+      // This ensures user can only access their own data
+      const userId = (req as any).user?.id;
 
-      if (!userId || typeof userId !== "string") {
-        console.error("[Data] ❌ Missing userId parameter");
-        return res.status(400).json({
+      if (!userId) {
+        console.error("[Data] ❌ User not authenticated");
+        return res.status(401).json({
           success: false,
-          error: "userId query parameter is required",
+          error: "User not authenticated",
         });
       }
+
+      console.log("[Data] 📥 GET /api/data/all for userId:", userId);
 
       // ✅ Fetch all user data in parallel (efficient)
       const [userInvoices, userPreferences, userProfile, userActivities] =

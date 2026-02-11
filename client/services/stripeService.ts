@@ -22,7 +22,7 @@ export const stripeService = {
    */
   initiateCheckout: async (plan: "solo" | "professional" | "enterprise") => {
     try {
-      const token = await AsyncStorage.getItem("auth_token");
+      const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         throw new Error("No authentication token found");
       }
@@ -58,7 +58,7 @@ export const stripeService = {
    */
   openBillingPortal: async () => {
     try {
-      const token = await AsyncStorage.getItem("auth_token");
+      const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         throw new Error("No authentication token found");
       }
@@ -94,7 +94,7 @@ export const stripeService = {
    */
   getSubscriptionStatus: async (): Promise<SubscriptionStatus> => {
     try {
-      const token = await AsyncStorage.getItem("auth_token");
+      const token = await AsyncStorage.getItem("authToken");
       if (!token) {
         throw new Error("No authentication token found");
       }

@@ -485,7 +485,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Non-blocking data rehydration - never block login
     try {
       console.log("[Auth] 🔄 REHYDRATING USER STATE from backend for userId:", userId);
-      const backendUrl = getApiUrl(`/api/data/all?userId=${userId}`);
+      // ✅ NO userId in query parameter - backend uses authenticated user's ID
+      const backendUrl = getApiUrl(`/api/data/all`);
       console.log("[Auth] 📡 Fetching from URL:", backendUrl);
 
       // ✅ CRITICAL: Get the JWT token to send in Authorization header
