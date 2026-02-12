@@ -21,6 +21,7 @@ export interface Invoice {
   clientPhone: string;
   clientAddress: string;
   jobAddress: string;
+  jobDescription?: string; // ✅ Description of the job/work
   items: InvoiceItem[];
   laborHours: number;
   laborRate: number;

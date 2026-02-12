@@ -122,7 +122,7 @@ export default function InvoiceDraftScreen() {
     };
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     // ✅ DEBUG: Log invoice limit check
     console.log("[InvoiceDraft] Invoice limit check:");
     console.log("[InvoiceDraft] - invoicesCreated:", invoicesCreated);
@@ -170,53 +170,53 @@ export default function InvoiceDraftScreen() {
     });
     
     // ✅ SAVE TO BACKEND to persist data across logout
-    (async () => {
-      try {
-        const token = await AsyncStorage.getItem("authToken");
-        if (!token) {
-          console.error("[InvoiceDraft] No auth token found");
-          return;
-        }
-
-        const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
-        const response = await fetch(`${backendUrl}/api/invoices`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            clientName: invoice.clientName,
-            clientEmail: invoice.clientEmail,
-            clientPhone: invoice.clientPhone,
-            clientAddress: invoice.clientAddress,
-            jobAddress: invoice.jobAddress,
-            items: invoice.items,
-            laborHours: invoice.laborHours,
-            laborRate: invoice.laborRate,
-            materialsTotal: invoice.materialsTotal,
-            // ✅ IMPORTANT: Do NOT send taxRate from client
-            // Server will calculate tax based on user's tax profile
-            notes: invoice.notes,
-            safetyNotes: invoice.safetyNotes,
-            paymentTerms: invoice.paymentTerms,
-            dueDate: invoice.dueDate,
-          }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          console.error("[InvoiceDraft] Save failed:", error);
-          return;
-        }
-
-        const data = await response.json();
-        console.log("[InvoiceDraft] Invoice saved to backend:", data);
-      } catch (error) {
-        console.error("[InvoiceDraft] Error saving to backend:", error);
-        // Don't block navigation if backend save fails
+    // CRITICAL: Wait for backend save to complete before navigating!
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("[InvoiceDraft] No auth token found");
+        return;
       }
-    })();
+
+      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
+      const response = await fetch(`${backendUrl}/api/invoices`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          clientName: invoice.clientName,
+          clientEmail: invoice.clientEmail,
+          clientPhone: invoice.clientPhone,
+          clientAddress: invoice.clientAddress,
+          jobAddress: invoice.jobAddress,
+          jobDescription: invoice.jobDescription,
+          items: invoice.items,
+          laborHours: invoice.laborHours,
+          laborRate: invoice.laborRate,
+          materialsTotal: invoice.materialsTotal,
+          // ✅ IMPORTANT: Do NOT send taxRate from client
+          // Server will calculate tax based on user's tax profile
+          notes: invoice.notes,
+          safetyNotes: invoice.safetyNotes,
+          paymentTerms: invoice.paymentTerms,
+          dueDate: invoice.dueDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("[InvoiceDraft] Save failed:", error);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("[InvoiceDraft] ✅ Invoice saved to backend:", data);
+    } catch (error) {
+      console.error("[InvoiceDraft] Error saving to backend:", error);
+      // Don't block navigation if backend save fails
+    }
     
     incrementInvoices();
     navigation.navigate("InvoicePreview", { invoiceId: invoice.id });
