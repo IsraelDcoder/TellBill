@@ -22,6 +22,19 @@ const app = express();
 // ✅ Initialize structured logging first
 logger.info(`[Server] Starting TellBill backend (${process.env.NODE_ENV || "development"})`);
 
+// ✅ Log critical environment variables (for debugging on Render)
+console.log("[Server] ✅ Environment Variables Status:");
+console.log(`  NODE_ENV: ${process.env.NODE_ENV || "NOT SET"}`);
+console.log(`  DATABASE_URL: ${process.env.DATABASE_URL ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  GROQ_API_KEY: ${process.env.GROQ_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  STRIPE_SECRET_KEY: ${process.env.STRIPE_SECRET_KEY ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  STRIPE_SOLO_PRICE_ID: ${process.env.STRIPE_SOLO_PRICE_ID || "⚠️ NOT SET"}`);
+console.log(`  STRIPE_PROFESSIONAL_PRICE_ID: ${process.env.STRIPE_PROFESSIONAL_PRICE_ID || "⚠️ NOT SET"}`);
+console.log(`  STRIPE_ENTERPRISE_PRICE_ID: ${process.env.STRIPE_ENTERPRISE_PRICE_ID || "⚠️ NOT SET"}`);
+console.log(`  RESEND_API_KEY: ${process.env.RESEND_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
+console.log("[Server] Environment check complete\n");
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;

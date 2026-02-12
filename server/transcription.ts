@@ -429,11 +429,12 @@ export function registerTranscriptionRoutes(app: Express): void {
       // Check for Groq API key (free alternative to OpenRouter for Whisper)
       const GROQ_API_KEY = process.env.GROQ_API_KEY;
       if (!GROQ_API_KEY) {
-        console.error("[Transcription] GROQ_API_KEY not configured");
+        console.error("[Transcription] ❌ GROQ_API_KEY not configured in Render environment variables");
         return res.status(500).json({
           error: "Transcription service not configured",
           code: "SERVICE_NOT_CONFIGURED",
-          message: "Please set GROQ_API_KEY in .env. Get free API key from https://console.groq.com/",
+          message: "Transcription is not available - GROQ_API_KEY missing from Render environment",
+          details: "See RENDER_ENV_SETUP.md: Get free API key from https://console.groq.com/ and add to Render dashboard",
         });
       }
 

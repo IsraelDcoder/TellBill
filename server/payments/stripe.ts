@@ -44,10 +44,13 @@ export function registerStripeRoutes(app: Express) {
       }
 
       const planConfig = STRIPE_PLANS[plan];
-      if (!planConfig.priceId) {
-        logger.error({ plan }, "Stripe price ID not configured for plan");
+      if (!planConfig.priceId || planConfig.priceId === "") {
+        logger.error({ plan, priceId: planConfig.priceId }, "❌ Stripe price ID not configured for plan");
         return res.status(500).json({
-          error: "Plan not available. Contact support.",
+          error: "Plan not available",
+          code: "STRIPE_PRICE_NOT_CONFIGURED",
+          message: `Stripe ${plan} price ID is not configured. See RENDER_ENV_SETUP.md for setup instructions.`,
+          details: `STRIPE_${plan.toUpperCase()}_PRICE_ID is missing or set to placeholder value (price_xxxxx)`,
         });
       }
 
