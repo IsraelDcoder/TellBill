@@ -5,6 +5,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -129,6 +130,16 @@ export default function InvoiceDraftScreen() {
     console.log("[InvoiceDraft] - invoiceLimitFromPlan:", invoiceLimitFromPlan);
     console.log("[InvoiceDraft] - currentPlan:", currentPlan);
     console.log("[InvoiceDraft] - hasInvoiceLimit:", hasInvoiceLimit);
+
+    // ✅ NEW: Validate that client name is not empty
+    if (!invoiceData.clientName || invoiceData.clientName.trim() === "") {
+      console.log("[InvoiceDraft] ❌ Client name is required");
+      Alert.alert(
+        "Missing Client Name",
+        "Please add a client name to this invoice. Go back to edit the invoice details and add the client name."
+      );
+      return;
+    }
     
     // Check if user has reached invoice limit
     if (hasInvoiceLimit) {

@@ -147,6 +147,15 @@ export function SendInvoiceModal({
       return;
     }
 
+    // ✅ Validate clientName is not empty
+    if (!clientName || clientName.trim() === "") {
+      Alert.alert(
+        "Missing Client Name",
+        "The invoice doesn't have a client name. Please go back and add a client name before sending."
+      );
+      return;
+    }
+
     try {
       setIsLoading(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -161,7 +170,7 @@ export function SendInvoiceModal({
           invoiceId,
           method,
           contact: contact.trim(),
-          clientName,
+          clientName: clientName.trim(), // Trim whitespace
         }),
       });
 
