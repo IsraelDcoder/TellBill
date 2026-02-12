@@ -86,13 +86,14 @@ export default function InvoiceDraftScreen() {
   const calculateInvoiceTotals = (data: any) => {
     // ✅ Calculate subtotal in cents
     // Sum: items total + labor total + materials total
+    // NOTE: All inputs are in DOLLARS, so multiply by 100 to get cents
     const itemsTotal = safeArray(data.items).reduce(
-      (sum: number, item: any) => sum + safeNumber(item.total),
+      (sum: number, item: any) => sum + Math.round(safeNumber(item.total) * 100),
       0
     );
     
-    const laborTotalCents = safeNumber(data.laborHours) * safeNumber(data.laborRate);
-    const materialsTotalCents = safeNumber(data.materialsTotal);
+    const laborTotalCents = Math.round(safeNumber(data.laborHours) * safeNumber(data.laborRate) * 100);
+    const materialsTotalCents = Math.round(safeNumber(data.materialsTotal) * 100);
     
     const subtotalCents = itemsTotal + laborTotalCents + materialsTotalCents;
 
@@ -190,7 +191,6 @@ export default function InvoiceDraftScreen() {
             clientPhone: invoice.clientPhone,
             clientAddress: invoice.clientAddress,
             jobAddress: invoice.jobAddress,
-            jobDescription: invoice.jobDescription,
             items: invoice.items,
             laborHours: invoice.laborHours,
             laborRate: invoice.laborRate,
