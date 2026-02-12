@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import type { TaxProfile } from "@shared/schema";
+import type { TaxProfile } from "../shared/schema";
+import { taxProfiles } from "../shared/schema";
 
 export interface TaxCalculation {
   laborTotal: number; // in cents
@@ -13,7 +14,6 @@ export interface TaxCalculation {
 }
 
 export async function getDefaultTaxProfile(db: any, userId: string): Promise<TaxProfile | null> {
-  const { taxProfiles } = await import("@shared/schema");
 
   const profile = await db
     .select()

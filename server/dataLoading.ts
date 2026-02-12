@@ -121,7 +121,7 @@ export function registerDataLoadingRoutes(app: Express) {
   });
 
   /**
-   * GET /api/data/all?userId={userId}
+   * GET /api/data/all
    * Get ALL user data in one request (for login rehydration)
    * 
    * ✅ CRITICAL: Returns complete user state
@@ -130,12 +130,12 @@ export function registerDataLoadingRoutes(app: Express) {
    */
   app.get("/api/data/all", authMiddleware, async (req: Request, res: Response) => {
     try {
-      // ✅ Use authenticated user ID, not query parameter
-      // This ensures user can only access their own data
-      const userId = (req as any).user?.id;
+      // ✅ Use authenticated user ID from JWT
+      const userId = (req as any).user?.userId || (req as any).user?.id;
 
       if (!userId) {
-        console.error("[Data] ❌ User not authenticated");
+        console.error("[Data] ❌ User not authenticated - no userId in token");
+        console.error("[Data] req.user:", (req as any).user);
         return res.status(401).json({
           success: false,
           error: "User not authenticated",
