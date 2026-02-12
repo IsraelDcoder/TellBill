@@ -156,6 +156,14 @@ export function SendInvoiceModal({
       return;
     }
 
+    // ✅ DEBUG: Log what we're sending
+    console.log("[SendInvoiceModal] Sending invoice:", {
+      invoiceId: invoiceId,
+      method: method,
+      contact: contact.trim(),
+      clientName: clientName.trim(),
+    });
+
     try {
       setIsLoading(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

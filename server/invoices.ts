@@ -58,6 +58,15 @@ export function registerInvoiceRoutes(app: Express) {
         const { invoiceId, method, contact, clientName, invoiceData } =
           req.body as SendInvoiceRequest;
 
+        console.log("[Invoice] Request body:", {
+          invoiceId,
+          invoiceIdType: typeof invoiceId,
+          invoiceIdLength: invoiceId?.length,
+          method,
+          contact,
+          clientName,
+        });
+
         // ✅ COMPREHENSIVE INPUT VALIDATION
         const errors: any[] = [];
 
@@ -639,6 +648,90 @@ export function registerInvoiceRoutes(app: Express) {
       return res.status(500).json({
         success: false,
         error: "Failed to save invoice",
+        details: error.message,
+      });
+    }
+  });
+
+  /**
+   * PATCH /api/invoices/:id
+   * Update invoice details (client info, job info, notes, etc.)
+   * Does NOT modify line items or financial calculations
+   */
+  app.patch("/api/invoices/:id", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      console.log("[Invoice] PATCH /api/invoices/:id - Update invoice");
+      console.log("[Invoice] invoiceId:", invoiceId);
+      console.log("[Invoice] userId:", userId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      const {
+        clientName,
+        clientEmail,
+        clientPhone,
+        clientAddress,
+        jobAddress,
+        jobDescription,
+        notes,
+        paymentTerms,
+      } = req.body;
+
+      // Validate at least invoiceId provided
+      if (!validateUUID(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid invoice ID format",
+        });
+      }
+
+      // Build update object only with provided fields
+      const updateData: any = {};
+      if (clientName !== undefined) updateData.clientName = clientName || null;
+      if (clientEmail !== undefined) updateData.clientEmail = clientEmail || null;
+      if (clientPhone !== undefined) updateData.clientPhone = clientPhone || null;
+      if (clientAddress !== undefined) updateData.clientAddress = clientAddress || null;
+      if (jobAddress !== undefined) updateData.jobAddress = jobAddress || null;
+      if (jobDescription !== undefined) updateData.jobDescription = jobDescription || null;
+      if (notes !== undefined) updateData.notes = notes || null;
+      if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms || null;
+
+      console.log("[Invoice] Update data:", updateData);
+
+      // Update the invoice
+      const updatedInvoice = await db
+        .update(schema.invoices)
+        .set(updateData)
+        .where(eq(schema.invoices.id, invoiceId as string))
+        .returning();
+
+      if (!updatedInvoice || updatedInvoice.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Invoice not found",
+        });
+      }
+
+      console.log("[Invoice] ✅ Invoice updated successfully");
+
+      return res.status(200).json({
+        success: true,
+        message: "Invoice updated successfully",
+        invoice: updatedInvoice[0],
+      });
+    } catch (error: any) {
+      console.error("[Invoice] Error updating invoice:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to update invoice",
         details: error.message,
       });
     }

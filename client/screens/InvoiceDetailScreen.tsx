@@ -113,6 +113,11 @@ export default function InvoiceDetailScreen() {
     navigation.navigate("SendInvoice", { invoiceId: invoice.id });
   };
 
+  const handleEdit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    navigation.navigate("InvoiceEdit", { invoiceId: invoice.id });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
@@ -147,7 +152,7 @@ export default function InvoiceDetailScreen() {
               <ThemedText type="h2">{invoice.clientName}</ThemedText>
             </View>
             <ThemedText
-              type="display"
+              type="h3"
               style={{ color: BrandColors.constructionGold }}
             >
               {formatCurrency(invoice.total)}
@@ -281,7 +286,7 @@ export default function InvoiceDetailScreen() {
             </View>
             <View style={styles.totalRow}>
               <ThemedText type="body" style={{ color: theme.textSecondary }}>
-                Tax ({(invoice.taxRate * 100).toFixed(0)}%)
+                Tax ({((invoice.taxRate ?? 0) * 100).toFixed(0)}%)
               </ThemedText>
               <ThemedText type="body">
                 {formatCurrency(invoice.taxAmount)}
@@ -322,6 +327,13 @@ export default function InvoiceDetailScreen() {
           </Button>
         ) : (
           <>
+            <Button
+              variant="outline"
+              onPress={handleEdit}
+              style={styles.footerButton}
+            >
+              Edit
+            </Button>
             <Button
               variant="outline"
               onPress={handleResend}

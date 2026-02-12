@@ -10,6 +10,7 @@ import InvoiceDraftScreen from "@/screens/InvoiceDraftScreen";
 import InvoicePreviewScreen from "@/screens/InvoicePreviewScreen";
 import SendInvoiceScreen from "@/screens/SendInvoiceScreen";
 import InvoiceDetailScreen from "@/screens/InvoiceDetailScreen";
+import InvoiceEditScreen from "@/screens/InvoiceEditScreen";
 import MaterialCostCaptureScreen from "@/screens/MaterialCostCaptureScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import BillingScreen from "@/screens/BillingScreen";
@@ -38,6 +39,7 @@ export type RootStackParamList = {
   InvoicePreview: { invoiceId: string };
   SendInvoice: { invoiceId: string };
   InvoiceDetail: { invoiceId: string };
+  InvoiceEdit: { invoiceId: string };
   MaterialCostCapture: undefined;
   Settings: undefined;
   EditProfile: undefined;
@@ -125,6 +127,13 @@ export default function RootStackNavigator() {
             component={InvoiceDetailScreen}
             options={{
               headerTitle: "Invoice Details",
+            }}
+          />
+          <Stack.Screen
+            name="InvoiceEdit"
+            component={InvoiceEditScreen}
+            options={{
+              headerTitle: "Edit Invoice",
             }}
           />
           <Stack.Screen
