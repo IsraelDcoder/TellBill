@@ -167,10 +167,14 @@ export function SendInvoiceModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        // Include details if available
-        const detailsMsg = errorData.details 
-          ? `\n\nDetails: ${errorData.details.substring(0, 200)}...`
-          : "";
+        // Include details if available (handle both string and object types)
+        let detailsMsg = "";
+        if (errorData.details) {
+          const detailsStr = typeof errorData.details === "string" 
+            ? errorData.details 
+            : JSON.stringify(errorData.details);
+          detailsMsg = `\n\nDetails: ${detailsStr.substring(0, 200)}...`;
+        }
         throw new Error(
           errorData.error || `Failed to send invoice via ${method}${detailsMsg}`
         );
