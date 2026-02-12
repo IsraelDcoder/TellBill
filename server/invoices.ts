@@ -37,6 +37,7 @@ interface SendInvoiceResponse {
   success: boolean;
   message?: string;
   error?: string;
+  errors?: Array<{ field: string; message: string }>;
   details?: string;
   upgradeRequired?: boolean;
 }
@@ -104,7 +105,14 @@ export function registerInvoiceRoutes(app: Express) {
         }
 
         if (errors.length > 0) {
-          return respondWithValidationErrors(res, errors);
+          console.error("[Invoice] ❌ Validation failed:", errors);
+          return res.status(400).json({
+            success: false,
+            error: "Validation failed",
+            message: "Please check the following fields:",
+            errors: errors, // Send array of specific validation errors
+            details: errors.map((e) => `${e.field}: ${e.message}`).join("; "),
+          });
         }
 
         // ✅ EMAIL VERIFICATION REQUIRED

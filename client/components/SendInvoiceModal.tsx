@@ -167,13 +167,27 @@ export function SendInvoiceModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        // Include details if available (handle both string and object types)
+        
+        // Handle validation errors (array of field-specific errors)
+        if (Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+          const validationMessages = errorData.errors
+            .map((err: any) => `${err.field}: ${err.message}`)
+            .join("\n");
+          throw new Error(`Validation failed:\n\n${validationMessages}`);
+        }
+        
+        // Handle specific error messages
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+        
+        // Fallback to generic error with details
         let detailsMsg = "";
         if (errorData.details) {
           const detailsStr = typeof errorData.details === "string" 
             ? errorData.details 
             : JSON.stringify(errorData.details);
-          detailsMsg = `\n\nDetails: ${detailsStr.substring(0, 200)}...`;
+          detailsMsg = `\n\nDetails: ${detailsStr.substring(0, 200)}`;
         }
         throw new Error(
           errorData.error || `Failed to send invoice via ${method}${detailsMsg}`
