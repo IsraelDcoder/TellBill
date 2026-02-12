@@ -482,7 +482,7 @@ export function registerInvoiceRoutes(app: Express) {
         });
       }
 
-      let { projectId, clientName, clientEmail, clientPhone, clientAddress, jobAddress, items = [], laborHours = 0, laborRate = 0, materialsTotal = 0, notes = "", safetyNotes = "", paymentTerms = "", dueDate } = req.body;
+      let { projectId, clientName, clientEmail, clientPhone, clientAddress, jobAddress, jobDescription = "", items = [], laborHours = 0, laborRate = 0, materialsTotal = 0, notes = "", safetyNotes = "", paymentTerms = "", dueDate } = req.body;
 
       // ⚠️ IGNORE any tax fields sent from client - we calculate on server
       // This prevents frontend from manipulating tax calculations
