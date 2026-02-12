@@ -184,6 +184,28 @@ export function registerAuthRoutes(app: Express) {
 
       const user = newUser[0];
 
+      // ✅ CREATE DEFAULT TAX PROFILE FOR NEW USER
+      // Uses US average combined state + local tax rate (~8%)
+      try {
+        const { taxProfiles } = await import("../shared/schema");
+        const defaultTaxProfile = await db
+          .insert(taxProfiles)
+          .values({
+            userId: user.id,
+            name: "Sales Tax",
+            rate: "8.00", // 8% - US average
+            appliesto: "labor_and_materials", // Apply to both labor and materials
+            enabled: true, // Enabled by default
+            isDefault: true,
+          })
+          .returning();
+        
+        console.log("[Auth] ✅ Created default tax profile for user:", user.id);
+      } catch (taxError) {
+        console.error("[Auth] Warning: Failed to create default tax profile:", taxError);
+        // Don't block signup if tax profile creation fails
+      }
+
       // ✅ GENERATE JWT TOKENS (access + refresh)
       const { accessToken, refreshToken, accessTokenExpiresIn } = generateTokenPair(
         user.id,

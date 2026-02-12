@@ -19,7 +19,7 @@ import {
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 import { authMiddleware } from "./utils/authMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
-import { applyTax } from "./taxService";
+import { applyTax, getDefaultTaxProfile } from "./taxService";
 
 interface SendInvoiceRequest {
   invoiceId: string;
@@ -552,11 +552,39 @@ export function registerInvoiceRoutes(app: Express) {
       );
 
       // ✅ SERVER-SIDE TAX CALCULATION (immutable, secure)
+      let taxProfile = await getDefaultTaxProfile(db, userId);
+      
+      // ✅ If user has no tax profile yet, create default one
+      if (!taxProfile) {
+        console.log("[Invoice] No tax profile found, creating default for user:", userId);
+        try {
+          const { taxProfiles } = await import("../shared/schema");
+          const newProfile = await db
+            .insert(taxProfiles)
+            .values({
+              userId,
+              name: "Sales Tax",
+              rate: "8.00", // 8% - US average
+              appliesto: "labor_and_materials",
+              enabled: true,
+              isDefault: true,
+            })
+            .returning();
+          
+          taxProfile = newProfile[0];
+          console.log("[Invoice] ✅ Created default tax profile for user:", userId);
+        } catch (taxError) {
+          console.error("[Invoice] Error creating tax profile:", taxError);
+          // Continue without tax - will use applyTax's fallback
+        }
+      }
+      
       const taxCalc = await applyTax(
         db,
         userId,
         laborTotalCents + itemsTotalCents,
-        materialsTotalCents
+        materialsTotalCents,
+        taxProfile
       );
 
       console.log("[Invoice] Tax calculated:", {
