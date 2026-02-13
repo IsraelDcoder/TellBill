@@ -51,21 +51,22 @@ export function verifyToken(token: string): JwtPayload | null {
   }
 
   try {
+    console.log(`[JWT] Verifying token (first 20 chars): ${token.substring(0, 20)}...`);
     const decoded = jwt.verify(token, JWT_SECRET, {
       algorithms: ["HS256"],
     }) as JwtPayload;
 
-    console.log(`[JWT] Token verified for user: ${decoded.email}`);
+    console.log(`[JWT] ✅ Token verified for user: ${decoded.email}`);
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      console.log("[JWT] Token expired");
+      console.log("[JWT] ❌ Token expired:", error.message);
       return null;
     } else if (error instanceof jwt.JsonWebTokenError) {
-      console.log("[JWT] Invalid token signature or format");
+      console.log("[JWT] ❌ Invalid token signature or format:", error.message);
       return null;
     }
-    console.error("[JWT] Token verification error:", error);
+    console.error("[JWT] ❌ Token verification error:", error);
     return null;
   }
 }
