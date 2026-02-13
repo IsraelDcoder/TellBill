@@ -134,8 +134,21 @@ export function registerInvoiceRoutes(app: Express) {
         // ✅ EMAIL VERIFICATION REQUIRED
         // Users must verify their email address before sending invoices
         const user = (req as any).user;
-        if (!user || !user.emailVerifiedAt) {
-          console.log("[Invoice] ❌ User email not verified, blocking invoice send");
+        if (!user) {
+          console.log("[Invoice] ❌ User not authenticated");
+          return res.status(403).json({
+            success: false,
+            error: "Authentication required"
+          });
+        }
+
+        // ✅ CHECK EMAIL VERIFICATION - query database for latest status (not from cached JWT)
+        const latestUser = await db.query.users.findFirst({
+          where: (users, { eq }) => eq(users.id, user.id),
+        });
+
+        if (!latestUser || !latestUser.emailVerifiedAt) {
+          console.log(`[Invoice] ❌ User ${user.email} email not verified, blocking invoice send`);
           return res.status(403).json({
             success: false,
             error: "Email verification required",

@@ -990,9 +990,25 @@ export function registerAuthRoutes(app: Express) {
             <p class="success">Your email has been successfully verified.</p>
             <p>You can now close this page and return to the TellBill app to start sending invoices.</p>
             <p style="font-size: 12px; color: #999; margin-top: 20px;">
-              If you're still in the app and don't see the change reflected, try restarting the app.
+              Redirecting to app in 3 seconds...
             </p>
           </div>
+
+          <script>
+            // After verification, try to redirect back to the app
+            setTimeout(() => {
+              // For Expo Go on iOS/Android, use a deep link
+              const appLink = "exp://localhost:8081" || "com.tellbill://home";
+              
+              // Try to open the app, with fallback to showing instructions
+              window.location.href = appLink;
+              
+              setTimeout(() => {
+                // If deep link doesn't work, show instructions
+                document.body.innerHTML += '<p style="margin-top: 30px; color: #666;">If the app did not open automatically, please return to TellBill manually and refresh your session.</p>';
+              }, 2000);
+            }, 3000);
+          </script>
         </body>
         </html>
       `);
