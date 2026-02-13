@@ -146,13 +146,13 @@ export function registerInvoiceRoutes(app: Express) {
         const latestUserResult = await db
           .select()
           .from(schema.users)
-          .where(eq(schema.users.id, user.id))
+          .where(eq(schema.users.id, user.userId))
           .limit(1);
 
         const latestUser = latestUserResult[0];
         
         if (!latestUser) {
-          console.log(`[Invoice] ❌ User ${user.id} not found in database`);
+          console.log(`[Invoice] ❌ User ${user.userId} not found in database`);
           return res.status(403).json({
             success: false,
             error: "User not found"
@@ -205,7 +205,7 @@ export function registerInvoiceRoutes(app: Express) {
               );
               
               // Trigger Money Alerts detection for invoice sent (paid users only)
-              const userId = (req as any).user?.id;
+              const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
                   (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
@@ -241,7 +241,7 @@ export function registerInvoiceRoutes(app: Express) {
               );
               
               // Trigger Money Alerts detection for invoice sent (paid users only)
-              const userId = (req as any).user?.id;
+              const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
                   (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
@@ -269,7 +269,7 @@ export function registerInvoiceRoutes(app: Express) {
               );
               
               // Trigger Money Alerts detection for invoice sent (paid users only)
-              const userId = (req as any).user?.id;
+              const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
                   (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
