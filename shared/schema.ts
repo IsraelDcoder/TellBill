@@ -185,7 +185,25 @@ export const invoices = pgTable("invoices", {
   userId: text("user_id")
     .references(() => users.id, { onDelete: "set null" }),
   createdBy: text("created_by"),
+  invoiceNumber: text("invoice_number"),
   status: text("status").default("draft"),
+  // Client information
+  clientName: text("client_name"),
+  clientEmail: text("client_email"),
+  clientPhone: text("client_phone"),
+  clientAddress: text("client_address"),
+  // Job information
+  jobAddress: text("job_address"),
+  jobDescription: text("job_description"),
+  // Line items (stored as JSON)
+  items: text("items").default("[]"), // JSON array
+  // Labor details
+  laborHours: integer("labor_hours").default(0),
+  laborRate: integer("labor_rate").default(0), // in cents
+  laborTotal: numeric("labor_total", { precision: 12, scale: 2 }).default("0"),
+  // Materials
+  materialsTotal: numeric("materials_total", { precision: 12, scale: 2 }).default("0"),
+  itemsTotal: numeric("items_total", { precision: 12, scale: 2 }).default("0"),
   // Financial breakdown (immutable snapshots at time of invoice creation)
   subtotal: numeric("subtotal", { precision: 12, scale: 2 }).default("0"),
   taxName: text("tax_name"), // e.g., "Sales Tax", "VAT"
@@ -193,9 +211,17 @@ export const invoices = pgTable("invoices", {
   taxAppliesto: text("tax_applies_to"), // labor_only, materials_only, labor_and_materials
   taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }).default("0"),
   total: numeric("total", { precision: 12, scale: 2 }).default("0"),
+  // Invoice metadata
+  notes: text("notes"),
+  safetyNotes: text("safety_notes"),
+  paymentTerms: text("payment_terms"),
+  dueDate: timestamp("due_date", { withTimezone: true }),
+  // Timestamps
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
 });
 
 export type Invoice = typeof invoices.$inferSelect;
