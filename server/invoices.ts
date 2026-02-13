@@ -143,12 +143,26 @@ export function registerInvoiceRoutes(app: Express) {
         }
 
         // ✅ CHECK EMAIL VERIFICATION - query database for latest status (not from cached JWT)
-        const latestUser = await db.query.users.findFirst({
-          where: (users, { eq }) => eq(users.id, user.id),
-        });
+        const latestUserResult = await db
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.id, user.id))
+          .limit(1);
 
-        if (!latestUser || !latestUser.emailVerifiedAt) {
-          console.log(`[Invoice] ❌ User ${user.email} email not verified, blocking invoice send`);
+        const latestUser = latestUserResult[0];
+        
+        if (!latestUser) {
+          console.log(`[Invoice] ❌ User ${user.id} not found in database`);
+          return res.status(403).json({
+            success: false,
+            error: "User not found"
+          });
+        }
+
+        console.log(`[Invoice] Email verification status for ${latestUser.email}: ${latestUser.emailVerifiedAt ? "✅ VERIFIED" : "❌ NOT VERIFIED"}`);
+
+        if (!latestUser.emailVerifiedAt) {
+          console.log(`[Invoice] ❌ Blocking invoice send - email not verified`);
           return res.status(403).json({
             success: false,
             error: "Email verification required",
