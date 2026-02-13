@@ -1,9 +1,226 @@
 import { Resend } from "resend";
+import PDFDocument from "pdfkit";
+import { Readable } from "stream";
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@tellbill.com";
+
+/**
+ * Generate invoice PDF from invoice data
+ * @param invoiceData - Invoice data (total, items, client info, etc.)
+ * @param invoiceNumber - Invoice ID/number
+ * @param clientName - Client name
+ * @returns Promise resolving to Buffer containing PDF data
+ */
+async function generateInvoicePDF(
+  invoiceData: {
+    clientName?: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    total?: number | string;
+    taxAmount?: number | string;
+    subtotal?: number | string;
+    items?: Array<{ description?: string; quantity?: number; rate?: number; total?: number }>;
+    laborHours?: number;
+    laborRate?: number;
+    laborTotal?: number | string;
+    materialsTotal?: number | string;
+    notes?: string;
+    dueDate?: string;
+    paymentTerms?: string;
+  },
+  invoiceNumber: string,
+  clientName: string
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        margin: 50,
+        size: "A4",
+      });
+
+      const chunks: Buffer[] = [];
+
+      doc.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      doc.on("end", () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      doc.on("error", (err: Error) => {
+        reject(err);
+      });
+
+      // Header
+      doc
+        .fontSize(24)
+        .font("Helvetica-Bold")
+        .text("INVOICE", 50, 50);
+
+      // Invoice number and date
+      doc
+        .fontSize(11)
+        .font("Helvetica")
+        .text(`Invoice #: ${invoiceNumber}`, 50, 100)
+        .text(`Date: ${new Date().toLocaleDateString()}`, 50, 115);
+
+      // Client info
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .text("Bill To:", 50, 150);
+
+      doc
+        .fontSize(11)
+        .font("Helvetica")
+        .text(clientName, 50, 170)
+        .text(invoiceData.clientEmail || "", 50, 185)
+        .text(invoiceData.clientPhone || "", 50, 200);
+
+      // Due date and terms
+      if (invoiceData.dueDate || invoiceData.paymentTerms) {
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .text("Payment Terms:", 350, 150);
+
+        doc
+          .fontSize(11)
+          .font("Helvetica");
+
+        if (invoiceData.dueDate) {
+          doc.text(`Due Date: ${invoiceData.dueDate}`, 350, 170);
+        }
+        if (invoiceData.paymentTerms) {
+          doc.text(`Terms: ${invoiceData.paymentTerms}`, 350, 185);
+        }
+      }
+
+      // Items table
+      const tableTop = 250;
+      const col1 = 50;
+      const col2 = 300;
+      const col3 = 400;
+      const col4 = 500;
+
+      doc
+        .fontSize(11)
+        .font("Helvetica-Bold")
+        .text("Description", col1, tableTop)
+        .text("Qty", col2, tableTop)
+        .text("Rate", col3, tableTop)
+        .text("Total", col4, tableTop);
+
+      // Draw line
+      doc
+        .moveTo(50, tableTop + 15)
+        .lineTo(550, tableTop + 15)
+        .stroke();
+
+      let yPosition = tableTop + 30;
+
+      // Add items if available
+      if (invoiceData.items && invoiceData.items.length > 0) {
+        doc.fontSize(10).font("Helvetica");
+
+        invoiceData.items.forEach((item) => {
+          doc
+            .text(item.description || "", col1, yPosition)
+            .text((item.quantity || 0).toString(), col2, yPosition)
+            .text(`$${(item.rate || 0).toFixed(2)}`, col3, yPosition)
+            .text(`$${(item.total || 0).toFixed(2)}`, col4, yPosition);
+
+          yPosition += 20;
+        });
+      }
+
+      // Labor section if applicable
+      if (invoiceData.laborHours && invoiceData.laborHours > 0) {
+        doc
+          .fontSize(10)
+          .font("Helvetica")
+          .text(`Labor (${invoiceData.laborHours}h)`, col1, yPosition)
+          .text("1", col2, yPosition)
+          .text(`$${(invoiceData.laborRate || 0).toFixed(2)}/h`, col3, yPosition)
+          .text(`$${((invoiceData.laborTotal as number) || 0).toFixed(2)}`, col4, yPosition);
+
+        yPosition += 20;
+      }
+
+      // Materials section if applicable
+      if (invoiceData.materialsTotal && (invoiceData.materialsTotal as number) > 0) {
+        doc
+          .fontSize(10)
+          .font("Helvetica")
+          .text("Materials", col1, yPosition)
+          .text("-", col2, yPosition)
+          .text("-", col3, yPosition)
+          .text(`$${((invoiceData.materialsTotal as number) / 100).toFixed(2)}`, col4, yPosition);
+
+        yPosition += 20;
+      }
+
+      // Totals section
+      yPosition += 10;
+      doc
+        .moveTo(50, yPosition)
+        .lineTo(550, yPosition)
+        .stroke();
+
+      yPosition += 15;
+
+      doc
+        .fontSize(11)
+        .font("Helvetica")
+        .text("Subtotal:", col3, yPosition)
+        .text(`$${((invoiceData.subtotal as number) / 100 || 0).toFixed(2)}`, col4, yPosition);
+
+      yPosition += 20;
+
+      // Tax if applicable
+      if (invoiceData.taxAmount && (invoiceData.taxAmount as number) > 0) {
+        doc
+          .text("Tax:", col3, yPosition)
+          .text(`$${((invoiceData.taxAmount as number) / 100).toFixed(2)}`, col4, yPosition);
+
+        yPosition += 20;
+      }
+
+      // Total due
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .text("Total Due:", col3, yPosition)
+        .text(`$${((invoiceData.total as number) / 100 || 0).toFixed(2)}`, col4, yPosition);
+
+      // Notes if applicable
+      if (invoiceData.notes) {
+        doc
+          .fontSize(10)
+          .font("Helvetica")
+          .text("Notes:", 50, yPosition + 40)
+          .fontSize(9)
+          .text(invoiceData.notes, 50, yPosition + 55);
+      }
+
+      // Footer
+      doc
+        .fontSize(9)
+        .fillColor("#999999")
+        .text("This invoice was generated by TellBill. Thank you for your business!", 50, 750, {
+          align: "center",
+        });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 /**
  * Generic email sending function
@@ -61,6 +278,19 @@ export async function sendInvoiceEmail(
     amount?: number;
     dueDate?: string;
     description?: string;
+    clientName?: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    total?: number;
+    taxAmount?: number;
+    subtotal?: number;
+    items?: Array<any>;
+    laborHours?: number;
+    laborRate?: number;
+    laborTotal?: number | string;
+    materialsTotal?: number | string;
+    notes?: string;
+    paymentTerms?: string;
   }
 ) {
   try {
@@ -82,7 +312,7 @@ export async function sendInvoiceEmail(
         
         ${
           invoiceData?.amount
-            ? `<p><strong>Amount Due:</strong> $${invoiceData.amount.toFixed(2)}</p>`
+            ? `<p><strong>Amount Due:</strong> $${(invoiceData.amount / 100).toFixed(2)}</p>`
             : ""
         }
         ${
@@ -103,20 +333,36 @@ export async function sendInvoiceEmail(
       </div>
     `;
 
-    // Send email via Resend
-    const response = await resend.emails.send({
+    // Generate PDF invoice
+    let pdfBuffer: Buffer | undefined;
+    try {
+      pdfBuffer = await generateInvoicePDF(invoiceData || {}, invoiceNumber, clientName);
+      console.log(`[EmailService] ✅ PDF generated for invoice ${invoiceNumber} (${pdfBuffer.length} bytes)`);
+    } catch (pdfError) {
+      console.error(`[EmailService] ⚠️ Failed to generate PDF for invoice ${invoiceNumber}:`, pdfError);
+      // Continue without PDF - email will still be sent
+      pdfBuffer = undefined;
+    }
+
+    // Send email via Resend with PDF attachment
+    const sendOptions: any = {
       from: FROM_EMAIL,
       to: to,
       subject: `Invoice #${invoiceNumber}`,
       html: emailBody,
-      // Optional: Add the HTML invoice as an attachment
-      // attachments: [
-      //   {
-      //     filename: `invoice_${invoiceNumber}.pdf`,
-      //     content: Buffer.from(invoiceHtml),
-      //   },
-      // ],
-    });
+    };
+
+    // Add PDF attachment if successfully generated
+    if (pdfBuffer) {
+      sendOptions.attachments = [
+        {
+          filename: `invoice_${invoiceNumber}.pdf`,
+          content: pdfBuffer.toString("base64"),
+        },
+      ];
+    }
+
+    const response = await resend.emails.send(sendOptions);
 
     // Check if email was sent successfully
     if (response.error) {
