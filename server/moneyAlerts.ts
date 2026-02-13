@@ -33,14 +33,15 @@ export async function getUnbilledMaterials(userId: string) {
 }
 
 /**
- * Calculate total unbilled material amount
+ * Calculate total unbilled material amount (in cents)
  */
-export async function getTotalUnbilledAmount(userId: string): Promise<string> {
+export async function getTotalUnbilledAmount(userId: string): Promise<number> {
   const unbilled = await getUnbilledMaterials(userId);
   const total = unbilled.reduce((sum, receipt) => {
-    return sum + parseFloat(receipt.totalAmount as unknown as string);
+    // Sum the amounts (already in cents)
+    return sum + Math.round(parseFloat(receipt.totalAmount as unknown as string) * 100);
   }, 0);
-  return total.toFixed(2);
+  return total; // Return as integer cents, not formatted string
 }
 
 /**
@@ -51,13 +52,13 @@ export interface MoneyAlert {
   severity: "warning" | "critical";
   title: string;
   description: string;
-  amount: string;
+  amount: number; // Integer cents
   count: number;
   actionCta: string;
   receipts: Array<{
     id: string;
     vendor: string;
-    amount: string;
+    amount: number; // Integer cents
     date: string;
   }>;
 }
@@ -76,20 +77,20 @@ export async function generateMoneyAlert(userId: string): Promise<MoneyAlert | n
     return sum + parseFloat(receipt.totalAmount as unknown as string);
   }, 0);
 
-  const severity = total > 500 ? "critical" : "warning";
+  const severity = total > 50000 ? "critical" : "warning"; // 50000 cents = $500
 
   return {
     type: "unbilled_materials",
     severity,
-    title: `$${total.toFixed(2)} in Unbilled Materials`,
+    title: `$${(total / 100).toFixed(2)} in Unbilled Materials`,
     description: `You have ${unbilled.length} material receipt${unbilled.length !== 1 ? "s" : ""} ready to bill to clients.`,
-    amount: total.toFixed(2),
+    amount: total, // Return as integer cents for API consistency
     count: unbilled.length,
     actionCta: "Attach to Invoice",
     receipts: unbilled.map((r) => ({
       id: r.id,
       vendor: r.vendor,
-      amount: r.totalAmount as any as string,
+      amount: Math.round(parseFloat(r.totalAmount as unknown as string) * 100), // Convert to cents
       date: r.purchaseDate.toISOString().split("T")[0],
     })),
   };

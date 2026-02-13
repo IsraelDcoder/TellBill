@@ -21,6 +21,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { getApiUrl } from "@/lib/backendUrl";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 type SendMethod = "email" | "sms" | "whatsapp";
 
@@ -71,12 +72,7 @@ export function SendInvoiceModal({
   const [contact, setContact] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+
 
   const getPlaceholder = () => {
     switch (method) {

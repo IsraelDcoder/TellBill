@@ -19,6 +19,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoiceDetail">;
@@ -91,14 +92,6 @@ export default function InvoiceDetailScreen() {
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    // Convert from cents to dollars
-    const dollars = amount / 100;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(dollars);
-  };
 
   const handleMarkPaid = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

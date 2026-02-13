@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 export interface MoneyAlert {
   id: string;
@@ -9,7 +10,7 @@ export interface MoneyAlert {
   sourceId: string;
   clientName?: string;
   clientEmail?: string;
-  estimatedAmount?: string;
+  estimatedAmount?: number; // Integer cents from API
   currency: string;
   confidence?: number;
   reasonResolved?: string;
@@ -20,7 +21,7 @@ export interface MoneyAlert {
 
 export interface MoneyAlertsSummary {
   count: number;
-  totalAmount: string;
+  totalAmount: number; // Integer cents from API
 }
 
 interface MoneyAlertsStore {

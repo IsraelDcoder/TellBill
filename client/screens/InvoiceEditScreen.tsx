@@ -24,6 +24,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { useAuth } from "@/context/AuthContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -77,14 +78,7 @@ export default function InvoiceEditScreen() {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const formatCurrency = (amount: number) => {
-    // Convert from cents to dollars if needed
-    const dollars = amount > 100 ? amount / 100 : amount;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(dollars);
-  };
+
 
   const handleSave = async () => {
     // Validate required fields

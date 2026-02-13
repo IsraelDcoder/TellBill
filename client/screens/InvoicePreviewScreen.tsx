@@ -21,6 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoicePreview">;
@@ -59,14 +60,7 @@ export default function InvoicePreviewScreen() {
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    // Convert from cents to dollars
-    const dollars = amount / 100;
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(dollars);
-  };
+
 
   // ✅ CALCULATION FUNCTION: Ensure all totals are calculated (fallback for incomplete data)
   const ensureCalculatedTotals = (inv: any) => {

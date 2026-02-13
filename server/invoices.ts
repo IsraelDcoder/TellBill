@@ -645,19 +645,19 @@ export function registerInvoiceRoutes(app: Express) {
         jobDescription: jobDescription || null,
         // ✅ Items (stored as JSON)
         items: JSON.stringify(items || []),
-        // ✅ Labor details (STORED IN CENTS)
+        // ✅ Labor details (STORED IN CENTS, converted to string)
         laborHours: laborHours || 0,
         laborRate: laborRate || 0,
-        laborTotal: laborTotalCents,
-        // ✅ Materials (STORED IN CENTS)
-        materialsTotal: materialsTotalCents,
-        // ✅ Calculated amounts - ALL IN CENTS (SERVER-SIDE, immutable)
-        subtotal: taxCalc.subtotal,
+        laborTotal: laborTotalCents.toString(),
+        // ✅ Materials (STORED IN CENTS, converted to string)
+        materialsTotal: materialsTotalCents.toString(),
+        // ✅ Calculated amounts - ALL IN CENTS (SERVER-SIDE, immutable, converted to string)
+        subtotal: taxCalc.subtotal.toString(),
         taxName: taxCalc.taxName,
         taxRate: taxCalc.taxRate ? taxCalc.taxRate.toString() : null,
         taxAppliesto: taxCalc.taxAppliesto,
-        taxAmount: taxCalc.taxAmount,
-        total: taxCalc.total,
+        taxAmount: taxCalc.taxAmount.toString(),
+        total: taxCalc.total.toString(),
         // ✅ Invoice metadata
         invoiceNumber: `INV-${Date.now()}`,
         notes: notes || null,
@@ -690,14 +690,14 @@ export function registerInvoiceRoutes(app: Express) {
           items,
           laborHours,
           laborRate,
-          laborTotal: (laborTotalCents / 100).toFixed(2),
-          materialsTotal: (materialsTotalCents / 100).toFixed(2),
-          itemsTotal: (itemsTotalCents / 100).toFixed(2),
-          subtotal: (taxCalc.subtotal / 100).toFixed(2),
+          laborTotal: laborTotalCents,
+          materialsTotal: materialsTotalCents,
+          itemsTotal: itemsTotalCents,
+          subtotal: taxCalc.subtotal,
           taxName: taxCalc.taxName,
           taxRate: taxCalc.taxRate,
-          taxAmount: (taxCalc.taxAmount / 100).toFixed(2),
-          total: (taxCalc.total / 100).toFixed(2),
+          taxAmount: taxCalc.taxAmount,
+          total: taxCalc.total,
           notes,
           safetyNotes,
           paymentTerms,

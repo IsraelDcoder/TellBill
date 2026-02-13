@@ -21,6 +21,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "SendInvoice">;
@@ -61,12 +62,7 @@ export default function SendInvoiceScreen() {
     );
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
+
 
   const sendMethods: { id: SendMethod; label: string; icon: keyof typeof Feather.glyphMap }[] = [
     { id: "email", label: "Email", icon: "mail" },

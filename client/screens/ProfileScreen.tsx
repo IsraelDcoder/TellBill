@@ -14,6 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -128,13 +129,22 @@ export default function ProfileScreen() {
       // timeSaved is calculated as: invoices.length * 0.5
       // So timeSaved tells us total number of invoices
       const invoicesCreated = Math.round(stats.timeSaved / 0.5);
-      const revenueGenerated = stats.revenue;
+      const revenueInCents = stats.revenue; // Integer cents from store
       const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
       
-      // Format revenue as K (e.g., 32000 -> $32K, 5400 -> $5.4K)
-      const formattedRevenue = revenueGenerated >= 1000
-        ? `$${(revenueGenerated / 1000).toFixed(revenueGenerated % 1000 === 0 ? 0 : 1)}K`
-        : `$${revenueGenerated}`;
+      // Format revenue as K (e.g., 3200000 cents -> $32K, 540000 cents -> $5.4K)
+      const revenueInDollars = revenueInCents / 100;
+      let formattedRevenue: string;
+      
+      if (revenueInDollars >= 1000) {
+        const kilos = revenueInDollars / 1000;
+        // Use 1 decimal place if it's not a whole thousand, otherwise no decimals
+        const shouldShowDecimals = kilos % 1 !== 0;
+        formattedRevenue = `$${kilos.toFixed(shouldShowDecimals ? 1 : 0)}K`;
+      } else {
+        // For amounts less than $1000, show full formatted currency
+        formattedRevenue = formatCurrency(revenueInCents);
+      }
       
       setProfileStats({
         invoicesCreated,

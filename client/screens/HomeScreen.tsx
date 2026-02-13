@@ -22,6 +22,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BrandColors, BorderRadius } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { formatCurrency } from "@/utils/formatCurrency";
 
 const { width } = Dimensions.get("window");
 
@@ -93,7 +94,7 @@ export default function HomeScreen() {
         <View style={styles.kpiRow}>
           <KPICard
             title="Total Revenue"
-            value={`$${(stats.revenue / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            value={formatCurrency(stats.revenue)}
             icon="dollar-sign"
             trend={{ value: 15, isPositive: true }}
           />

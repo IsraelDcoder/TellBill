@@ -4,6 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { MoneyAlert } from "@/stores/moneyAlertsStore";
 
 interface MoneyAlertCardProps {
@@ -81,7 +82,7 @@ export function MoneyAlertCard({ alert, onFix, onResolve }: MoneyAlertCardProps)
         {alert.estimatedAmount && (
           <View style={styles.amountRow}>
             <ThemedText type="h4" style={{ color: BrandColors.constructionGold }}>
-              ${alert.estimatedAmount}
+              {formatCurrency(alert.estimatedAmount)}
             </ThemedText>
             <ThemedText
               type="small"

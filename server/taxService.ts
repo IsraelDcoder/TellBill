@@ -210,15 +210,17 @@ export async function saveTaxProfile(
 }
 
 /**
- * Format tax amount for display
+ * Format tax amount for display only (logs, emails)
  * Converts cents to decimal with 2 decimal places
+ * NOTE: Do NOT use this in API responses - return integer cents instead
  */
 export function formatTaxAmount(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
 /**
- * Format currency for display
+ * Format currency for display only (logs, emails)
+ * NOTE: Do NOT use this in API responses - return integer cents instead
  */
 export function formatCurrency(cents: number): string {
   return "$" + formatTaxAmount(cents);

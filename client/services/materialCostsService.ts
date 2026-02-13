@@ -35,10 +35,15 @@ interface MoneyAlert {
   severity: "warning" | "critical";
   title: string;
   description: string;
-  amount: string;
+  amount: number; // Integer cents
   count: number;
   actionCta: string;
-  receipts: MaterialCostReceipt[];
+  receipts: Array<{
+    id: string;
+    vendor: string;
+    amount: number; // Integer cents
+    date: string;
+  }>;
 }
 
 // Helper function to get JWT token
@@ -234,7 +239,7 @@ export class MaterialCostsService {
    */
   static async getUnbilledMaterials(): Promise<{
     success: boolean;
-    total?: string;
+    total?: number; // Integer cents
     count?: number;
     receipts?: MaterialCostReceipt[];
     error?: string;
@@ -257,7 +262,7 @@ export class MaterialCostsService {
 
       return {
         success: true,
-        total: data.data?.total,
+        total: data.data?.total, // Now integer cents
         count: data.data?.count,
         receipts: data.data?.receipts || [],
       };
