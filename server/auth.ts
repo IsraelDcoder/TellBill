@@ -19,7 +19,7 @@ import {
 } from "./utils/validation";
 import { loginRateLimiter, signupRateLimiter, adaptiveLimiter } from "./utils/rateLimiter";
 import { captureAuthError, setSentryUserContext, captureException } from "./utils/sentry";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 
 interface SignUpRequest {
   email: string;
@@ -219,8 +219,9 @@ export function registerAuthRoutes(app: Express) {
       setSentryUserContext(user.id, user.email);
 
       // Send verification email (async, don't block signup)
-      const appUrl = process.env.EXPO_PUBLIC_APP_URL || "https://tellbill.app";
-      sendVerificationEmail(user.email, verificationToken, appUrl).catch((error) => {
+      const backendUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
+      const verifyUrl = `${backendUrl}/api/auth/verify-email`;
+      sendVerificationEmail(user.email, verificationToken, verifyUrl).catch((error) => {
         console.error("[Auth] Failed to send verification email:", error);
         captureException(error as Error, { 
           endpoint: "/api/auth/signup",
@@ -813,10 +814,44 @@ export function registerAuthRoutes(app: Express) {
       const { token } = req.query;
 
       if (!token || typeof token !== "string") {
-        return res.status(400).json({
-          success: false,
-          error: "Verification token is required",
-        });
+        return res.status(400).type("html").send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verification - TellBill</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .container {
+                background: white;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 { color: #333; margin-top: 0; }
+              p { color: #666; }
+              .error { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ Verification Failed</h1>
+              <p class="error">Verification token is required. Please use the link from your verification email.</p>
+            </div>
+          </body>
+          </html>
+        `);
       }
 
       // ✅ VERIFY the token using JWT verification
@@ -824,10 +859,44 @@ export function registerAuthRoutes(app: Express) {
       
       if (!payload || !payload.userId) {
         console.log("[Auth] Email verification failed - invalid token");
-        return res.status(400).json({
-          success: false,
-          error: "Invalid or expired verification token",
-        });
+        return res.status(400).type("html").send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verification - TellBill</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .container {
+                background: white;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 { color: #333; margin-top: 0; }
+              p { color: #666; }
+              .error { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ Link Expired</h1>
+              <p class="error">Your verification link has expired or is invalid. Please request a new verification email from your TellBill account.</p>
+            </div>
+          </body>
+          </html>
+        `);
       }
 
       // ✅ MARK EMAIL AS VERIFIED in database
@@ -839,32 +908,132 @@ export function registerAuthRoutes(app: Express) {
 
       if (!updatedUser || updatedUser.length === 0) {
         console.log("[Auth] User not found for email verification:", payload.userId);
-        return res.status(404).json({
-          success: false,
-          error: "User not found",
-        });
+        return res.status(404).type("html").send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verification - TellBill</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .container {
+                background: white;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 { color: #333; margin-top: 0; }
+              p { color: #666; }
+              .error { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ Error</h1>
+              <p class="error">User account not found. Please ensure you're using the correct verification link.</p>
+            </div>
+          </body>
+          </html>
+        `);
       }
 
       const user = updatedUser[0];
       console.log(`[Auth] ✅ Email verified for user: ${user.email}`);
 
-      return res.status(200).json({
-        success: true,
-        message: "Email verified successfully! Your account is now active.",
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          createdAt: user.createdAt,
-        },
-      });
+      return res.status(200).type("html").send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Email Verified - TellBill</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              height: 100vh;
+              margin: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 8px;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              text-align: center;
+              max-width: 400px;
+            }
+            h1 { color: #4caf50; margin-top: 0; }
+            p { color: #666; line-height: 1.6; }
+            .success { color: #4caf50; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>✅ Email Verified!</h1>
+            <p class="success">Your email has been successfully verified.</p>
+            <p>You can now close this page and return to the TellBill app to start sending invoices.</p>
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">
+              If you're still in the app and don't see the change reflected, try restarting the app.
+            </p>
+          </div>
+        </body>
+        </html>
+      `);
     } catch (error) {
       console.error("[Auth] Email verification error:", error);
       captureException(error as Error, { endpoint: "/api/auth/verify-email" });
-      return res.status(500).json({
-        success: false,
-        error: "Email verification failed",
-      });
+      return res.status(500).type("html").send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verification Error - TellBill</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              height: 100vh;
+              margin: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 8px;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              text-align: center;
+              max-width: 400px;
+            }
+            h1 { color: #333; margin-top: 0; }
+            p { color: #666; }
+            .error { color: #d32f2f; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Verification Error</h1>
+            <p class="error">An error occurred during email verification. Please try again or contact support.</p>
+          </div>
+        </body>
+        </html>
+      `);
     }
   });
 
@@ -965,8 +1134,9 @@ export function registerAuthRoutes(app: Express) {
           expiresAt,
         });
 
-        // Build reset URL - can point to frontend or backend
-        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:8082"}/reset-password?token=${token}`;
+        // Build reset URL pointing to backend endpoint
+        const backendUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
+        const resetUrl = `${backendUrl}/api/auth/reset-password?token=${token}`;
 
         // Send reset email
         await sendPasswordResetEmail(user.email, user.name || user.email, resetUrl);
@@ -993,6 +1163,353 @@ export function registerAuthRoutes(app: Express) {
       }
     }
   );
+
+  /**
+   * PASSWORD RESET PAGE - HANDLE EMAIL LINK CLICK
+   * GET /api/auth/reset-password?token=xyz
+   * 
+   * When user clicks password reset link in email, this endpoint shows a form
+   * to enter and confirm their new password
+   */
+  app.get("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== "string") {
+        return res.status(400).type("html").send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Password Reset - TellBill</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+              }
+              .container {
+                background: white;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 { color: #333; margin-top: 0; }
+              p { color: #666; }
+              .error { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ Invalid Reset Link</h1>
+              <p class="error">The password reset link is invalid or missing. Please request a new password reset from your TellBill account.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      // Verify the token is valid (don't reveal internal validation details)
+      const tokenHash = createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+      const resetToken = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, tokenHash))
+        .limit(1);
+
+      if (resetToken.length === 0 || resetToken[0].expiresAt < new Date()) {
+        return res.status(400).type("html").send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Password Reset - TellBill</title>
+            <style>
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                height: 100vh;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+              }
+              .container {
+                background: white;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 { color: #333; margin-top: 0; }
+              p { color: #666; }
+              .error { color: #d32f2f; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>❌ Link Expired</h1>
+              <p class="error">Your password reset link has expired (valid for 15 minutes). Please request a new one from your TellBill account.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
+
+      // Token is valid - show password reset form
+      return res.status(200).type("html").send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Password - TellBill</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              height: 100vh;
+              margin: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 20px;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 8px;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              max-width: 400px;
+              width: 100%;
+            }
+            h1 {
+              color: #333;
+              margin-top: 0;
+              text-align: center;
+            }
+            .form-group {
+              margin-bottom: 20px;
+            }
+            label {
+              display: block;
+              color: #333;
+              margin-bottom: 8px;
+              font-weight: 600;
+              font-size: 14px;
+            }
+            input {
+              width: 100%;
+              padding: 12px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              font-size: 16px;
+              box-sizing: border-box;
+              font-family: inherit;
+            }
+            input:focus {
+              outline: none;
+              border-color: #667eea;
+              box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            button {
+              width: 100%;
+              padding: 12px;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              border: none;
+              border-radius: 4px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              margin-top: 10px;
+            }
+            button:hover {
+              opacity: 0.95;
+            }
+            button:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+            .error {
+              color: #d32f2f;
+              font-size: 14px;
+              margin-top: 10px;
+              display: none;
+            }
+            .success {
+              color: #4caf50;
+              font-size: 14px;
+              margin-top: 10px;
+              display: none;
+            }
+            .loading {
+              display: none;
+              text-align: center;
+              color: #667eea;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>🔐 Reset Password</h1>
+            <form id="resetForm">
+              <div class="form-group">
+                <label for="password">New Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  required
+                  minlength="8"
+                  placeholder="At least 8 characters"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  required
+                  minlength="8"
+                  placeholder="Must match the password above"
+                  autocomplete="new-password"
+                />
+              </div>
+              <button type="submit" id="submitBtn">Reset Password</button>
+              <div class="loading" id="loading">Resetting password...</div>
+              <div class="error" id="error"></div>
+              <div class="success" id="success"></div>
+            </form>
+          </div>
+
+          <script>
+            const form = document.getElementById("resetForm");
+            const passwordInput = document.getElementById("password");
+            const confirmPasswordInput = document.getElementById("confirmPassword");
+            const submitBtn = document.getElementById("submitBtn");
+            const loadingDiv = document.getElementById("loading");
+            const errorDiv = document.getElementById("error");
+            const successDiv = document.getElementById("success");
+
+            form.addEventListener("submit", async (e) => {
+              e.preventDefault();
+
+              const password = passwordInput.value.trim();
+              const confirmPassword = confirmPasswordInput.value.trim();
+
+              // Validation
+              if (password.length < 8) {
+                errorDiv.textContent = "Password must be at least 8 characters";
+                errorDiv.style.display = "block";
+                return;
+              }
+
+              if (password !== confirmPassword) {
+                errorDiv.textContent = "Passwords do not match";
+                errorDiv.style.display = "block";
+                return;
+              }
+
+              // Submit to backend
+              submitBtn.disabled = true;
+              loadingDiv.style.display = "block";
+              errorDiv.style.display = "none";
+
+              try {
+                const response = await fetch("/api/auth/password-reset/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    token: "${token}",
+                    newPassword: password,
+                    confirmPassword: confirmPassword,
+                  }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                  throw new Error(data.error || "Password reset failed");
+                }
+
+                loadingDiv.style.display = "none";
+                successDiv.textContent = "✅ Password reset successfully! You can now log in with your new password.";
+                successDiv.style.display = "block";
+                form.style.display = "none";
+              } catch (error) {
+                loadingDiv.style.display = "none";
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = "block";
+                submitBtn.disabled = false;
+              }
+            });
+          </script>
+        </body>
+        </html>
+      `);
+    } catch (error) {
+      console.error("[Auth] Password reset page error:", error);
+      captureException(error as Error, { endpoint: "/api/auth/reset-password" });
+      return res.status(500).type("html").send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reset Error - TellBill</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              height: 100vh;
+              margin: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 20px;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 8px;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+              text-align: center;
+              max-width: 400px;
+            }
+            h1 { color: #333; margin-top: 0; }
+            p { color: #666; }
+            .error { color: #d32f2f; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Error</h1>
+            <p class="error">An error occurred during password reset. Please try again or contact support.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  });
+
 
   /**
    * PASSWORD RESET FLOW - VERIFY TOKEN AND RESET PASSWORD
