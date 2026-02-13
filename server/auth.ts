@@ -56,7 +56,7 @@ interface AuthResponse {
  */
 function generateResetToken(): { token: string; hash: string } {
   const token = randomBytes(32).toString("hex");
-  const hash = randomBytes(32).toString("hex"); // Store hashed version in DB
+  const hash = createHash("sha256").update(token).digest("hex"); // Hash for secure storage
   return { token, hash };
 }
 
@@ -1554,10 +1554,13 @@ export function registerAuthRoutes(app: Express) {
           });
         }
 
+        // Hash the token before looking it up
+        const tokenHash = createHash("sha256").update(token).digest("hex");
+
         // Find active reset token
         const resetTokenEntry = await db.query.passwordResetTokens.findFirst({
           where: and(
-            eq(passwordResetTokens.token, token),
+            eq(passwordResetTokens.token, tokenHash),
             gt(passwordResetTokens.expiresAt, new Date()),
             isNull(passwordResetTokens.usedAt)
           ),
