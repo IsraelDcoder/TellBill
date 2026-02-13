@@ -147,7 +147,7 @@ export function registerMoneyAlertRoutes(app: Express) {
             receipts: unbilled.map((r) => ({
               id: r.id,
               vendor: r.vendor,
-              amount: r.totalAmount,
+              amount: Math.round(parseFloat(r.totalAmount as unknown as string) * 100), // Convert to cents for API consistency
               date: r.purchaseDate.toISOString().split("T")[0],
               clientName: r.clientName,
               clientEmail: r.clientEmail,
