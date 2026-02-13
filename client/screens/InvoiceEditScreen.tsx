@@ -194,13 +194,19 @@ export default function InvoiceEditScreen() {
         placeholderTextColor={theme.textSecondary}
         value={value}
         onChangeText={onChangeText}
+        textContentType="none"
+        autoComplete="off"
+        autoCorrect={false}
+        spellCheck={false}
+        clearTextOnFocus={false}
       />
     </View>
   );
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      enabled={Platform.OS === "ios"}
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
       <ScrollView
@@ -210,7 +216,9 @@ export default function InvoiceEditScreen() {
           paddingHorizontal: Spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
       >
         <GlassCard style={styles.headerCard}>
           <View style={styles.headerRow}>

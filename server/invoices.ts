@@ -702,6 +702,35 @@ export function registerInvoiceRoutes(app: Express) {
         });
       }
 
+      // Validate invoiceId format
+      if (!validateUUID(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid invoice ID format",
+        });
+      }
+
+      // ✅ VERIFY OWNERSHIP: Make sure user owns this invoice
+      const existingInvoice = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId))
+        .limit(1);
+
+      if (!existingInvoice || existingInvoice.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Invoice not found",
+        });
+      }
+
+      if (existingInvoice[0].userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: "Unauthorized - you don't own this invoice",
+        });
+      }
+
       const {
         clientName,
         clientEmail,
@@ -712,14 +741,6 @@ export function registerInvoiceRoutes(app: Express) {
         notes,
         paymentTerms,
       } = req.body;
-
-      // Validate at least invoiceId provided
-      if (!validateUUID(invoiceId)) {
-        return res.status(400).json({
-          success: false,
-          error: "Invalid invoice ID format",
-        });
-      }
 
       // Build update object only with provided fields
       const updateData: any = {};
@@ -734,19 +755,12 @@ export function registerInvoiceRoutes(app: Express) {
 
       console.log("[Invoice] Update data:", updateData);
 
-      // Update the invoice
+      // ✅ UPDATE: Only update fields that were provided
       const updatedInvoice = await db
         .update(schema.invoices)
         .set(updateData)
-        .where(eq(schema.invoices.id, invoiceId as string))
+        .where(eq(schema.invoices.id, invoiceId))
         .returning();
-
-      if (!updatedInvoice || updatedInvoice.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: "Invoice not found",
-        });
-      }
 
       console.log("[Invoice] ✅ Invoice updated successfully");
 
