@@ -4,6 +4,12 @@ import { invoices, preferences, users, activityLog } from "@shared/schema";
 import { db } from "./db";
 import { authMiddleware } from "./utils/authMiddleware";
 
+// ✅ HELPER: Parse invoice items JSON string to array
+const parseInvoiceItems = (invoice: any) => ({
+  ...invoice,
+  items: typeof invoice.items === "string" ? JSON.parse(invoice.items || "[]") : (invoice.items || []),
+});
+
 /**
  * Data Loading Routes
  * 
@@ -179,7 +185,7 @@ export function registerDataLoadingRoutes(app: Express) {
       return res.status(200).json({
         success: true,
         data: {
-          invoices: userInvoices,
+          invoices: userInvoices.map(parseInvoiceItems),
           preferences: userPreferences,
           activities: userActivities.reverse(), // Most recent first
           // Profile data from users table

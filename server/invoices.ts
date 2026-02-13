@@ -21,6 +21,12 @@ import { authMiddleware } from "./utils/authMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 import { applyTax, getDefaultTaxProfile } from "./taxService";
 
+// ✅ HELPER: Parse invoice items JSON string to array
+const parseInvoiceItems = (invoice: any) => ({
+  ...invoice,
+  items: typeof invoice.items === "string" ? JSON.parse(invoice.items || "[]") : (invoice.items || []),
+});
+
 interface SendInvoiceRequest {
   invoiceId: string;
   method: "email" | "sms" | "whatsapp";
