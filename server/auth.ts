@@ -220,8 +220,7 @@ export function registerAuthRoutes(app: Express) {
 
       // Send verification email (async, don't block signup)
       const backendUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
-      const verifyUrl = `${backendUrl}/api/auth/verify-email`;
-      sendVerificationEmail(user.email, verificationToken, verifyUrl).catch((error) => {
+      sendVerificationEmail(user.email, verificationToken, backendUrl).catch((error) => {
         console.error("[Auth] Failed to send verification email:", error);
         captureException(error as Error, { 
           endpoint: "/api/auth/signup",
@@ -812,8 +811,11 @@ export function registerAuthRoutes(app: Express) {
   app.get("/api/auth/verify-email", async (req: Request, res: Response) => {
     try {
       const { token } = req.query;
+      
+      console.log(`[Auth] Email verification attempt with token: ${token ? `${String(token).substring(0, 20)}...` : "none"}`);
 
       if (!token || typeof token !== "string") {
+        console.log("[Auth] Email verification failed - no token provided");
         return res.status(400).type("html").send(`
           <!DOCTYPE html>
           <html>
@@ -856,6 +858,7 @@ export function registerAuthRoutes(app: Express) {
 
       // ✅ VERIFY the token using JWT verification
       const payload = verifyToken(token);
+      console.log(`[Auth] JWT verification result:`, payload ? `valid (userId: ${payload.userId})` : "invalid");
       
       if (!payload || !payload.userId) {
         console.log("[Auth] Email verification failed - invalid token");

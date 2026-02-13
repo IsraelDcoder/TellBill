@@ -493,7 +493,7 @@ export async function sendVerificationEmail(
   appUrl: string = "https://tellbill.app"
 ): Promise<void> {
   try {
-    const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+    const verifyUrl = `${appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
     await sendEmail({
       to: email,
