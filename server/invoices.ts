@@ -645,19 +645,19 @@ export function registerInvoiceRoutes(app: Express) {
         jobDescription: jobDescription || null,
         // ✅ Items (stored as JSON)
         items: JSON.stringify(items || []),
-        // ✅ Labor details
+        // ✅ Labor details (STORED IN CENTS)
         laborHours: laborHours || 0,
         laborRate: laborRate || 0,
-        laborTotal: (laborTotalCents / 100).toFixed(2),
-        // ✅ Materials
-        materialsTotal: (materialsTotalCents / 100).toFixed(2),
-        // ✅ Calculated amounts (SERVER-SIDE, immutable)
-        subtotal: (taxCalc.subtotal / 100).toFixed(2),
+        laborTotal: laborTotalCents,
+        // ✅ Materials (STORED IN CENTS)
+        materialsTotal: materialsTotalCents,
+        // ✅ Calculated amounts - ALL IN CENTS (SERVER-SIDE, immutable)
+        subtotal: taxCalc.subtotal,
         taxName: taxCalc.taxName,
         taxRate: taxCalc.taxRate ? taxCalc.taxRate.toString() : null,
         taxAppliesto: taxCalc.taxAppliesto,
-        taxAmount: (taxCalc.taxAmount / 100).toFixed(2),
-        total: (taxCalc.total / 100).toFixed(2),
+        taxAmount: taxCalc.taxAmount,
+        total: taxCalc.total,
         // ✅ Invoice metadata
         invoiceNumber: `INV-${Date.now()}`,
         notes: notes || null,
