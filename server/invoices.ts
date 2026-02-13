@@ -204,6 +204,14 @@ export function registerInvoiceRoutes(app: Express) {
                 invoiceData
               );
               
+              // ✅ UPDATE INVOICE STATUS TO "SENT" in database
+              await db
+                .update(schema.invoices)
+                .set({ status: "sent" })
+                .where(eq(schema.invoices.id, invoiceId));
+              
+              console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
+              
               // Trigger Money Alerts detection for invoice sent (paid users only)
               const userId = (req as any).user?.userId;
               if (userId) {
@@ -240,6 +248,14 @@ export function registerInvoiceRoutes(app: Express) {
                 clientName
               );
               
+              // ✅ UPDATE INVOICE STATUS TO "SENT" in database
+              await db
+                .update(schema.invoices)
+                .set({ status: "sent" })
+                .where(eq(schema.invoices.id, invoiceId));
+              
+              console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
+              
               // Trigger Money Alerts detection for invoice sent (paid users only)
               const userId = (req as any).user?.userId;
               if (userId) {
@@ -267,6 +283,14 @@ export function registerInvoiceRoutes(app: Express) {
                 invoiceId,
                 clientName
               );
+              
+              // ✅ UPDATE INVOICE STATUS TO "SENT" in database
+              await db
+                .update(schema.invoices)
+                .set({ status: "sent" })
+                .where(eq(schema.invoices.id, invoiceId));
+              
+              console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
               
               // Trigger Money Alerts detection for invoice sent (paid users only)
               const userId = (req as any).user?.userId;
