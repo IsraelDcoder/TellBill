@@ -56,7 +56,7 @@ interface AuthResponse {
  */
 function generateResetToken(): { token: string; hash: string } {
   const token = randomBytes(32).toString("hex");
-  const hash = createHash("sha256").update(token).digest("hex"); // Hash for secure storage
+  const hash = createHash("sha256").update(token).digest("hex"); // Hash the token for secure storage
   return { token, hash };
 }
 
@@ -1134,6 +1134,8 @@ export function registerAuthRoutes(app: Express) {
           expiresAt,
         });
 
+        console.log(`[Auth] ✅ Password reset token generated for ${user.email}. Token hash first 20 chars: ${hash.substring(0, 20)}, Expires: ${expiresAt.toISOString()}`);
+
         // Build reset URL pointing to backend endpoint
         const backendUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
         const resetUrl = `${backendUrl}/api/auth/reset-password?token=${token}`;
@@ -1174,8 +1176,11 @@ export function registerAuthRoutes(app: Express) {
   app.get("/api/auth/reset-password", async (req: Request, res: Response) => {
     try {
       const { token } = req.query;
+      
+      console.log(`[Auth] Password reset page accessed with token: ${token ? `${String(token).substring(0, 20)}...` : "none"}`);
 
       if (!token || typeof token !== "string") {
+        console.log("[Auth] No token provided to reset page");
         return res.status(400).type("html").send(`
           <!DOCTYPE html>
           <html>
@@ -1222,11 +1227,18 @@ export function registerAuthRoutes(app: Express) {
         .update(token)
         .digest("hex");
 
+      console.log(`[Auth] Token hash generated. Looking up token in database...`);
+      
       const resetToken = await db
         .select()
         .from(passwordResetTokens)
         .where(eq(passwordResetTokens.token, tokenHash))
         .limit(1);
+
+      console.log(`[Auth] Token lookup: ${resetToken.length} record(s) found`);
+      if (resetToken.length > 0) {
+        console.log(`[Auth] Token expires at: ${resetToken[0].expiresAt}, Now: ${new Date()}`);
+      }
 
       if (resetToken.length === 0 || resetToken[0].expiresAt < new Date()) {
         return res.status(400).type("html").send(`
@@ -1554,13 +1566,10 @@ export function registerAuthRoutes(app: Express) {
           });
         }
 
-        // Hash the token before looking it up
-        const tokenHash = createHash("sha256").update(token).digest("hex");
-
         // Find active reset token
         const resetTokenEntry = await db.query.passwordResetTokens.findFirst({
           where: and(
-            eq(passwordResetTokens.token, tokenHash),
+            eq(passwordResetTokens.token, token),
             gt(passwordResetTokens.expiresAt, new Date()),
             isNull(passwordResetTokens.usedAt)
           ),
