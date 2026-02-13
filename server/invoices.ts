@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { db } from "./db";
 import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
@@ -602,6 +603,7 @@ export function registerInvoiceRoutes(app: Express) {
       });
 
       const invoiceData = {
+        id: randomUUID(), // ✅ EXPLICIT: Generate full UUID (fixes truncation issue)
         projectId,
         userId,
         createdBy: (req as any).user?.name || (req as any).user?.email || "Unknown",
