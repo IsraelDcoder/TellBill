@@ -266,7 +266,7 @@ export default function MaterialCostCaptureScreen() {
     <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: headerHeight,
           paddingBottom: Spacing.xl,
         }}
         scrollIndicatorInsets={{ bottom: insets.bottom }}

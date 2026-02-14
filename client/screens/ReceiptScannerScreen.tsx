@@ -57,7 +57,7 @@ export default function ReceiptScannerScreen() {
       {!showCamera ? (
         <ScrollView
           contentContainerStyle={{
-            paddingTop: headerHeight + Spacing.lg,
+            paddingTop: headerHeight,
             paddingBottom: Spacing.xl,
           }}
           scrollIndicatorInsets={{ bottom: insets.bottom }}

@@ -43,7 +43,7 @@ export default function HomeScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
-        paddingTop: headerHeight + Spacing.lg,
+        paddingTop: headerHeight,
         paddingBottom: tabBarHeight + Spacing.xl,
       }}
       scrollIndicatorInsets={{ bottom: insets.bottom }}
@@ -64,7 +64,7 @@ export default function HomeScreen() {
           style={styles.heroGradient}
         />
         <View style={styles.heroContent}>
-          <ThemedText type="h1" style={styles.heroTitle}>
+          <ThemedText type="display" style={styles.heroTitle}>
             Finished the job?
           </ThemedText>
           <ThemedText
