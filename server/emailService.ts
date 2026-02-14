@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import PDFDocument from "pdfkit";
-import { Readable } from "stream";
+import { PassThrough } from "stream";
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -41,19 +41,28 @@ async function generateInvoicePDF(
         size: "A4",
       });
 
+      // Use PassThrough stream to collect PDF data reliably
+      const passThrough = new PassThrough();
       const chunks: Buffer[] = [];
 
-      doc.on("data", (chunk: Buffer) => {
+      // Collect all data chunks from the stream
+      passThrough.on("data", (chunk: Buffer) => {
         chunks.push(chunk);
       });
 
-      doc.on("end", () => {
-        resolve(Buffer.concat(chunks));
+      passThrough.on("end", () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        console.log(`[EmailService] PDF generated successfully: ${pdfBuffer.length} bytes`);
+        resolve(pdfBuffer);
       });
 
-      doc.on("error", (err: Error) => {
+      passThrough.on("error", (err: Error) => {
+        console.error("[EmailService] Stream error:", err);
         reject(err);
       });
+
+      // Pipe PDFDocument to PassThrough stream
+      doc.pipe(passThrough);
 
       // Header
       doc
@@ -215,8 +224,10 @@ async function generateInvoicePDF(
           align: "center",
         });
 
+      // End the document - this will trigger the stream to finish
       doc.end();
     } catch (error) {
+      console.error("[EmailService] PDF generation error:", error);
       reject(error);
     }
   });

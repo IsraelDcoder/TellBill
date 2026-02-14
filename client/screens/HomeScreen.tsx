@@ -64,7 +64,7 @@ export default function HomeScreen() {
           style={styles.heroGradient}
         />
         <View style={styles.heroContent}>
-          <ThemedText type="display" style={styles.heroTitle}>
+          <ThemedText type="h1" style={styles.heroTitle}>
             Finished the job?
           </ThemedText>
           <ThemedText

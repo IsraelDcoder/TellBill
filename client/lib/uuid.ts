@@ -9,9 +9,10 @@ export function generateId(): string {
   const randomBytes = Crypto.getRandomBytes(16);
   
   // Convert to hex string and format as UUID v4
-  const hex = randomBytes
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
+  let hex = '';
+  for (let i = 0; i < randomBytes.length; i++) {
+    hex += randomBytes[i].toString(16).padStart(2, '0');
+  }
   
   // Format as UUID: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
   // where y is one of 8, 9, A, or B

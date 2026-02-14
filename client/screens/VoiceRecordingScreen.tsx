@@ -301,8 +301,6 @@ export default function VoiceRecordingScreen() {
   const handleContinue = () => {
     navigation.navigate("TranscriptReview", { 
       transcript,
-      audioUri,
-      recordingDuration: recordingTime,
     });
   };
 
@@ -357,7 +355,7 @@ export default function VoiceRecordingScreen() {
               styles.recordButton,
               {
                 backgroundColor: recordingStatus.error
-                  ? theme.surfaceTertiary
+                  ? theme.backgroundSecondary
                   : isRecording
                   ? theme.error
                   : BrandColors.constructionGold,
@@ -370,7 +368,7 @@ export default function VoiceRecordingScreen() {
             <Feather
               name={isRecording ? "square" : "mic"}
               size={40}
-              color={recordingStatus.error ? theme.textTertiary : isRecording ? "#fff" : BrandColors.slateGrey}
+              color={recordingStatus.error ? theme.textSecondary : isRecording ? "#fff" : BrandColors.slateGrey}
             />
           </AnimatedPressable>
           {recordingStatus.error && (
@@ -391,7 +389,7 @@ export default function VoiceRecordingScreen() {
           style={[
             styles.timerText,
             {
-              color: isRecording ? theme.error : theme.textPrimary,
+              color: isRecording ? theme.error : theme.text,
               fontWeight: isRecording ? "bold" : "600",
             }
           ]}

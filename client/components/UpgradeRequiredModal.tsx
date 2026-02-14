@@ -34,7 +34,7 @@ export function UpgradeRequiredModal({
 }: UpgradeRequiredModalProps) {
   const { theme } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { voiceRecordingsUsed, invoicesCreated, projectsAccessed, currentPlan } = useSubscriptionStore();
+  const { voiceRecordingsUsed, invoicesCreated, currentPlan } = useSubscriptionStore();
 
   const getContent = () => {
     if (type === "voice") {

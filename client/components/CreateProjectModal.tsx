@@ -48,7 +48,7 @@ export function CreateProjectModal({
   const insets = useSafeAreaInsets();
   const { theme, isDark } = useTheme();
   const { isLocked } = useFeatureLock("projects");
-  const { currentPlan, projectsCreated, setShowLimitModal } = useSubscriptionStore();
+  const { currentPlan, setShowLimitModal } = useSubscriptionStore();
   const [projectName, setProjectName] = useState("");
   const [clientName, setClientName] = useState("");
   const [address, setAddress] = useState("");
