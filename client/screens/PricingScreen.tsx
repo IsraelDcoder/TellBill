@@ -104,7 +104,7 @@ export default function PricingScreen({ route, navigation }: any) {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: headerHeight,
+            paddingTop: headerHeight + Spacing.md,
             paddingBottom: insets.bottom + Spacing.xl,
           },
         ]}

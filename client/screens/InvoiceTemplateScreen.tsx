@@ -100,7 +100,7 @@ export default function InvoiceTemplateScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
-        paddingTop: headerHeight,
+        paddingTop: headerHeight + Spacing.md,
         paddingBottom: insets.bottom + Spacing.xl,
         paddingHorizontal: Spacing.lg,
       }}
