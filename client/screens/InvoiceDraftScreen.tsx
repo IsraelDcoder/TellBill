@@ -78,7 +78,7 @@ export default function InvoiceDraftScreen() {
 
 
   // ✅ CALCULATION FUNCTION: Calculate all totals for manual invoice creation
-  const calculateInvoiceTotals = (data: any) => {
+  const calculateInvoiceTotals = (data: any): any => {
     // ✅ Calculate subtotal in cents
     // Sum: items total + labor total + materials total
     // NOTE: All inputs are in DOLLARS, so multiply by 100 to get cents

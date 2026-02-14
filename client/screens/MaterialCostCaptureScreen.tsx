@@ -118,7 +118,7 @@ export default function MaterialCostCaptureScreen() {
   const handleBillingDecision = async (
     decision: "billable" | "non-billable",
     clientData?: { name?: string; email?: string; reason?: string }
-  ) => {
+  ): Promise<void> => {
     setBillingDecision(decision);
     setIsLoading(true);
 

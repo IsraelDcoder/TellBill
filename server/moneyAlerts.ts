@@ -37,7 +37,7 @@ export async function getUnbilledMaterials(userId: string) {
  */
 export async function getTotalUnbilledAmount(userId: string): Promise<number> {
   const unbilled = await getUnbilledMaterials(userId);
-  const total = unbilled.reduce((sum, receipt) => {
+  const total = unbilled.reduce((sum: number, receipt: any) => {
     // Sum the amounts (already in cents)
     return sum + Math.round(parseFloat(receipt.totalAmount as unknown as string) * 100);
   }, 0);
@@ -73,7 +73,7 @@ export async function generateMoneyAlert(userId: string): Promise<MoneyAlert | n
     return null;
   }
 
-  const total = unbilled.reduce((sum, receipt) => {
+  const total = unbilled.reduce((sum: number, receipt: any) => {
     return sum + parseFloat(receipt.totalAmount as unknown as string);
   }, 0);
 
@@ -87,7 +87,7 @@ export async function generateMoneyAlert(userId: string): Promise<MoneyAlert | n
     amount: total, // Return as integer cents for API consistency
     count: unbilled.length,
     actionCta: "Attach to Invoice",
-    receipts: unbilled.map((r) => ({
+    receipts: unbilled.map((r: any) => ({
       id: r.id,
       vendor: r.vendor,
       amount: Math.round(parseFloat(r.totalAmount as unknown as string) * 100), // Convert to cents
@@ -183,7 +183,7 @@ export function registerMoneyAlertRoutes(app: Express) {
           eq(moneyAlerts.userId, userId),
           eq(moneyAlerts.status, "open")
         ),
-        orderBy: (a, { desc }) => desc(a.createdAt),
+        orderBy: (a: any, { desc }: any) => desc(a.createdAt),
       });
 
       // Get summary

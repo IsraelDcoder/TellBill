@@ -170,7 +170,7 @@ export default function InvoiceEditScreen() {
     }
   };
 
-  const TextInputField = ({ label, placeholder, value, onChangeText }: { label: string; placeholder: string; value: string; onChangeText: (text: string) => void }) => (
+  const TextInputField = ({ label, placeholder, value, onChangeText }: { label: string; placeholder: string; value: string; onChangeText: (text: string) => void }): React.ReactElement => (
     <View style={styles.fieldContainer}>
       <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.xs }}>
         {label}

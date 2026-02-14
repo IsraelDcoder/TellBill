@@ -69,7 +69,7 @@ export default function InvoiceDetailScreen() {
     );
   }
 
-  const status = statusConfig[invoice.status];
+  const status = statusConfig[invoice.status as keyof typeof statusConfig];
 
   if (!status) {
     return (

@@ -362,6 +362,7 @@ export async function sendInvoiceEmail(
       ];
     }
 
+    // Send email via Resend with PDF attachment
     const response = await resend.emails.send(sendOptions);
 
     // Check if email was sent successfully

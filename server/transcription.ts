@@ -459,7 +459,7 @@ export function registerTranscriptionRoutes(app: Express): void {
             Authorization: `Bearer ${GROQ_API_KEY}`,
             // Note: FormData sets Content-Type automatically with boundary
           },
-          body: formData,
+          body: formData as any,
         });
 
         const responseText = await response.text();

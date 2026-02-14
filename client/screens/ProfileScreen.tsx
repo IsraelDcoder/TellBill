@@ -34,7 +34,7 @@ interface MenuItemProps {
   badgeText?: string;
 }
 
-function MenuItem({ icon, label, onPress, showBadge, badgeText }: MenuItemProps) {
+function MenuItem({ icon, label, onPress, showBadge, badgeText }: MenuItemProps): React.ReactElement {
   const { theme, isDark } = useTheme();
 
   return (

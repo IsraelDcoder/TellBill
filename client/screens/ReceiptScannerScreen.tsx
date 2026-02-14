@@ -30,7 +30,7 @@ export default function ReceiptScannerScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { currentPlan } = useSubscriptionStore();
-  const [showCamera, setShowCamera] = useState(false);
+  const [showCamera, setShowCamera] = useState<boolean>(false);
 
   // ✅ LOCK: Receipt scanning only available for paid plans
   const receiptScanningLocked = currentPlan === "free";
