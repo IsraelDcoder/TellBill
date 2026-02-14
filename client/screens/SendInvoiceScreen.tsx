@@ -103,7 +103,7 @@ export default function SendInvoiceScreen() {
       />
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: headerHeight,
           paddingBottom: Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}

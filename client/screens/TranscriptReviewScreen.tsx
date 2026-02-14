@@ -382,7 +382,7 @@ export default function TranscriptReviewScreen() {
     >
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: headerHeight,
           paddingBottom: insets.bottom + Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}

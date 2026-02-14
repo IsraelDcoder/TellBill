@@ -97,7 +97,7 @@ export default function SettingsScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
-        paddingTop: headerHeight + Spacing.lg,
+        paddingTop: headerHeight,
         paddingBottom: insets.bottom + Spacing.xl,
       }}
       showsVerticalScrollIndicator={false}

@@ -115,7 +115,7 @@ export default function InvoiceDetailScreen() {
     <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: headerHeight,
           paddingBottom: Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}

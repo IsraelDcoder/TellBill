@@ -173,7 +173,7 @@ export default function TaxSettingsScreen() {
     <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
+          paddingTop: headerHeight,
           paddingBottom: insets.bottom + Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}
