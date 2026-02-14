@@ -178,7 +178,7 @@ export default function MoneyAlertsScreen() {
           data={[]}
           renderItem={() => null}
           ListHeaderComponent={
-            <View style={{ paddingTop: headerHeight, paddingHorizontal: Spacing.lg }}>
+            <View style={{ paddingTop: headerHeight + Spacing.lg, paddingHorizontal: Spacing.lg }}>
               <View style={styles.header}>
                 <ThemedText type="h2">Money Alerts</ThemedText>
                 <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
@@ -229,7 +229,7 @@ export default function MoneyAlertsScreen() {
         )}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          <View style={{ paddingHorizontal: Spacing.lg, paddingTop: headerHeight }}>
+          <View style={{ paddingHorizontal: Spacing.lg, paddingTop: headerHeight + Spacing.lg }}>
             <View style={styles.header}>
               <ThemedText type="h2">Money Alerts</ThemedText>
               <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>

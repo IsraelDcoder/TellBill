@@ -107,7 +107,7 @@
     "react-native-svg": "^15.12.1",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
-    "resend": "^6.8.0",
+    "resend": "^6.9.2",
     "stripe": "^14.18.0",
     "tslib": "^2.8.1",
     "tsx": "^4.20.6",
