@@ -4,7 +4,9 @@ import {
   View,
   ScrollView,
   Pressable,
+  Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
@@ -93,12 +95,65 @@ export default function InvoiceDetailScreen() {
   }
 
 
-  const handleMarkPaid = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    updateInvoice(invoice.id, {
-      status: "paid",
-      paidAt: new Date().toISOString(),
-    });
+  const handleMarkPaid = async () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Error", "Authentication token not found");
+        return;
+      }
+
+      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
+      
+      console.log("[InvoiceDetail] 📤 Marking invoice as paid on backend:", invoice.id);
+      
+      // ✅ CRITICAL: Send status update to backend
+      const response = await fetch(`${backendUrl}/api/invoices/${invoice.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: "paid",
+          paidAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to mark invoice as paid");
+      }
+
+      const data = await response.json();
+      console.log("[InvoiceDetail] ✅ Invoice marked as paid on backend:", data.invoice);
+
+      // ✅ Update local state with backend response
+      updateInvoice(invoice.id, data.invoice);
+      
+      // ✅ CRITICAL: Refetch all invoices to recalculate revenue
+      const invoiceResponse = await fetch(`${backendUrl}/api/invoices`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (invoiceResponse.ok) {
+        const invoiceData = await invoiceResponse.json();
+        console.log("[InvoiceDetail] 🔄 Refetched invoices, revenue updated");
+        const { hydrateInvoices } = useInvoiceStore.getState();
+        hydrateInvoices(invoiceData.invoices);
+      }
+
+      Alert.alert("Success", "Invoice marked as paid!");
+    } catch (error: any) {
+      console.error("[InvoiceDetail] Error marking as paid:", error);
+      Alert.alert("Error", error.message || "Failed to mark invoice as paid");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   };
 
   const handleResend = () => {

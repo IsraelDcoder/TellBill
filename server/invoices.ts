@@ -799,6 +799,8 @@ export function registerInvoiceRoutes(app: Express) {
         jobDescription,
         notes,
         paymentTerms,
+        status,
+        paidAt,
       } = req.body;
 
       // Build update object only with provided fields
@@ -811,6 +813,18 @@ export function registerInvoiceRoutes(app: Express) {
       if (jobDescription !== undefined) updateData.jobDescription = jobDescription || null;
       if (notes !== undefined) updateData.notes = notes || null;
       if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms || null;
+      
+      // ✅ CRITICAL: Allow status updates (e.g., sent → paid)
+      if (status !== undefined) {
+        updateData.status = status;
+        console.log(`[Invoice] 💾 Updating status to: ${status}`);
+      }
+      
+      // ✅ CRITICAL: Persist paid timestamp when marking as paid
+      if (paidAt !== undefined) {
+        updateData.paidAt = paidAt ? new Date(paidAt) : null;
+        console.log(`[Invoice] 💾 Updating paidAt to: ${paidAt}`);
+      }
 
       console.log("[Invoice] Update data:", updateData);
 

@@ -575,17 +575,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleSignOut = () => {
-    // ✅ DATA PERSISTENCE: Clear auth state ONLY
-    // Do NOT clear user data (invoices, projects, preferences, etc.)
-    // Data remains in AsyncStorage so user sees their activity when they log back in
-    // Data is re-fetched from backend on next login
+  const handleSignOut = async () => {
+    // ✅ CRITICAL: CLEAR ALL USER DATA on logout
+    // This prevents data leakage to the next user who logs in
+    // Invoice status/revenue will be refetched from backend on next login
+    console.log("[Auth] 🧹 Clearing all user stores before logout");
+    
+    try {
+      // Clear invoice store by hydrating with empty array
+      const { hydrateInvoices } = useInvoiceStore.getState();
+      hydrateInvoices([]);
+      console.log("[Auth] ✅ Invoice store cleared");
+    } catch (err) {
+      console.warn("[Auth] ⚠️  Could not clear invoice store:", err);
+    }
+    
+    // Remove cached data from AsyncStorage too
+    try {
+      await AsyncStorage.removeItem("invoiceStore");
+      console.log("[Auth] ✅ Removed cached invoice store");
+    } catch (err) {
+      console.warn("[Auth] ⚠️  Could not remove cached invoice store:", err);
+    }
+    
     setUser(null);
     setSession(null);
-    setCurrentUserId(null); // ✅ Clear current user tracking
+    setCurrentUserId(null);
     setError(null);
 
-    console.log("[Auth] Signed out successfully");
+    console.log("[Auth] ✅ Signed out and cleared all user data");
   };
 
   const signOut = async () => {
