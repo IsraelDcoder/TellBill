@@ -205,7 +205,7 @@ export default function InvoiceEditScreen() {
     >
       <ScrollView
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.md,
+          paddingTop: headerHeight + 18,
           paddingBottom: insets.bottom + Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}
