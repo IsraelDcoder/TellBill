@@ -18,7 +18,7 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot, marginTop: headerHeight + 18 }]}
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
         paddingBottom: insets.bottom + Spacing.xl,
         paddingHorizontal: Spacing.lg,

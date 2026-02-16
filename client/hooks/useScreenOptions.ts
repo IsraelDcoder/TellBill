@@ -9,7 +9,7 @@ interface UseScreenOptionsParams {
 }
 
 export function useScreenOptions({
-  transparent = true,
+  transparent = false,
 }: UseScreenOptionsParams = {}): NativeStackNavigationOptions {
   const { theme, isDark } = useTheme();
 

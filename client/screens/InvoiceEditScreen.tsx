@@ -204,7 +204,7 @@ export default function InvoiceEditScreen() {
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
     >
       <ScrollView
-        style={{ marginTop: headerHeight + 18, flex: 1 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{
           paddingBottom: insets.bottom + Spacing["3xl"],
           paddingHorizontal: Spacing.lg,

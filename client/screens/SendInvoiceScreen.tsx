@@ -102,7 +102,7 @@ export default function SendInvoiceScreen() {
         onSuccess={handleSendSuccess}
       />
       <ScrollView
-        style={{ marginTop: headerHeight + 18, flex: 1 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{
           paddingBottom: Spacing["3xl"],
           paddingHorizontal: Spacing.lg,

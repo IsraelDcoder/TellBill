@@ -101,7 +101,7 @@ export default function PricingScreen({ route, navigation }: any) {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        style={{ marginTop: headerHeight + 18, flex: 1 }}
+        style={{ flex: 1 }}
         contentContainerStyle={[
           styles.content,
           {

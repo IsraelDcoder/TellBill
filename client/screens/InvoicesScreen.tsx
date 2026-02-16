@@ -69,7 +69,7 @@ export default function InvoicesScreen() {
       <View
         style={[
           styles.filterContainer,
-          { marginTop: headerHeight + Spacing.sm },
+          {}
         ]}
       >
         {filters.map((filter) => (
