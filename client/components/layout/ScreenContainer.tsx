@@ -99,9 +99,12 @@ export function ScreenContainer({
     return (
       <ScrollView
         style={containerStyle}
-        contentContainerStyle={scrollContentStyle}
+        contentContainerStyle={[scrollContentStyle, { flexGrow: 1 }]}
         scrollIndicatorInsets={{ bottom: insets.bottom }}
         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
         testID={testID}
       >
         {children}
