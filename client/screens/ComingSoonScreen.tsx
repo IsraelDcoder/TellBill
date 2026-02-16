@@ -2,6 +2,7 @@ import React from "react";
 import {
   StyleSheet,
   View,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -49,6 +50,25 @@ export default function ComingSoonScreen() {
   const description =
     featureDescriptions[feature] ||
     "This exciting feature is currently in development and will be available soon.";
+
+  const handleContactDeveloper = async () => {
+    const email = "theonyekachithompson@gmail.com";
+    const subject = encodeURIComponent(`Feature Request: ${feature}`);
+    const body = encodeURIComponent(`Hi,\n\nI'm interested in the ${feature} feature for TellBill.\n\nLooking forward to hearing from you!\n\nBest regards`);
+    const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(mailtoLink);
+      if (canOpen) {
+        await Linking.openURL(mailtoLink);
+      } else {
+        // Fallback: just open the email app
+        await Linking.openURL(`mailto:${email}`);
+      }
+    } catch (error) {
+      console.error("Error opening email:", error);
+    }
+  };
 
   return (
     <View
@@ -111,7 +131,7 @@ export default function ComingSoonScreen() {
               </ThemedText>
             </View>
           </View>
-          <Button onPress={() => navigation.goBack()} style={styles.notifyButton}>
+          <Button onPress={handleContactDeveloper} style={styles.notifyButton}>
             Contact Developer
           </Button>
         </GlassCard>
