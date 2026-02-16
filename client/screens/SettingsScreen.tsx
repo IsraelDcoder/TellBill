@@ -2,17 +2,20 @@ import React, { useState } from "react";
 import {
   StyleSheet,
   View,
-  ScrollView,
   Pressable,
   Switch,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
+import {
+  ScreenContainer,
+  Section,
+  SectionTitle,
+  ScreenGroup,
+} from "@/components/layout";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -27,6 +30,11 @@ interface SettingItemProps {
   toggleValue?: boolean;
   onToggle?: (value: boolean) => void;
   onPress?: () => void;
+}
+
+function Divider() {
+  const { theme } = useTheme();
+  return <View style={[styles.divider, { backgroundColor: theme.border }]} />;
 }
 
 function SettingItem({
@@ -84,8 +92,6 @@ function SettingItem({
 }
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
 
@@ -94,47 +100,23 @@ export default function SettingsScreen() {
   const [autoReminders, setAutoReminders] = useState(true);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot, marginTop: headerHeight + 18 }]}
-      contentContainerStyle={{
-        paddingBottom: insets.bottom + Spacing.xl,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.section}>
-        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-          ACCOUNT
-        </ThemedText>
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+    <ScreenContainer testID="settings-screen">
+      {/* ACCOUNT Section */}
+      <Section spacing="compact">
+        <SectionTitle title="Account" />
+        <ScreenGroup bordered>
           <SettingItem icon="user" label="Edit Profile" onPress={() => navigation.navigate("EditProfile")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="briefcase" label="Company Info" onPress={() => navigation.navigate("CompanyInfo")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="lock" label="Change Password" onPress={() => navigation.navigate("ChangePassword")} />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <View style={styles.section}>
-        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-          NOTIFICATIONS
-        </ThemedText>
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* NOTIFICATIONS Section */}
+      <Section>
+        <SectionTitle title="Notifications" />
+        <ScreenGroup bordered>
           <SettingItem
             icon="bell"
             label="Push Notifications"
@@ -142,7 +124,7 @@ export default function SettingsScreen() {
             toggleValue={notifications}
             onToggle={setNotifications}
           />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem
             icon="clock"
             label="Auto Reminders"
@@ -150,22 +132,13 @@ export default function SettingsScreen() {
             toggleValue={autoReminders}
             onToggle={setAutoReminders}
           />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <View style={styles.section}>
-        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-          PREFERENCES
-        </ThemedText>
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* PREFERENCES Section */}
+      <Section>
+        <SectionTitle title="Preferences" />
+        <ScreenGroup bordered>
           <SettingItem
             icon="smartphone"
             label="Haptic Feedback"
@@ -173,84 +146,48 @@ export default function SettingsScreen() {
             toggleValue={haptics}
             onToggle={setHaptics}
           />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="dollar-sign" label="Currency" value="USD" onPress={() => navigation.navigate("Currency")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="percent" label="Default Tax Rate" value="8%" onPress={() => navigation.navigate("TaxRate")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="file-text" label="Invoice Template" value="Professional" onPress={() => navigation.navigate("InvoiceTemplate")} />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <View style={styles.section}>
-        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-          SUPPORT
-        </ThemedText>
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* SUPPORT Section */}
+      <Section>
+        <SectionTitle title="Support" />
+        <ScreenGroup bordered>
           <SettingItem icon="help-circle" label="Help Center" onPress={() => navigation.navigate("HelpSupport")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="message-circle" label="Contact Support" onPress={() => navigation.navigate("HelpSupport")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="star" label="Rate TellBill" onPress={() => {}} />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <View style={styles.section}>
-        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
-          LEGAL
-        </ThemedText>
-        <View
-          style={[
-            styles.settingsGroup,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* LEGAL Section */}
+      <Section>
+        <SectionTitle title="Legal" />
+        <ScreenGroup bordered>
           <SettingItem icon="file" label="Terms of Service" onPress={() => navigation.navigate("TermsOfService")} />
-          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Divider />
           <SettingItem icon="shield" label="Privacy Policy" onPress={() => navigation.navigate("PrivacyPolicy")} />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <ThemedText
-        type="caption"
-        style={[styles.version, { color: theme.textSecondary }]}
-      >
-        TellBill v1.0.0
-      </ThemedText>
-    </ScrollView>
+      {/* Version Footer */}
+      <View style={styles.footer}>
+        <ThemedText type="caption" style={[styles.version, { color: theme.textSecondary }]}>
+          TellBill v1.0.0
+        </ThemedText>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  section: {
-    marginBottom: Spacing["2xl"],
-  },
-  sectionLabel: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
-  settingsGroup: {
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -270,10 +207,14 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginLeft: Spacing.lg + 18 + Spacing.md,
+    marginLeft: 18 + Spacing.md + Spacing.lg, // icon + gap + padding
+  },
+  footer: {
+    marginTop: Spacing["2xl"],
+    paddingTop: Spacing.xl,
+    alignItems: "center",
   },
   version: {
     textAlign: "center",
-    marginBottom: Spacing.xl,
   },
 });
