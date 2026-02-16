@@ -4,6 +4,8 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApiUrl } from "@/lib/backendUrl";
 
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -160,6 +162,76 @@ export default function ProfileScreen() {
       });
       
       return () => {}; // cleanup function
+    }, [getStats])
+  );
+
+  // ✅ CRITICAL: Refetch invoice data when screen comes into focus
+  // Ensures revenue is always up-to-date after marking invoices as paid
+  useFocusEffect(
+    React.useCallback(() => {
+      const refetchInvoices = async () => {
+        try {
+          console.log("[Profile] 🔄 Refetching invoices from backend...");
+          const token = await AsyncStorage.getItem("authToken");
+          if (!token) {
+            console.warn("[Profile] ⚠️  No auth token for refetch");
+            return;
+          }
+
+          const response = await fetch(getApiUrl("/api/data/all"), {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.invoices) {
+              console.log(`[Profile] ✅ Refetched ${data.data.invoices.length} invoices`);
+              // Update invoiceStore with fresh data
+              const { hydrateInvoices } = useInvoiceStore.getState();
+              // Parse items JSON for each invoice
+              const parsedInvoices = data.data.invoices.map((inv: any) => ({
+                ...inv,
+                items: typeof inv.items === 'string' ? JSON.parse(inv.items || '[]') : (inv.items || []),
+              }));
+              hydrateInvoices(parsedInvoices);
+              
+              // Recalculate stats with fresh data
+              const stats = getStats();
+              const invoicesCreated = Math.round(stats.timeSaved / 0.5);
+              const revenueInCents = stats.revenue;
+              const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
+              
+              const revenueInDollars = revenueInCents / 100;
+              let formattedRevenue: string;
+              if (revenueInDollars >= 1000) {
+                const kilos = revenueInDollars / 1000;
+                const shouldShowDecimals = kilos % 1 !== 0;
+                formattedRevenue = `$${kilos.toFixed(shouldShowDecimals ? 1 : 0)}K`;
+              } else {
+                formattedRevenue = formatCurrency(revenueInCents);
+              }
+              
+              setProfileStats({
+                invoicesCreated,
+                formattedRevenue,
+                timeSavedHours,
+              });
+            }
+          } else {
+            console.warn("[Profile] ⚠️  Failed to refetch invoices:", response.status);
+          }
+        } catch (err) {
+          console.warn("[Profile] ⚠️  Refetch error:", err);
+          // Non-blocking: Continue showing cached data
+        }
+      };
+
+      refetchInvoices();
+      return () => {}; // cleanup
     }, [getStats])
   );
 

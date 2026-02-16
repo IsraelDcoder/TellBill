@@ -6,9 +6,11 @@ import {
   Dimensions,
 } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApiUrl } from "@/lib/backendUrl";
 
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -34,8 +36,54 @@ export default function HomeScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { invoices, getStats } = useInvoiceStore();
+  const { invoices, getStats, hydrateInvoices } = useInvoiceStore();
   const stats = getStats();
+
+  // ✅ CRITICAL: Refetch invoice data when screen comes into focus
+  // Ensures KPI metrics are always up-to-date after invoice status changes
+  useFocusEffect(
+    React.useCallback(() => {
+      const refetchInvoices = async () => {
+        try {
+          console.log("[Home] 🔄 Refetching invoices from backend...");
+          const token = await AsyncStorage.getItem("authToken");
+          if (!token) {
+            console.warn("[Home] ⚠️  No auth token for refetch");
+            return;
+          }
+
+          const response = await fetch(getApiUrl("/api/data/all"), {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.invoices) {
+              console.log(`[Home] ✅ Refetched ${data.data.invoices.length} invoices`);
+              // Parse items JSON for each invoice and update store
+              const parsedInvoices = data.data.invoices.map((inv: any) => ({
+                ...inv,
+                items: typeof inv.items === 'string' ? JSON.parse(inv.items || '[]') : (inv.items || []),
+              }));
+              hydrateInvoices(parsedInvoices);
+            }
+          } else {
+            console.warn("[Home] ⚠️  Failed to refetch invoices:", response.status);
+          }
+        } catch (err) {
+          console.warn("[Home] ⚠️  Refetch error:", err);
+          // Non-blocking: Continue showing cached data
+        }
+      };
+
+      refetchInvoices();
+      return () => {}; // cleanup
+    }, [hydrateInvoices])
+  );
 
   const recentInvoices = invoices.slice(0, 5);
 

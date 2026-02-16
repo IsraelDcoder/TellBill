@@ -133,19 +133,32 @@ export default function InvoiceDetailScreen() {
       // ✅ Update local state with backend response
       updateInvoice(invoice.id, data.invoice);
       
-      // ✅ CRITICAL: Refetch all invoices to recalculate revenue
-      const invoiceResponse = await fetch(`${backendUrl}/api/invoices`, {
+      // ✅ CRITICAL: Refetch all invoices from backend to recalculate revenue
+      // Use /api/data/all endpoint which returns fresh data from DB
+      const rehydrateResponse = await fetch(`${backendUrl}/api/data/all`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
-      if (invoiceResponse.ok) {
-        const invoiceData = await invoiceResponse.json();
-        console.log("[InvoiceDetail] 🔄 Refetched invoices, revenue updated");
-        const { hydrateInvoices } = useInvoiceStore.getState();
-        hydrateInvoices(invoiceData.invoices);
+      if (rehydrateResponse.ok) {
+        const rehydrateData = await rehydrateResponse.json();
+        if (rehydrateData.success && rehydrateData.data?.invoices) {
+          console.log("[InvoiceDetail] 📊 Refetched all invoices, revenue recalculated");
+          // Update invoiceStore with fresh data from backend
+          const { hydrateInvoices } = useInvoiceStore.getState();
+          // Parse items JSON and hydrate
+          const parsedInvoices = rehydrateData.data.invoices.map((inv: any) => ({
+            ...inv,
+            items: typeof inv.items === 'string' ? JSON.parse(inv.items || '[]') : (inv.items || []),
+          }));
+          hydrateInvoices(parsedInvoices);
+          console.log("[InvoiceDetail] ✅ Invoice store rehydrated with fresh data");
+        }
+      } else {
+        console.warn("[InvoiceDetail] ⚠️  Could not refetch invoices:", rehydrateResponse.status);
       }
 
       Alert.alert("Success", "Invoice marked as paid!");
