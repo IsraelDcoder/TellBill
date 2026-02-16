@@ -1,13 +1,17 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Pressable, ScrollView, Image } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { StyleSheet, View, Pressable } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
+import {
+  ScreenContainer,
+  Section,
+  SectionTitle,
+  ScreenGroup,
+} from "@/components/layout";
 import { GlassCard } from "@/components/GlassCard";
 import { LogoutConfirmation } from "@/components/LogoutConfirmation";
 import { useTheme } from "@/hooks/useTheme";
@@ -84,9 +88,12 @@ function MenuItem({ icon, label, onPress, showBadge, badgeText }: MenuItemProps)
   );
 }
 
+function MenuDivider() {
+  const { theme } = useTheme();
+  return <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />;
+}
+
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
@@ -157,13 +164,8 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      contentContainerStyle={{
-        paddingBottom: tabBarHeight + Spacing.xl,
-      }}
-      scrollIndicatorInsets={{ bottom: insets.bottom }}
-    >
+    <ScreenContainer scrollable paddingBottom="default">
+      {/* Profile Header */}
       <View style={styles.profileHeader}>
         <View
           style={[
@@ -172,8 +174,8 @@ export default function ProfileScreen() {
           ]}
         >
           <ThemedText type="h1" style={{ color: BrandColors.constructionGold }}>
-              {avatarInitials}
-            </ThemedText>
+            {avatarInitials}
+          </ThemedText>
         </View>
         <ThemedText type="h2" style={styles.name}>
           {displayName}
@@ -189,50 +191,44 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <GlassCard style={styles.statsCard}>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {profileStats.invoicesCreated}
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              Invoices Created
-            </ThemedText>
+      {/* Stats Card */}
+      <Section spacing="compact">
+        <GlassCard style={styles.statsCard}>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+                {profileStats.invoicesCreated}
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                Invoices Created
+              </ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+            <View style={styles.statItem}>
+              <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+                {profileStats.formattedRevenue}
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                Revenue Generated
+              </ThemedText>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
+            <View style={styles.statItem}>
+              <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
+                {profileStats.timeSavedHours}h
+              </ThemedText>
+              <ThemedText type="caption" style={{ color: theme.textSecondary }}>
+                Time Saved
+              </ThemedText>
+            </View>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {profileStats.formattedRevenue}
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              Revenue Generated
-            </ThemedText>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-          <View style={styles.statItem}>
-            <ThemedText type="h2" style={{ color: BrandColors.constructionGold }}>
-              {profileStats.timeSavedHours}h
-            </ThemedText>
-            <ThemedText type="caption" style={{ color: theme.textSecondary }}>
-              Time Saved
-            </ThemedText>
-          </View>
-        </View>
-      </GlassCard>
+        </GlassCard>
+      </Section>
 
-      <View style={styles.menuSection}>
-        <ThemedText type="small" style={[styles.menuLabel, { color: theme.textSecondary }]}>
-          ACCOUNT
-        </ThemedText>
-        <View
-          style={[
-            styles.menuContainer,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* Account Menu */}
+      <Section>
+        <SectionTitle title="Account" />
+        <ScreenGroup bordered>
           <MenuItem
             icon="credit-card"
             label="Billing & Subscription"
@@ -240,54 +236,46 @@ export default function ProfileScreen() {
             showBadge
             badgeText="Solo"
           />
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuDivider />
           <MenuItem
             icon="settings"
             label="Settings"
             onPress={() => navigation.navigate("Settings")}
           />
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuDivider />
           <MenuItem
             icon="help-circle"
             label="Help & Support"
             onPress={() => navigation.navigate("HelpSupport")}
           />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
-      <View style={styles.menuSection}>
-        <ThemedText type="small" style={[styles.menuLabel, { color: theme.textSecondary }]}>
-          COMING SOON
-        </ThemedText>
-        <View
-          style={[
-            styles.menuContainer,
-            {
-              backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* Coming Soon Menu */}
+      <Section>
+        <SectionTitle title="Coming Soon" />
+        <ScreenGroup bordered>
           <MenuItem
             icon="link"
             label="QuickBooks Integration"
             onPress={() => navigation.navigate("ComingSoon", { feature: "QuickBooks Integration" })}
           />
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuDivider />
           <MenuItem
             icon="map-pin"
             label="GPS Verification Audit"
             onPress={() => navigation.navigate("ComingSoon", { feature: "GPS Verification Audit" })}
           />
-          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <MenuDivider />
           <MenuItem
             icon="star"
             label="White-Label Enterprise"
             onPress={() => navigation.navigate("ComingSoon", { feature: "White-Label Enterprise" })}
           />
-        </View>
-      </View>
+        </ScreenGroup>
+      </Section>
 
+      {/* Logout Button */}
       <Pressable
         style={styles.logoutButton}
         onPress={() => setShowLogoutConfirmation(true)}
@@ -302,18 +290,16 @@ export default function ProfileScreen() {
         isVisible={showLogoutConfirmation}
         onDismiss={() => setShowLogoutConfirmation(false)}
       />
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   profileHeader: {
     alignItems: "center",
-    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing["2xl"],
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
   },
   avatar: {
     width: 100,
@@ -337,8 +323,9 @@ const styles = StyleSheet.create({
     backgroundColor: `${BrandColors.constructionGold}15`,
   },
   statsCard: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing["2xl"],
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   statsRow: {
     flexDirection: "row",
@@ -352,21 +339,6 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-  },
-  menuSection: {
-    marginBottom: Spacing["2xl"],
-  },
-  menuLabel: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    fontWeight: "600",
-    letterSpacing: 1,
-  },
-  menuContainer: {
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    overflow: "hidden",
   },
   menuItem: {
     flexDirection: "row",
@@ -407,7 +379,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
-    marginHorizontal: Spacing.lg,
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing["2xl"],
+    marginTop: Spacing.xl,
   },
 });

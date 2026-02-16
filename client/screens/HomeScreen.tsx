@@ -2,24 +2,26 @@ import React from "react";
 import {
   StyleSheet,
   View,
-  ScrollView,
   Image,
   Dimensions,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { ThemedText } from "@/components/ThemedText";
+import {
+  ScreenContainer,
+  Section,
+  SectionTitle,
+} from "@/components/layout";
 import { KPICard } from "@/components/KPICard";
 import { QuickActionButton } from "@/components/QuickActionButton";
 import { ActivityItem, ActivityStatus } from "@/components/ActivityItem";
 import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
-import { Spacing, BrandColors, BorderRadius } from "@/constants/theme";
+import { Spacing, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { formatCurrency } from "@/utils/formatCurrency";
@@ -29,8 +31,6 @@ const { width } = Dimensions.get("window");
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
-  const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
@@ -40,15 +40,8 @@ export default function HomeScreen() {
   const recentInvoices = invoices.slice(0, 5);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      contentContainerStyle={{
-        paddingBottom: tabBarHeight + Spacing.xl,
-        paddingHorizontal: Spacing.lg,
-      }}
-      scrollIndicatorInsets={{ bottom: insets.bottom }}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScreenContainer scrollable paddingBottom="default">
+      {/* Hero Section */}
       <View style={styles.heroContainer}>
         <Image
           source={require("../assets/images/dashboard_hero_construction_site.png")}
@@ -76,7 +69,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.content}>
+      {/* KPI Cards Section */}
+      <Section spacing="compact">
         <View style={styles.kpiRow}>
           <KPICard
             title="Invoices Sent"
@@ -104,58 +98,58 @@ export default function HomeScreen() {
             icon="clock"
           />
         </View>
+      </Section>
 
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Quick Actions
-          </ThemedText>
-          <View style={styles.quickActions}>
-            <QuickActionButton
-              title="Record Voice"
-              icon="mic"
-              isPrimary
-              size="large"
-              onPress={() => navigation.navigate("VoiceRecording")}
-            />
-            <QuickActionButton
-              title="Create Invoice"
-              icon="file-plus"
-              onPress={() =>
-                navigation.navigate("TranscriptReview", { transcript: "" })
-              }
-            />
-            <QuickActionButton
-              title="View History"
-              icon="list"
-              onPress={() =>
-                navigation.navigate("Main", { screen: "InvoicesTab" } as any)
-              }
-            />
-            <QuickActionButton
-              title="Material Costs"
-              icon="box"
-              onPress={() => navigation.navigate("MaterialCostCapture" as any)}
-            />
-          </View>
+      {/* Quick Actions Section */}
+      <Section>
+        <SectionTitle title="Quick Actions" />
+        <View style={styles.quickActions}>
+          <QuickActionButton
+            title="Record Voice"
+            icon="mic"
+            isPrimary
+            size="large"
+            onPress={() => navigation.navigate("VoiceRecording")}
+          />
+          <QuickActionButton
+            title="Create Invoice"
+            icon="file-plus"
+            onPress={() =>
+              navigation.navigate("TranscriptReview", { transcript: "" })
+            }
+          />
+          <QuickActionButton
+            title="View History"
+            icon="list"
+            onPress={() =>
+              navigation.navigate("Main", { screen: "InvoicesTab" } as any)
+            }
+          />
+          <QuickActionButton
+            title="Material Costs"
+            icon="box"
+            onPress={() => navigation.navigate("MaterialCostCapture" as any)}
+          />
         </View>
+      </Section>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="h3" style={styles.sectionTitle}>
-              Recent Activity
-            </ThemedText>
-            <ThemedText
-              type="link"
-              style={{ color: BrandColors.constructionGold }}
-              onPress={() =>
-                navigation.navigate("Main", { screen: "InvoicesTab" } as any)
-              }
-            >
-              See All
-            </ThemedText>
-          </View>
-          {recentInvoices.length > 0 ? (
-            recentInvoices.map((invoice) => (
+      {/* Recent Activity Section */}
+      <Section>
+        <View style={styles.sectionHeader}>
+          <SectionTitle title="Recent Activity" />
+          <ThemedText
+            type="link"
+            style={[styles.seeAllLink, { color: BrandColors.constructionGold }]}
+            onPress={() =>
+              navigation.navigate("Main", { screen: "InvoicesTab" } as any)
+            }
+          >
+            See All
+          </ThemedText>
+        </View>
+        {recentInvoices.length > 0 ? (
+          <View style={styles.activityList}>
+            {recentInvoices.map((invoice) => (
               <ActivityItem
                 key={invoice.id}
                 clientName={invoice.clientName}
@@ -167,30 +161,30 @@ export default function HomeScreen() {
                   navigation.navigate("InvoiceDetail", { invoiceId: invoice.id })
                 }
               />
-            ))
-          ) : (
-            <GlassCard style={styles.emptyCard}>
-              <ThemedText
-                type="body"
-                style={[styles.emptyText, { color: theme.textSecondary }]}
-              >
-                No recent activity. Start by recording your first job!
-              </ThemedText>
-            </GlassCard>
-          )}
-        </View>
-      </View>
-    </ScrollView>
+            ))}
+          </View>
+        ) : (
+          <GlassCard style={styles.emptyCard}>
+            <ThemedText
+              type="body"
+              style={[styles.emptyText, { color: theme.textSecondary }]}
+            >
+              No recent activity. Start by recording your first job!
+            </ThemedText>
+          </GlassCard>
+        )}
+      </Section>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   heroContainer: {
     height: 220,
     position: "relative",
+    marginHorizontal: -Spacing.lg,
+    marginTop: -Spacing.lg,
+    marginBottom: Spacing.md,
   },
   heroImage: {
     width: "100%",
@@ -216,30 +210,26 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontWeight: "700",
   },
-  content: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
   kpiRow: {
     flexDirection: "row",
     gap: Spacing.md,
-  },
-  section: {
-    marginTop: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.md,
   },
   quickActions: {
     flexDirection: "row",
     justifyContent: "space-around",
     paddingVertical: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.lg,
+  },
+  seeAllLink: {
+    fontWeight: "600",
+  },
+  activityList: {
+    gap: Spacing.sm,
   },
   emptyCard: {
     alignItems: "center",
