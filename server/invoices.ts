@@ -192,6 +192,63 @@ export function registerInvoiceRoutes(app: Express) {
           `[Invoice] Sending ${method} to ${contact} for invoice ${invoiceId}`
         );
 
+        // ✅ FETCH INVOICE FROM DATABASE to get complete invoice data including items
+        const invoiceResult = await db
+          .select()
+          .from(schema.invoices)
+          .where(eq(schema.invoices.id, invoiceId))
+          .limit(1);
+
+        if (!invoiceResult || invoiceResult.length === 0) {
+          console.error(`[Invoice] ❌ Invoice ${invoiceId} not found in database`);
+          return res.status(404).json({
+            success: false,
+            error: "Invoice not found",
+            message: `Invoice ${invoiceId} not found in database`,
+            details: "The invoice you're trying to send doesn't exist or has been deleted"
+          });
+        }
+
+        const dbInvoice = invoiceResult[0];
+        
+        // ✅ Parse items JSON and build complete invoiceData object
+        let items: any[] = [];
+        if (dbInvoice.items) {
+          try {
+            const parsedItems = typeof dbInvoice.items === 'string' 
+              ? JSON.parse(dbInvoice.items) 
+              : dbInvoice.items;
+            items = Array.isArray(parsedItems) ? parsedItems : [];
+          } catch (parseError) {
+            console.warn(`[Invoice] Warning: Failed to parse items JSON for invoice ${invoiceId}:`, parseError);
+            items = [];
+          }
+        }
+
+        // ✅ Build complete invoiceData object with all fields from database
+        const completeInvoiceData = {
+          clientName: dbInvoice.clientName || clientName,
+          clientEmail: dbInvoice.clientEmail || undefined,
+          clientPhone: dbInvoice.clientPhone || undefined,
+          total: typeof dbInvoice.total === 'string' ? parseFloat(dbInvoice.total) : dbInvoice.total || 0,
+          taxAmount: typeof dbInvoice.taxAmount === 'string' ? parseFloat(dbInvoice.taxAmount) : dbInvoice.taxAmount || 0,
+          subtotal: typeof dbInvoice.subtotal === 'string' ? parseFloat(dbInvoice.subtotal) : dbInvoice.subtotal || 0,
+          items: items, // ✅ THIS WAS MISSING - now populated from database
+          laborHours: dbInvoice.laborHours || 0,
+          laborRate: typeof dbInvoice.laborRate === 'string' ? parseFloat(dbInvoice.laborRate) : dbInvoice.laborRate || 0,
+          laborTotal: typeof dbInvoice.laborTotal === 'string' ? parseFloat(dbInvoice.laborTotal) : dbInvoice.laborTotal || 0,
+          materialsTotal: typeof dbInvoice.materialsTotal === 'string' ? parseFloat(dbInvoice.materialsTotal) : dbInvoice.materialsTotal || 0,
+          notes: dbInvoice.notes || undefined,
+          dueDate: dbInvoice.dueDate ? new Date(dbInvoice.dueDate).toISOString().split('T')[0] : undefined, // Convert to YYYY-MM-DD format
+          paymentTerms: dbInvoice.paymentTerms || undefined,
+        };
+
+        console.log(`[Invoice] ✅ Fetched invoice from DB with ${items.length} items:`, {
+          invoiceId,
+          itemCount: items.length,
+          total: completeInvoiceData.total,
+        });
+
         // Route to appropriate service based on method
         try {
           if (method === "email") {
@@ -201,7 +258,7 @@ export function registerInvoiceRoutes(app: Express) {
                 clientName,
                 invoiceId,
                 "", // Empty HTML for now, can be enhanced
-                invoiceData
+                completeInvoiceData  // ✅ Use complete invoice data from database
               );
               
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
