@@ -73,8 +73,8 @@ export function registerStripeRoutes(app: Express) {
             quantity: 1,
           },
         ],
-        success_url: `${FRONTEND_URL}/billing/success?sessionId={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${FRONTEND_URL}/billing/cancel`,
+        success_url: `https://tellbill.app/billing/success?sessionId={CHECKOUT_SESSION_ID}`,
+        cancel_url: `https://tellbill.app/billing/cancel`,
         metadata: {
           userId,
           plan,
