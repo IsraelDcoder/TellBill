@@ -176,6 +176,8 @@ export default function InvoiceDraftScreen() {
     
     // ✅ SAVE TO BACKEND to persist data across logout
     // CRITICAL: Wait for backend save to complete before navigating!
+    let backendInvoiceId = invoice.id; // Fallback to local ID if backend save fails
+    
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
@@ -218,13 +220,19 @@ export default function InvoiceDraftScreen() {
 
       const data = await response.json();
       console.log("[InvoiceDraft] ✅ Invoice saved to backend:", data);
+      
+      // ✅ CRITICAL FIX: Use backend-returned invoice ID for navigation
+      // This ensures we navigate to the correct invoice in the database
+      if (data.invoice?.id) {
+        backendInvoiceId = data.invoice.id;
+      }
     } catch (error) {
       console.error("[InvoiceDraft] Error saving to backend:", error);
       // Don't block navigation if backend save fails
     }
     
     incrementInvoices();
-    navigation.navigate("InvoicePreview", { invoiceId: invoice.id });
+    navigation.navigate("InvoicePreview", { invoiceId: backendInvoiceId });
   };
 
   return (
