@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -9,7 +9,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -91,14 +93,55 @@ export default function ChangePasswordScreen() {
 
     setIsLoading(true);
     try {
-      // TODO: Send password change request to backend/Supabase
-      console.log("Changing password");
-      Alert.alert("Success", "Password changed successfully");
+      // Get auth token from storage
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Error", "Not authenticated. Please log in again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Call backend endpoint to change password
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert("Error", data.error || "Failed to change password");
+        return;
+      }
+
+      Alert.alert("Success", "✅ Password changed successfully!\n\nYou'll be signed out for security.");
+      
+      // Clear auth token to force re-login
+      await AsyncStorage.removeItem("authToken");
+      
+      // Reset form
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      
+      // Navigate to login after a short delay
+      setTimeout(() => {
+        // The app will redirect to login since token is removed
+      }, 1500);
     } catch (error) {
-      Alert.alert("Error", "Failed to change password");
+      console.error("Password change error:", error);
+      Alert.alert("Error", "Failed to change password. Please try again.");
     } finally {
       setIsLoading(false);
     }

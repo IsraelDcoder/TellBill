@@ -1710,6 +1710,168 @@ export function registerAuthRoutes(app: Express) {
   );
 
   /**
+   * POST /api/auth/change-password
+   * Change password for authenticated user while logged in
+   * 
+   * REQUIREMENTS:
+   * - User must be authenticated (Authorization: Bearer token)
+   * - Must provide current password (for verification)
+   * - Must provide new password (must be different and meet strength requirements)
+   * - New password must be confirmed
+   * 
+   * SECURITY:
+   * - Verifies current password using bcrypt before allowing change
+   * - New password must meet minimum requirements
+   * - Activity is logged for audit trail
+   */
+  app.post("/api/auth/change-password", async (req: Request, res: Response) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+      
+      // Extract user ID from Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+          success: false,
+          error: "Authentication required",
+        });
+      }
+
+      const token = authHeader.substring(7); // Remove "Bearer " prefix
+      const payload = verifyToken(token);
+      
+      if (!payload || !payload.userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Invalid or expired token",
+        });
+      }
+
+      // Validate inputs
+      if (!currentPassword || !currentPassword.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Current password is required",
+        });
+      }
+
+      if (!newPassword || !newPassword.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "New password is required",
+        });
+      }
+
+      if (!confirmPassword || !confirmPassword.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Password confirmation is required",
+        });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          error: "New passwords do not match",
+        });
+      }
+
+      if (currentPassword === newPassword) {
+        return res.status(400).json({
+          success: false,
+          error: "New password must be different from current password",
+        });
+      }
+
+      // Validate new password strength
+      const strengthCheck = validatePasswordStrength(newPassword);
+      if (!strengthCheck.isValid) {
+        return res.status(400).json({
+          success: false,
+          error: strengthCheck.errors.join(", "),
+        });
+      }
+
+      // Get user from database
+      const userResult = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, payload.userId as string))
+        .limit(1);
+
+      if (userResult.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
+
+      const user = userResult[0];
+
+      // Verify current password matches stored hash using bcrypt
+      const passwordMatches = await comparePassword(currentPassword, user.password);
+
+      if (!passwordMatches) {
+        console.log(`[Auth] Failed password change attempt for ${user.email} - current password incorrect`);
+        return res.status(401).json({
+          success: false,
+          error: "Current password is incorrect",
+        });
+      }
+
+      // Hash new password
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Update user password
+      const updatedUser = await db
+        .update(users)
+        .set({
+          password: hashedPassword,
+        })
+        .where(eq(users.id, payload.userId as string))
+        .returning();
+
+      if (!updatedUser || updatedUser.length === 0) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to update password",
+        });
+      }
+
+      // Log activity
+      await db.insert(activityLog).values({
+        userId: payload.userId as string,
+        action: "password_changed",
+        resourceType: "user",
+        resourceId: payload.userId as string,
+        metadata: JSON.stringify({
+          email: user.email,
+          timestamp: new Date().toISOString(),
+          description: "User changed their password while logged in",
+          ipAddress: req.ip || "unknown",
+        }),
+      });
+
+      console.log(
+        `[Auth] ✅ Password successfully changed for user ${user.email}`
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Password changed successfully",
+      });
+    } catch (error) {
+      console.error("[Auth] Change password error:", error);
+      captureException(error instanceof Error ? error : new Error(String(error)));
+
+      return res.status(500).json({
+        success: false,
+        error: "An error occurred while changing your password",
+      });
+    }
+  });
+
+  /**
    * POST /api/auth/logout
    * Logout user (invalidate refresh token)
    * 
