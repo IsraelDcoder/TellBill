@@ -14,7 +14,6 @@ import { registerMaterialCostRoutes } from "./materialCosts";
 import { registerMoneyAlertRoutes } from "./moneyAlerts";
 import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
-import { attachUserEntitlement, requireEntitlement } from "./entitlements";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ✅ HEALTH CHECK (No auth required - for Docker healthchecks and load balancers)

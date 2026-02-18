@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
-import type { Database } from "drizzle-orm/sql.js";
 
-export async function up(db: Database) {
+export async function up(db: any) {
   // Add payment link fields to invoices table
   await db.run(
     sql`ALTER TABLE invoices ADD COLUMN payment_link_url TEXT`
