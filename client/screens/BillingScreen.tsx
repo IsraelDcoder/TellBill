@@ -1,402 +1,510 @@
-import React, { useState, useEffect } from "react";
+/**
+ * 🎯 Mobile-First Billing Screen
+ * 
+ * Zero browser redirects. Pure native IAP via RevenueCat.
+ * 
+ * Flow:
+ * 1. Load offerings from RevenueCat SDK
+ * 2. Display plans with store pricing
+ * 3. User taps "Upgrade Now"
+ * 4. Native iOS/Android subscription UI opens
+ * 5. Purchase processed, app verifies with backend
+ * 6. Features unlock instantly
+ */
+
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  StyleSheet,
   View,
   ScrollView,
-  Pressable,
+  StyleSheet,
   ActivityIndicator,
   Alert,
+  Platform,
+  Pressable,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
+import Purchases, {
+  PurchasesPackage,
+  PurchasesOffering,
+  CustomerInfo,
+} from "react-native-purchases";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
+import { BrandColors, Spacing, BorderRadius } from "@/constants/theme";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useAuth } from "@/context/AuthContext";
-import { useProfileStore } from "@/stores/profileStore";
-import { useSubscriptionStore, PLAN_LIMITS } from "@/stores/subscriptionStore";
-import { stripeService } from "@/services/stripeService";
-import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 
-interface PlanCardProps {
+interface PricingTier {
   name: string;
-  price: string;
-  period: string;
-  badge: string;
-  tagline: string;
-  color: string;
+  description: string;
   features: string[];
-  isCurrent: boolean;
+  package?: PurchasesPackage;
   isPopular?: boolean;
-  onSelect: () => void;
-  isLoading?: boolean;
-}
-
-function PlanCard({
-  name,
-  price,
-  period,
-  badge,
-  tagline,
-  color,
-  features,
-  isCurrent,
-  isPopular,
-  onSelect,
-  isLoading,
-}: PlanCardProps) {
-  const { theme, isDark } = useTheme();
-
-  return (
-    <View
-      style={[
-        styles.planCard,
-        {
-          backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundRoot,
-          borderColor: isCurrent ? color : theme.border,
-          borderWidth: isCurrent ? 2 : 1,
-        },
-        isCurrent ? Shadows.md : {},
-      ]}
-    >
-      {isPopular ? (
-        <View style={[styles.popularBadge, { backgroundColor: color }]}>
-          <ThemedText type="small" style={styles.popularText}>
-            {badge}
-          </ThemedText>
-        </View>
-      ) : null}
-
-      <ThemedText type="h3" style={{ color: isCurrent ? color : undefined }}>
-        {name}
-      </ThemedText>
-
-      <ThemedText type="body" style={{ color: theme.textSecondary, marginVertical: Spacing.sm }}>
-        {tagline}
-      </ThemedText>
-
-      <View style={styles.priceRow}>
-        <ThemedText type="h2" style={{ color }}>
-          {price}
-        </ThemedText>
-        <ThemedText type="body" style={{ color: theme.textSecondary }}>
-          {period}
-        </ThemedText>
-      </View>
-
-      {!isPopular && (
-        <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.md }}>
-          {badge}
-        </ThemedText>
-      )}
-
-      <View style={styles.featuresList}>
-        {features.map((feature, index) => (
-          <View key={index} style={styles.featureRow}>
-            <ThemedText type="small">{feature}</ThemedText>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button
-          variant={isCurrent ? "secondary" : "primary"}
-          onPress={onSelect}
-          disabled={isCurrent || isLoading}
-        >
-          {isLoading ? (
-            <View style={styles.loadingContent}>
-              <ActivityIndicator
-                size="small"
-                color={isCurrent ? color : "#fff"}
-              />
-              <ThemedText type="body" style={{ marginLeft: Spacing.sm }}>
-                Processing...
-              </ThemedText>
-            </View>
-          ) : isCurrent ? (
-            "Current Plan"
-          ) : (
-            "Upgrade Now"
-          )}
-        </Button>
-      </View>
-    </View>
-  );
 }
 
 export default function BillingScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
-  const { theme, isDark } = useTheme();
-  const { currentPlan, pricingTiers, isSubscribed } = useSubscriptionStore();
+  const { theme } = useTheme();
   const { user } = useAuth();
-  const { userProfile, companyInfo } = useProfileStore();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { userEntitlement, setUserEntitlement } = useSubscriptionStore();
 
-  const handleUpgradePress = async (planId: string) => {
-    // Validate we have email
-    if (!user?.email) {
-      Alert.alert(
-        "Missing Information",
-        "We need your email to process the payment. Please sign in again."
-      );
-      return;
-    }
+  const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
-    setLoadingPlan(planId);
-    setIsProcessing(true);
+  /**
+   * Get auth token from storage
+   */
+  useEffect(() => {
+    AsyncStorage.getItem("authToken").then((t) => {
+      if (t) setToken(t);
+    });
+  }, []);
 
+  /**
+   * Load pricing from RevenueCat
+   */
+  const loadOfferings = useCallback(async () => {
     try {
-      // Initiate Stripe checkout
-      await stripeService.initiateCheckout(
-        planId as "solo" | "professional" | "enterprise"
-      );
-    } catch (error) {
-      Alert.alert(
-        "Checkout Error",
-        error instanceof Error ? error.message : "Failed to redirect to checkout. Please try again."
-      );
-      console.error("Checkout error:", error);
-    } finally {
-      setLoadingPlan(null);
-      setIsProcessing(false);
-    }
-  };
+      console.log("Loading RevenueCat offerings...");
+      const offerings = await Purchases.getOfferings();
 
-  // Build plans array with current pricing from store
-  const plans = [
-    {
-      id: "free",
-      name: "Free",
-      price: "$0",
-      period: "forever",
-      badge: "Trial Only",
-      tagline: "This works… but I can't run my business like this.",
-      features: [
-        "✅ 3 voice recordings (lifetime)",
-        "✅ 3 invoices (lifetime)",
-        "✅ Email invoice delivery",
-        "❌ No Money Alerts",
-        "❌ No material costs tracking",
-        "❌ No client approvals",
-      ],
-      isCurrent: currentPlan === "free",
-      isPopular: false,
-      color: BrandColors.slateGrey,
+      if (offerings.current) {
+        console.log("✅ Offerings loaded", { current: offerings.current });
+        setOfferings(offerings.current);
+      } else {
+        Alert.alert("Error", "No pricing found. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error loading offerings", error);
+      Alert.alert("Error", "Failed to load pricing options");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOfferings();
+  }, [loadOfferings]);
+
+  /**
+   * Verify purchase with backend
+   */
+  const verifyPurchaseWithBackend = useCallback(
+    async (customerInfo: CustomerInfo) => {
+      try {
+        if (!token) {
+          throw new Error("Not authenticated");
+        }
+
+        const response = await fetch(
+          `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/billing/restore-purchases`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              revenuecatCustomerInfo: customerInfo,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Backend verification failed");
+        }
+
+        console.log("✅ Backend verification success", data);
+
+        // Update local subscription state
+        if (data.plan) {
+          setUserEntitlement(data.plan);
+        }
+
+        return data;
+      } catch (error) {
+        console.error("Backend verification error", error);
+        throw error;
+      }
     },
+    [token, setUserEntitlement]
+  );
+
+  /**
+   * Handle purchase
+   */
+  const handlePurchase = useCallback(
+    async (tier: PricingTier) => {
+      if (!tier.package) {
+        Alert.alert("Error", "Unable to process purchase");
+        return;
+      }
+
+      try {
+        setPurchasing(tier.package.identifier);
+        console.log("Starting purchase", { product: tier.package.identifier });
+
+        // Make purchase via RevenueCat SDK
+        const { customerInfo } = await Purchases.purchasePackage(tier.package);
+
+        console.log("✅ Purchase successful", { customerInfo });
+
+        // Verify with backend
+        const verification = await verifyPurchaseWithBackend(customerInfo);
+
+        Alert.alert(
+          "Success",
+          `🎉 Upgraded to ${tier.name}!\n\nYour new plan: ${verification.plan}`
+        );
+      } catch (error: any) {
+        if (error.userCancelled) {
+          console.log("User cancelled purchase");
+        } else {
+          console.error("Purchase error", error);
+          Alert.alert("Purchase Failed", error.message || "Please try again");
+        }
+      } finally {
+        setPurchasing(null);
+      }
+    },
+    [verifyPurchaseWithBackend]
+  );
+
+  /**
+   * Handle restore purchases
+   */
+  const handleRestorePurchases = useCallback(async () => {
+    try {
+      setPurchasing("restore");
+      console.log("Restoring purchases...");
+
+      const customerInfo = await Purchases.restorePurchases();
+      console.log("✅ Purchases restored", { customerInfo });
+
+      // Verify with backend
+      await verifyPurchaseWithBackend(customerInfo);
+
+      Alert.alert("Success", "✅ Purchases restored!");
+    } catch (error) {
+      console.error("Restore error", error);
+      Alert.alert("Error", "Failed to restore purchases");
+    } finally {
+      setPurchasing(null);
+    }
+  }, [verifyPurchaseWithBackend]);
+
+  /**
+   * Pricing tiers
+   */
+  const tiers: PricingTier[] = [
     {
-      id: "solo",
       name: "Solo",
-      price: "$29",
-      period: "/month",
-      badge: "Get Organized",
-      tagline: "I'm faster and organized… but extras can still slip.",
+      description: "For individuals",
       features: [
-        "✅ Unlimited voice-to-invoice",
-        "✅ Unlimited invoices",
-        "✅ Money Alerts",
-        "✅ Material costs tracking",
-        "✅ Payment tracking",
-        "✅ Email & WhatsApp delivery",
-        "❌ No scope proof & approval",
+        "✓ 3 invoices/month",
+        "✓ Voice recording",
+        "✓ PDF export",
+        "✓ Email support",
       ],
-      isCurrent: currentPlan === "solo",
-      isPopular: false,
-      color: "#3B82F6",
+      package: offerings?.availablePackages.find(
+        (p) =>
+          p.identifier.includes("solo") ||
+          p.identifier.includes("month") ||
+          p.identifier.includes("annual")
+      ),
     },
     {
-      id: "professional",
       name: "Professional",
-      price: "$79",
-      period: "/month",
-      badge: "⭐ Most Popular",
-      tagline: "Never do unpaid work again.",
+      description: "For growing teams",
       features: [
-        "✅ Everything in Solo",
-        "✅ Scope proof & client approval",
-        "✅ Auto-add approved work",
-        "✅ Photo proof with timestamps",
-        "✅ Approval reminders",
-        "✅ Dispute-ready work logs",
-        "✅ Money Alerts (advanced)",
+        "✓ Unlimited invoices",
+        "✓ Team collaboration",
+        "✓ Scope proof photos",
+        "✓ Payment links",
+        "✓ Priority support",
       ],
-      isCurrent: currentPlan === "professional",
+      package: offerings?.availablePackages.find(
+        (p) =>
+          p.identifier.includes("professional") ||
+          p.identifier.includes("pro")
+      ),
       isPopular: true,
-      color: BrandColors.constructionGold,
     },
     {
-      id: "enterprise",
       name: "Enterprise",
-      price: "$299",
-      period: "/month",
-      badge: "Revenue Infrastructure",
-      tagline: "This runs part of my business.",
+      description: "For enterprises",
       features: [
-        "✅ Everything in Professional",
-        "✅ Unlimited usage everywhere",
-        "✅ Advanced analytics",
-        "✅ API access",
-        "✅ Custom branding",
-        "✅ Priority support",
-        "✅ Dedicated account contact",
+        "✓ Everything in Professional",
+        "✓ Custom invoicing",
+        "✓ API access",
+        "✓ Dedicated support",
+        "✓ White-label options",
       ],
-      isCurrent: currentPlan === "enterprise",
-      isPopular: false,
-      color: "#8B5CF6",
+      package: offerings?.availablePackages.find(
+        (p) => p.identifier.includes("enterprise")
+      ),
     },
   ];
 
-  const paymentHistory = isSubscribed && currentPlan !== "free" ? [
-    { date: "Jan 1, 2026", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
-    { date: "Dec 1, 2025", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
-    { date: "Nov 1, 2025", amount: currentPlan === "professional" ? "$79.00" : currentPlan === "solo" ? "$29.00" : "$299.00", status: "Paid" },
-  ] : [];
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.backgroundRoot,
+            justifyContent: "center",
+            paddingTop: insets.top,
+          },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={BrandColors.constructionGold}
+        />
+        <ThemedText style={{ marginTop: Spacing.lg, textAlign: "center" }}>
+          Loading pricing options...
+        </ThemedText>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
-      contentContainerStyle={{
-        paddingBottom: insets.bottom + Spacing.xl,
-        paddingHorizontal: Spacing.lg,
-      }}
-      showsVerticalScrollIndicator={false}
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.backgroundRoot, paddingTop: insets.top },
+      ]}
     >
-      <GlassCard style={styles.currentPlanCard}>
-        <View style={styles.currentPlanHeader}>
-          <View>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              CURRENT PLAN
-            </ThemedText>
-            <ThemedText type="h2">
-              {plans.find((p) => p.isCurrent)?.name || "Free"}
-            </ThemedText>
-          </View>
-          <View
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <ThemedText type="h2" style={{ marginBottom: Spacing.sm }}>
+            Choose Your Plan
+          </ThemedText>
+          <ThemedText
+            type="body"
+            style={{ color: theme.textSecondary }}
+          >
+            Unlock features and grow your business
+          </ThemedText>
+        </View>
+
+        {/* Annual/Monthly Toggle */}
+        <View style={[styles.toggleContainer, { gap: Spacing.md }]}>
+          <Pressable
+            onPress={() => setIsAnnual(false)}
             style={[
-              styles.activeBadge,
+              styles.toggleButton,
               {
-                backgroundColor:
-                  currentPlan === "free"
-                    ? `${BrandColors.warning}20`
-                    : `${BrandColors.success}20`,
+                backgroundColor: !isAnnual
+                  ? BrandColors.constructionGold
+                  : theme.backgroundDefault,
               },
             ]}
           >
             <ThemedText
-              type="small"
               style={{
-                color: currentPlan === "free" ? BrandColors.warning : BrandColors.success,
-                fontWeight: "600",
+                fontWeight: "bold",
+                color: !isAnnual ? BrandColors.white : theme.text,
               }}
             >
-              {currentPlan === "free" ? "Free" : "Active"}
+              Monthly
             </ThemedText>
-          </View>
-        </View>
-        {isSubscribed && currentPlan !== "free" ? (
-          <ThemedText type="body" style={{ color: theme.textSecondary }}>
-            Next billing date: February 1, 2026
-          </ThemedText>
-        ) : (
-          <ThemedText type="body" style={{ color: theme.textSecondary }}>
-            Upgrade to Professional ($79/month) to protect your revenue with Scope Proof and client approvals
-          </ThemedText>
-        )}
-      </GlassCard>
-
-      <View style={styles.section}>
-        <ThemedText type="h3" style={styles.sectionTitle}>
-          Available Plans
-        </ThemedText>
-        {plans.map((plan, index) => (
-          <PlanCard
-            key={plan.id}
-            name={plan.name}
-            price={plan.price}
-            period={plan.period}
-            badge={plan.badge}
-            tagline={plan.tagline}
-            color={plan.color}
-            features={plan.features}
-            isCurrent={plan.isCurrent || false}
-            isPopular={plan.isPopular}
-            isLoading={loadingPlan === plan.id && isProcessing}
-            onSelect={() => {
-              if (plan.id !== "free") {
-                handleUpgradePress(plan.id);
-              }
-            }}
-          />
-        ))}
-      </View>
-
-      {paymentHistory.length > 0 && (
-        <View style={styles.section}>
-          <ThemedText type="h3" style={styles.sectionTitle}>
-            Payment History
-          </ThemedText>
-          <View
+          </Pressable>
+          <Pressable
+            onPress={() => setIsAnnual(true)}
             style={[
-              styles.historyContainer,
+              styles.toggleButton,
               {
-                backgroundColor: isDark ? theme.backgroundDefault : theme.backgroundSecondary,
+                backgroundColor: isAnnual
+                  ? BrandColors.constructionGold
+                  : theme.backgroundDefault,
               },
             ]}
           >
-            {paymentHistory.map((payment, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.historyRow,
-                  index < paymentHistory.length - 1 && {
-                    borderBottomWidth: 1,
-                    borderBottomColor: theme.border,
-                  },
-                ]}
-              >
-                <View>
-                  <ThemedText type="body">{payment.date}</ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {plans.find((p) => p.isCurrent)?.name || "Free"} Plan
-                  </ThemedText>
-                </View>
-                <View style={styles.historyRight}>
-                  <ThemedText type="body" style={{ fontWeight: "600" }}>
-                    {payment.amount}
-                  </ThemedText>
-                  <View
-                    style={[
-                      styles.paidBadge,
-                      { backgroundColor: `${BrandColors.success}15` },
-                    ]}
-                  >
-                    <ThemedText
-                      type="small"
-                      style={{ color: BrandColors.success, fontWeight: "600" }}
-                    >
-                      {payment.status}
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </View>
+            <ThemedText
+              style={{
+                fontWeight: "bold",
+                color: isAnnual ? BrandColors.white : theme.text,
+              }}
+            >
+              Annual (Save 17%)
+            </ThemedText>
+          </Pressable>
         </View>
-      )}
 
-      {isSubscribed && currentPlan !== "free" && (
-        <Pressable style={styles.cancelLink}>
-          <ThemedText type="body" style={{ color: theme.error }}>
-            Cancel Subscription
+        {/* Pricing Tiers */}
+        <View style={styles.tiersContainer}>
+          {tiers.map((tier) => (
+            <GlassCard
+              key={tier.name}
+              style={[
+                styles.tierCard,
+                {
+                  borderColor: tier.isPopular
+                    ? BrandColors.constructionGold
+                    : theme.border,
+                  borderWidth: tier.isPopular ? 2 : 1,
+                  transform: tier.isPopular ? [{ scale: 1.02 }] : [],
+                },
+              ]}
+            >
+              {tier.isPopular && (
+                <View
+                  style={[
+                    styles.popularBadge,
+                    {
+                      backgroundColor: BrandColors.constructionGold,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    type="small"
+                    style={{
+                      color: BrandColors.white,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    MOST POPULAR
+                  </ThemedText>
+                </View>
+              )}
+
+              <ThemedText type="h2" style={styles.tierName}>
+                {tier.name}
+              </ThemedText>
+
+              <ThemedText
+                type="small"
+                style={{
+                  color: theme.textSecondary,
+                  marginBottom: Spacing.lg,
+                }}
+              >
+                {tier.description}
+              </ThemedText>
+
+              {/* Price */}
+              <View style={styles.priceContainer}>
+                <ThemedText
+                  type="h1"
+                  style={{ color: BrandColors.constructionGold }}
+                >
+                  {tier.package
+                    ? tier.package.product.priceString
+                    : "Contact us"}
+                </ThemedText>
+                {tier.package?.product.subscriptionPeriod && (
+                  <ThemedText
+                    type="small"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    /{tier.package.product.subscriptionPeriod}
+                  </ThemedText>
+                )}
+              </View>
+
+              {/* CTA Button */}
+              <Button
+                variant="primary"
+                onPress={() => handlePurchase(tier)}
+                disabled={purchasing !== null}
+                style={styles.ctaButton}
+              >
+                {purchasing === tier.package?.identifier ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={BrandColors.white}
+                  />
+                ) : (
+                  <>
+                    <Feather
+                      name="credit-card"
+                      size={16}
+                      color={BrandColors.white}
+                      style={{ marginRight: Spacing.sm }}
+                    />
+                    <ThemedText
+                      style={{
+                        color: BrandColors.white,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {userEntitlement === tier.name.toLowerCase()
+                        ? "Your Plan"
+                        : "Upgrade Now"}
+                    </ThemedText>
+                  </>
+                )}
+              </Button>
+
+              {/* Features List */}
+              <View style={styles.featuresList}>
+                {tier.features.map((feature) => (
+                  <View key={feature} style={styles.featureItem}>
+                    <Feather
+                      name="check-circle"
+                      size={14}
+                      color={BrandColors.constructionGold}
+                      style={{ marginRight: Spacing.sm }}
+                    />
+                    <ThemedText type="small">{feature}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            </GlassCard>
+          ))}
+        </View>
+
+        {/* Restore Purchases */}
+        <Button
+          variant="outline"
+          onPress={handleRestorePurchases}
+          disabled={purchasing !== null}
+          style={styles.restoreButton}
+        >
+          <Feather
+            name="refresh-cw"
+            size={16}
+            color={theme.text}
+            style={{ marginRight: Spacing.sm }}
+          />
+          <ThemedText>Restore Purchases</ThemedText>
+        </Button>
+
+        {/* Legal Text */}
+        <View style={styles.legalText}>
+          <ThemedText
+            type="small"
+            style={{
+              color: theme.textSecondary,
+              textAlign: "center",
+            }}
+          >
+            Subscriptions renew automatically. Cancel anytime in your device
+            settings.
+            {"\n\n"}
+            iOS: Settings → [Your Name] → Subscriptions
+            {"\n"}
+            Android: Google Play → Account → Subscriptions
           </ThemedText>
-        </Pressable>
-      )}
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -404,90 +512,67 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  currentPlanCard: {
-    marginBottom: Spacing.xl,
+  content: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
   },
-  currentPlanHeader: {
+  header: {
+    marginBottom: Spacing["3xl"],
+  },
+  toggleContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing["3xl"],
   },
-  activeBadge: {
+  toggleButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: "center",
+  },
+  tiersContainer: {
+    gap: Spacing.lg,
+    marginBottom: Spacing["3xl"],
+  },
+  tierCard: {
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  popularBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
+    alignSelf: "flex-start",
     marginBottom: Spacing.md,
   },
-  planCard: {
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    position: "relative",
-    overflow: "hidden",
+  tierName: {
+    marginBottom: Spacing.sm,
   },
-  popularBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    backgroundColor: BrandColors.constructionGold,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderBottomLeftRadius: BorderRadius.md,
-  },
-  popularText: {
-    color: BrandColors.slateGrey,
-    fontWeight: "700",
-  },
-  priceRow: {
+  priceContainer: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: Spacing.xs,
-    marginVertical: Spacing.md,
-  },
-  featuresList: {
     marginBottom: Spacing.lg,
-    gap: Spacing.sm,
   },
-  featureRow: {
+  ctaButton: {
+    marginVertical: Spacing.lg,
     flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-  },
-  buttonContainer: {
-    marginTop: Spacing.md,
-  },
-  loadingContent: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
   },
-  historyContainer: {
-    borderRadius: BorderRadius.lg,
-    overflow: "hidden",
+  featuresList: {
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
   },
-  historyRow: {
+  featureItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: Spacing.lg,
   },
-  historyRight: {
-    alignItems: "flex-end",
-    gap: Spacing.xs,
+  restoreButton: {
+    marginBottom: Spacing.lg,
+    flexDirection: "row",
+    justifyContent: "center",
   },
-  paidBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  cancelLink: {
-    alignItems: "center",
+  legalText: {
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.lg,
   },
 });
