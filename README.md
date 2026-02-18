@@ -9,7 +9,6 @@
 - **Voice-to-Invoice**: Record work details via voice and auto-generate professional invoices
 - **Scope Proof & Approvals**: Capture scope of work with photos and timestamps, request client approval
 - **Receipt Scanning**: Extract data from receipts automatically for expense tracking
-- **Project Management**: Organize work by projects with status tracking
 - **Invoicing**: Create, manage, and track invoices with custom tax settings
 - **Payment Tracking**: Monitor invoice payments and subscription status
 
