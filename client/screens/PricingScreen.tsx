@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
+import Purchases, { PurchasesPackage, CustomerInfo } from "react-native-purchases";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -21,7 +22,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { useSubscriptionStore, Entitlement, PricingTier } from "@/stores/subscriptionStore";
-import { stripeService } from "@/services/stripeService";
 
 export default function PricingScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -46,6 +46,37 @@ export default function PricingScreen({ route, navigation }: any) {
   const [message, setMessage] = useState(route?.params?.message || "");
   const [showConfetti, setShowConfetti] = useState(false);
   const [minutesSaved, setMinutesSaved] = useState(0);
+  const [packages, setPackages] = useState<Map<string, PurchasesPackage | undefined>>(new Map());
+
+  // Fetch packages from RevenueCat on component mount
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const offerings = await Purchases.getOfferings();
+        
+        if (offerings.current) {
+          const packageMap = new Map<string, PurchasesPackage | undefined>();
+          
+          // Map tier names to product identifiers
+          offerings.current.availablePackages.forEach((pkg) => {
+            if (pkg.identifier.includes("solo")) {
+              packageMap.set("solo", pkg);
+            } else if (pkg.identifier.includes("professional")) {
+              packageMap.set("professional", pkg);
+            } else if (pkg.identifier.includes("enterprise")) {
+              packageMap.set("enterprise", pkg);
+            }
+          });
+          
+          setPackages(packageMap);
+        }
+      } catch (error) {
+        console.error("[Pricing] Failed to fetch packages:", error);
+      }
+    };
+    
+    fetchPackages();
+  }, []);
 
   // Auto-dismiss confetti after 3 seconds
   useEffect(() => {
@@ -63,7 +94,7 @@ export default function PricingScreen({ route, navigation }: any) {
 
   const handlePurchase = async (tier: PricingTier) => {
     try {
-      if (!user?.id || !user?.email) {
+      if (!user?.id) {
         Alert.alert("Error", "You must be logged in to upgrade your plan");
         return;
       }
@@ -72,19 +103,74 @@ export default function PricingScreen({ route, navigation }: any) {
       setIsPaymentProcessing(true);
       setSelectedTier(tier.name);
 
-      // Initiate Stripe checkout
-      await stripeService.initiateCheckout(
-        tier.name as "solo" | "professional" | "enterprise"
-      );
+      // Get the package for this tier
+      const pkgToPurchase = packages.get(tier.name);
+      
+      if (!pkgToPurchase) {
+        throw new Error(`Package not available for ${tier.name} plan`);
+      }
+
+      // Make the purchase through RevenueCat
+      try {
+        const result = await Purchases.purchasePackage(pkgToPurchase);
+        
+        // Purchase successful, update entitlements
+        const activeEntitlements = Object.keys(result.customerInfo.entitlements.active || {});
+        
+        if (activeEntitlements.length > 0) {
+          // Map entitlements to our tier system
+          let entitlement: Entitlement = "none";
+          
+          if (activeEntitlements.includes("enterprise")) {
+            entitlement = "enterprise";
+          } else if (activeEntitlements.includes("professional")) {
+            entitlement = "professional";
+          } else if (activeEntitlements.includes("solo")) {
+            entitlement = "solo";
+          }
+          
+          setUserEntitlement(entitlement);
+          if (entitlement !== "none") {
+            setCurrentPlan(entitlement);
+            setIsSubscribed(true);
+          }
+          setShowConfetti(true);
+          
+          Alert.alert(
+            "Success! 🎉",
+            `You're now on the ${tier.displayName} plan!`,
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  if (route?.params?.returnTo) {
+                    navigation.navigate(route.params.returnTo);
+                  } else {
+                    navigation.goBack();
+                  }
+                },
+              },
+            ]
+          );
+        }
+      } catch (purchaseError: any) {
+        if (purchaseError.userCancelled) {
+          // User cancelled, that's fine
+          console.log("[Pricing] User cancelled purchase");
+        } else {
+          throw purchaseError;
+        }
+      }
     } catch (error) {
+      console.error("[Pricing] Purchase error:", error);
       Alert.alert(
         "Payment Error",
-        error instanceof Error ? error.message : "Failed to redirect to checkout. Please try again."
+        error instanceof Error ? error.message : "Failed to complete purchase. Please try again."
       );
-      console.error("Checkout error:", error);
     } finally {
       setIsProcessing(false);
       setIsPaymentProcessing(false);
+      setSelectedTier(null);
     }
   };
 

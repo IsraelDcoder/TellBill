@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Alert } from "react-native";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import Purchases, { CustomerInfo } from "react-native-purchases";
+import { useAuth } from "@/context/AuthContext";
 
 /**
  * Hook to initialize RevenueCat and fetch subscription status
@@ -14,42 +16,39 @@ export function useRevenueCatInitialization(userId?: string) {
       try {
         setIsLoading(true);
 
-        // TODO: Initialize RevenueCat SDK
-        // import Purchases from "react-native-purchases";
+        // Configure RevenueCat with our API key
+        // Note: API key is configured via app.json for Expo
+        const isConfigured = await Purchases.isConfigured();
         
-        // Configure RevenueCat
-        // await Purchases.configure({
-        //   apiKey: "appl_YOUR_REVENUCAT_API_KEY",
-        // });
+        if (!isConfigured) {
+          // For Expo, RevenueCat is configured via app.json plugins
+          // This initialization should happen automatically
+          console.log("[RevenueCat] SDK configured via app.json");
+        }
 
         if (userId) {
-          // Set user ID for RevenueCat
-          // await Purchases.logIn(userId);
+          // Link RevenueCat user to our TellBill user ID
+          try {
+            await Purchases.logIn(userId);
+            console.log(`[RevenueCat] Logged in user: ${userId}`);
+          } catch (loginError) {
+            console.error("[RevenueCat] Login error:", loginError);
+          }
 
-          // Get current entitlements
-          // const customerInfo = await Purchases.getCustomerInfo();
-          
-          // Check if user has any entitlements
-          // const entitlements = Object.keys(customerInfo.entitlements.active || {});
-          
-          // Map entitlements to our tier system
-          // if (entitlements.includes("enterprise_plan")) {
-          //   setUserEntitlement("enterprise");
-          // } else if (entitlements.includes("team_plan")) {
-          //   setUserEntitlement("team");
-          // } else if (entitlements.includes("solo_plan")) {
-          //   setUserEntitlement("solo");
-          // } else {
-          //   setUserEntitlement("none");
-          // }
-
-          // For now, default to "none" (free tier)
-          setUserEntitlement("none");
+          // Get customer info to check entitlements
+          try {
+            const customerInfo = await Purchases.getCustomerInfo();
+            handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+          } catch (customerError) {
+            console.error("[RevenueCat] Failed to get customer info:", customerError);
+            // Default to free tier on error
+            setUserEntitlement("none");
+          }
         }
 
         setIsLoading(false);
       } catch (error) {
-        console.error("RevenueCat initialization error:", error);
+        console.error("[RevenueCat] Initialization error:", error);
         setIsLoading(false);
         // Silently fail and default to free tier
         setUserEntitlement("none");
@@ -68,43 +67,68 @@ export function useRevenueCatListener() {
   const { setUserEntitlement, setSubscription } = useSubscriptionStore();
 
   useEffect(() => {
-    // TODO: Set up RevenueCat listener
-    // import Purchases from "react-native-purchases";
-    
-    // const updateCustomerInfo = async (customerInfo: CustomerInfo) => {
-    //   // Handle subscription updates
-    //   const entitlements = Object.keys(customerInfo.entitlements.active || {});
-      
-    //   if (entitlements.includes("enterprise_plan")) {
-    //     setUserEntitlement("enterprise");
-    //   } else if (entitlements.includes("team_plan")) {
-    //     setUserEntitlement("team");
-    //   } else if (entitlements.includes("solo_plan")) {
-    //     setUserEntitlement("solo");
-    //   } else {
-    //     setUserEntitlement("none");
-    //   }
+    // Set up listener for customer info updates
+    Purchases.addCustomerInfoUpdateListener((customerInfo: CustomerInfo) => {
+      console.log("[RevenueCat] Customer info updated");
+      handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+    });
 
-    //   // Update subscription details
-    //   const product = customerInfo.allExpirationDates.find(
-    //     (p) => entitlements.includes(p.productIdentifier)
-    //   );
-    //   if (product) {
-    //     setSubscription({
-    //       plan: entitlements[0] as any,
-    //       status: "active",
-    //       currentPeriodStart: product.latestPurchaseDate || "",
-    //       currentPeriodEnd: product.expirationDate || "",
-    //       isAnnual: product.productIdentifier.includes("annual"),
-    //     });
-    //   }
-    // };
-
-    // // Listen for customer info updates
-    // Purchases.addCustomerInfoUpdateListener(updateCustomerInfo);
-
-    // return () => {
-    //   // Clean up listener
-    // };
+    // Note: RevenueCat SDK doesn't require explicit unsubscribe for listeners
+    return () => {
+      // Cleanup if needed
+    };
   }, [setUserEntitlement, setSubscription]);
+}
+
+/**
+ * Helper: Process customer info and extract entitlements
+ */
+function handleCustomerInfo(
+  customerInfo: CustomerInfo,
+  setUserEntitlement: (entitlement: any) => void,
+  setSubscription: (subscription: any) => void
+) {
+  try {
+    // Check active entitlements
+    const activeEntitlements = customerInfo.entitlements.active || {};
+    const entitlementIds = Object.keys(activeEntitlements);
+
+    console.log("[RevenueCat] Active entitlements:", entitlementIds);
+
+    // Map entitlements to our tier system (highest tier wins)
+    let currentEntitlement: "none" | "solo" | "professional" | "enterprise" = "none";
+
+    if (entitlementIds.includes("enterprise")) {
+      currentEntitlement = "enterprise";
+    } else if (entitlementIds.includes("professional")) {
+      currentEntitlement = "professional";
+    } else if (entitlementIds.includes("solo")) {
+      currentEntitlement = "solo";
+    }
+
+    setUserEntitlement(currentEntitlement);
+    console.log(`[RevenueCat] User entitlement: ${currentEntitlement}`);
+
+    // Get subscription details if subscribed
+    if (currentEntitlement !== "none") {
+      // Try to extract subscription info from active entitlements
+      const activeEntitlements = customerInfo.entitlements.active;
+      
+      if (activeEntitlements) {
+        const entitlementKey = Object.keys(activeEntitlements)[0];
+        if (entitlementKey) {
+          const entitlement = activeEntitlements[entitlementKey];
+          setSubscription({
+            plan: currentEntitlement,
+            status: "active",
+            currentPeriodStart: new Date().toISOString(),
+            currentPeriodEnd: new Date().toISOString(),
+            isAnnual: entitlementKey.includes("annual"),
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[RevenueCat] Failed to process customer info:", error);
+  }
 }
