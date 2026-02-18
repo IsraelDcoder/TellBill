@@ -399,6 +399,27 @@ export function registerRevenueCatRoutes(app: Express) {
 
       // Handle different event types
       switch (eventType) {
+        // ✅ New purchase - user subscribed to a tier
+        case "INITIAL_PURCHASE":
+        case "SUBSCRIPTION_NEW":
+        case "SALE": {
+          const tier = mapProductIdToPlan(event.product_id);
+          
+          await db
+            .update(users)
+            .set({
+              subscriptionStatus: "active",
+              subscriptionTier: tier,
+              currentPlan: tier,
+              subscriptionUpdatedAt: new Date(),
+              subscriptionExpiryDate: event.expiration_at_ms ? new Date(event.expiration_at_ms) : null,
+            })
+            .where(eq(users.id, userData.id));
+          
+          console.log(`[RevenueCat] User ${userData.id} upgraded to ${tier}`);
+          break;
+        }
+
         case "SUBSCRIPTION_PAUSED":
         case "SUBSCRIPTION_EXPIRED":
           await db
@@ -406,6 +427,8 @@ export function registerRevenueCatRoutes(app: Express) {
             .set({
               subscriptionStatus: "inactive",
               subscriptionTier: "free",
+              currentPlan: "free",
+              subscriptionUpdatedAt: new Date(),
             })
             .where(eq(users.id, userData.id));
           break;
@@ -416,7 +439,9 @@ export function registerRevenueCatRoutes(app: Express) {
             .set({
               subscriptionStatus: "cancelled",
               subscriptionTier: "free",
+              currentPlan: "free",
               subscriptionCancellationDate: new Date(),
+              subscriptionUpdatedAt: new Date(),
             })
             .where(eq(users.id, userData.id));
           break;
@@ -424,10 +449,16 @@ export function registerRevenueCatRoutes(app: Express) {
         case "SUBSCRIPTION_RENEWED":
           // Update expiry date
           if (event.expiration_at_ms) {
+            const tier = mapProductIdToPlan(event.product_id);
+            
             await db
               .update(users)
               .set({
                 subscriptionStatus: "active",
+                subscriptionTier: tier,
+                currentPlan: tier,
+                subscriptionRenewalDate: new Date(),
+                subscriptionUpdatedAt: new Date(),
                 subscriptionExpiryDate: new Date(event.expiration_at_ms),
               })
               .where(eq(users.id, userData.id));
