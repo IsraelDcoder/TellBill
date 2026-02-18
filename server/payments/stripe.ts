@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { authMiddleware } from "../utils/authMiddleware";
 import { logger } from "../utils/logger";
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || process.env.FRONTEND_URL || "http://localhost:3000";
 
 export function registerStripeRoutes(app: Express) {
   /**
@@ -73,8 +73,8 @@ export function registerStripeRoutes(app: Express) {
             quantity: 1,
           },
         ],
-        success_url: `https://tellbill.app/billing/success?sessionId={CHECKOUT_SESSION_ID}`,
-        cancel_url: `https://tellbill.app/billing/cancel`,
+        success_url: `${BACKEND_URL}/api/payments/stripe/success?sessionId={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${BACKEND_URL}/api/payments/stripe/cancel`,
         metadata: {
           userId,
           plan,
@@ -138,7 +138,7 @@ export function registerStripeRoutes(app: Express) {
       // Create portal session
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
-        return_url: `${FRONTEND_URL}/billing`,
+        return_url: `${BACKEND_URL}/api/payments/stripe/success`,
       });
 
       logger.info({ sessionId: portalSession.id, userId }, "Portal session created");
@@ -208,5 +208,55 @@ export function registerStripeRoutes(app: Express) {
         error: "Failed to fetch subscription status",
       });
     }
+  });
+
+  /**
+   * GET /api/payments/stripe/success
+   * Stripe redirect after successful payment
+   * (Webhook will already have updated the subscription)
+   */
+  app.get("/api/payments/stripe/success", async (req: Request, res: Response) => {
+    const sessionId = req.query.sessionId as string;
+
+    if (!sessionId) {
+      return res.status(400).json({ error: "No session ID provided" });
+    }
+
+    try {
+      // Retrieve session to confirm payment
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      logger.info(
+        { sessionId, userId: session.metadata?.userId, plan: session.metadata?.plan },
+        "Payment success confirmed"
+      );
+
+      // Return success response
+      return res.status(200).json({
+        success: true,
+        message: "Payment successful! Your subscription has been activated.",
+        sessionId,
+        plan: session.metadata?.plan,
+      });
+    } catch (error) {
+      logger.error({ error, sessionId }, "Failed to verify success session");
+      return res.status(500).json({
+        success: false,
+        error: "Failed to verify payment",
+      });
+    }
+  });
+
+  /**
+   * GET /api/payments/stripe/cancel
+   * Stripe redirect after payment cancellation
+   */
+  app.get("/api/payments/stripe/cancel", (req: Request, res: Response) => {
+    logger.info("Payment canceled by user");
+
+    return res.status(200).json({
+      success: false,
+      message: "Payment was canceled. Please try again when ready.",
+    });
   });
 }
