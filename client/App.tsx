@@ -13,7 +13,7 @@ import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthRootGuard } from "@/components/AuthRootGuard";
-import { useRevenueCatInitialization, useRevenueCatListener } from "@/hooks/useRevenueCat";
+import { useRevenueCatInitialization, useRevenueCatListener, useEntitlementRefresh } from "@/hooks/useRevenueCat";
 
 function AppContent() {
   // Initialize RevenueCat SDK on app start
@@ -21,6 +21,9 @@ function AppContent() {
 
   // Listen for RevenueCat subscription changes
   useRevenueCatListener();
+
+  // Refresh entitlements when user authenticates (app startup + login)
+  useEntitlementRefresh();
 
   return (
     <NavigationContainer>

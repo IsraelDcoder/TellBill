@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import Purchases, { CustomerInfo } from "react-native-purchases";
 import { useAuth } from "@/context/AuthContext";
+import { getApiUrl } from "@/lib/backendUrl";
 
 /**
  * Hook to initialize RevenueCat and fetch subscription status
@@ -78,6 +80,80 @@ export function useRevenueCatListener() {
       // Cleanup if needed
     };
   }, [setUserEntitlement, setSubscription]);
+}
+
+/**
+ * Hook to refresh user entitlements on app startup + when user authenticates
+ * Syncs RevenueCat customer info with backend to update subscription status
+ */
+export function useEntitlementRefresh() {
+  const { user, isAuthenticated } = useAuth();
+  const { setUserEntitlement } = useSubscriptionStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const syncEntitlementsWithBackend = async () => {
+      try {
+        setIsRefreshing(true);
+        console.log("[Entitlement] Refreshing subscription for user:", user.id);
+
+        // Get auth token
+        const token = await AsyncStorage.getItem("authToken");
+        if (!token) {
+          console.warn("[Entitlement] No auth token found");
+          return;
+        }
+
+        // Get current customer info from RevenueCat
+        const customerInfo = await Purchases.getCustomerInfo();
+        console.log("[Entitlement] Got RevenueCat customer info", {
+          customerId: customerInfo.originalAppUserId,
+          entitlements: Object.keys(customerInfo.entitlements.active || {}),
+        });
+
+        // Verify purchase with backend
+        const response = await fetch(
+          getApiUrl("/api/billing/restore-purchases"),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              revenuecatCustomerInfo: customerInfo,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.warn("[Entitlement] Backend sync failed:", response.status);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("[Entitlement] ✅ Backend sync success", {
+          plan: data.plan,
+          status: data.status,
+        });
+
+        // Update local state
+        if (data.plan) {
+          setUserEntitlement(data.plan);
+          console.log(`[Entitlement] User entitlement updated: ${data.plan}`);
+        }
+      } catch (error) {
+        console.error("[Entitlement] Sync error:", error);
+        // Silently fail - user can still access free features
+      } finally {
+        setIsRefreshing(false);
+      }
+    };
+
+    syncEntitlementsWithBackend();
+  }, [isAuthenticated, user?.id, setUserEntitlement]);
 }
 
 /**
