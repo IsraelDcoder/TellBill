@@ -14,7 +14,7 @@ export async function up(db: any) {
   console.log("✅ Migration 0007: Added payment link fields to invoices");
 }
 
-export async function down(db: Database) {
+export async function down(db: any) {
   // Remove payment link fields
   await db.run(
     sql`ALTER TABLE invoices DROP COLUMN payment_link_url`
