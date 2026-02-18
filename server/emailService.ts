@@ -32,7 +32,8 @@ async function generateInvoicePDF(
     paymentTerms?: string;
   },
   invoiceNumber: string,
-  clientName: string
+  clientName: string,
+  paymentLinkUrl?: string        // ✅ Add payment link parameter
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
@@ -216,6 +217,27 @@ async function generateInvoicePDF(
           .text(invoiceData.notes, 50, yPosition + 55);
       }
 
+      // Payment link section (if available)
+      if (paymentLinkUrl) {
+        doc
+          .fontSize(11)
+          .font("Helvetica-Bold")
+          .fillColor("#2563eb")
+          .text("PAYMENT", 50, yPosition + 100);
+
+        doc
+          .fontSize(9)
+          .font("Helvetica")
+          .fillColor("#000000")
+          .text("Pay this invoice directly using the link below:", 50, yPosition + 120)
+          .fontSize(10)
+          .fillColor("#2563eb")
+          .text(paymentLinkUrl, 50, yPosition + 140, { link: paymentLinkUrl })
+          .fontSize(9)
+          .fillColor("#666666")
+          .text("(Secure Stripe payment - click the link or copy and paste into your browser)", 50, yPosition + 160);
+      }
+
       // Footer
       doc
         .fontSize(9)
@@ -365,7 +387,7 @@ export async function sendInvoiceEmail(
     // Generate PDF invoice
     let pdfBuffer: Buffer | undefined;
     try {
-      pdfBuffer = await generateInvoicePDF(invoiceData || {}, invoiceNumber, clientName);
+      pdfBuffer = await generateInvoicePDF(invoiceData || {}, invoiceNumber, clientName, paymentLinkUrl);
       console.log(`[EmailService] ✅ PDF generated for invoice ${invoiceNumber} (${pdfBuffer.length} bytes)`);
     } catch (pdfError) {
       console.error(`[EmailService] ⚠️ Failed to generate PDF for invoice ${invoiceNumber}:`, pdfError);
