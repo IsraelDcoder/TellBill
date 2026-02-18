@@ -714,11 +714,14 @@ export function registerInvoiceRoutes(app: Express) {
         }
       }
 
-      // ✅ Convert to cents for server-side calculation (safe integer arithmetic)
-      const laborTotalCents = Math.round(laborHours * laborRate * 100);
-      const materialsTotalCents = Math.round(materialsTotal * 100);
+      // ✅ FIXED: Client already sends amounts in cents, do NOT multiply by 100 again!
+      // laborRate is in cents (e.g., 3600 for $36/hr)
+      // materialsTotal is in cents (already converted by client)
+      // item.total is in cents (already converted by client)
+      const laborTotalCents = Math.round(laborHours * laborRate);
+      const materialsTotalCents = Math.round(materialsTotal);
       const itemsTotalCents = Math.round(
-        items.reduce((sum: number, item: any) => sum + (item.total || 0), 0) * 100
+        items.reduce((sum: number, item: any) => sum + (item.total || 0), 0)
       );
 
       // ✅ SERVER-SIDE TAX CALCULATION (immutable, secure)
