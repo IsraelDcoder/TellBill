@@ -174,6 +174,7 @@ export default function TaxSettingsScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
+          paddingTop: Spacing.xs,
           paddingBottom: insets.bottom + Spacing["3xl"],
           paddingHorizontal: Spacing.lg,
         }}

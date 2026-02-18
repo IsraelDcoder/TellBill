@@ -98,8 +98,9 @@ export default function InvoiceTemplateScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: theme.backgroundRoot, marginTop: headerHeight + 18 }]}
+      style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
       contentContainerStyle={{
+        paddingTop: Spacing.md,
         paddingBottom: insets.bottom + Spacing.xl,
         paddingHorizontal: Spacing.lg,
       }}

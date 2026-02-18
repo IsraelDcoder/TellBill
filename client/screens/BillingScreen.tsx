@@ -352,7 +352,7 @@ export default function BillingScreen() {
           {tiers.map((tier) => (
             <GlassCard
               key={tier.name}
-              style={[
+              style={StyleSheet.flatten([
                 styles.tierCard,
                 {
                   borderColor: tier.isPopular
@@ -361,7 +361,7 @@ export default function BillingScreen() {
                   borderWidth: tier.isPopular ? 2 : 1,
                   transform: tier.isPopular ? [{ scale: 1.02 }] : [],
                 },
-              ]}
+              ])}
             >
               {tier.isPopular && (
                 <View

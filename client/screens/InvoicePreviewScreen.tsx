@@ -51,7 +51,7 @@ export default function InvoicePreviewScreen() {
           styles.container,
           {
             backgroundColor: theme.backgroundRoot,
-            paddingTop: headerHeight + Spacing.xl,
+            paddingTop: Spacing.xl,
             justifyContent: "center",
             alignItems: "center",
           },

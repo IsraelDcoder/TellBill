@@ -163,7 +163,7 @@ export default function MoneyAlertsScreen() {
   if (isLoading && alerts.length === 0) {
     return (
       <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <View style={[styles.centerContent, { paddingTop: headerHeight + Spacing.xl }]}>
+        <View style={[styles.centerContent, { paddingTop: Spacing.xl }]}>
           <ActivityIndicator size="large" color={BrandColors.constructionGold} />
         </View>
       </ThemedView>

@@ -314,7 +314,7 @@ export default function VoiceRecordingScreen() {
         styles.container,
         {
           backgroundColor: theme.backgroundRoot,
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: Spacing.xl,
           paddingBottom: insets.bottom + Spacing.xl,
         },
       ]}

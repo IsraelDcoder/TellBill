@@ -57,7 +57,7 @@ export default function InvoiceDetailScreen() {
           styles.container,
           {
             backgroundColor: theme.backgroundRoot,
-            paddingTop: headerHeight + Spacing.xl,
+            paddingTop: Spacing.xl,
             justifyContent: "center",
             alignItems: "center",
           },
@@ -80,7 +80,7 @@ export default function InvoiceDetailScreen() {
           styles.container,
           {
             backgroundColor: theme.backgroundRoot,
-            paddingTop: headerHeight + Spacing.xl,
+            paddingTop: Spacing.xl,
             justifyContent: "center",
             alignItems: "center",
           },

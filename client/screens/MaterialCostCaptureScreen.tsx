@@ -239,7 +239,7 @@ export default function MaterialCostCaptureScreen() {
   if (step === "success") {
     return (
       <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <View style={[styles.successContainer, { paddingTop: headerHeight + Spacing.xl }]}>
+        <View style={[styles.successContainer, { paddingTop: Spacing.xl }]}>
           <View
             style={[
               styles.successIcon,

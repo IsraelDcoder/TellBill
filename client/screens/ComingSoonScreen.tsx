@@ -76,7 +76,7 @@ export default function ComingSoonScreen() {
         styles.container,
         {
           backgroundColor: theme.backgroundRoot,
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: Spacing.xl,
           paddingBottom: insets.bottom + Spacing.xl,
         },
       ]}

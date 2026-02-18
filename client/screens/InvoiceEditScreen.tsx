@@ -53,7 +53,7 @@ export default function InvoiceEditScreen() {
           styles.container,
           {
             backgroundColor: theme.backgroundRoot,
-            paddingTop: headerHeight + Spacing.xl,
+            paddingTop: Spacing.xl,
             justifyContent: "center",
             alignItems: "center",
           },
