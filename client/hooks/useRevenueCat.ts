@@ -7,6 +7,50 @@ import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/backendUrl";
 
 /**
+ * ⚠️ FIX: Ensure RevenueCat SDK is initialized with retry logic
+ * The native plugin initialization is asynchronous, so we need to wait for it
+ */
+let sdkInitialized = false;
+let sdkInitializationPromise: Promise<void> | null = null;
+
+async function ensureRevenueCatInitialized(): Promise<void> {
+  if (sdkInitialized) {
+    return;
+  }
+
+  if (sdkInitializationPromise) {
+    return sdkInitializationPromise;
+  }
+
+  sdkInitializationPromise = (async () => {
+    let retries = 0;
+    const maxRetries = 10;
+    const delayMs = 500;
+
+    while (retries < maxRetries) {
+      try {
+        // Try to check if SDK is ready by calling a simple method
+        await Purchases.getCustomerInfo();
+        console.log(`[RevenueCat] ✅ SDK initialized successfully (attempt ${retries + 1})`);
+        sdkInitialized = true;
+        return;
+      } catch (error) {
+        retries++;
+        if (retries < maxRetries) {
+          console.log(`[RevenueCat] ⏳ SDK not ready, retrying... (attempt ${retries}/${maxRetries})`);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        } else {
+          console.error(`[RevenueCat] ❌ Failed to initialize after ${maxRetries} attempts`, error);
+          throw error;
+        }
+      }
+    }
+  })();
+
+  await sdkInitializationPromise;
+}
+
+/**
  * Hook to initialize RevenueCat and fetch subscription status
  * Should be called once in the App root
  */
@@ -18,15 +62,9 @@ export function useRevenueCatInitialization(userId?: string) {
       try {
         setIsLoading(true);
 
-        // Configure RevenueCat with our API key
-        // Note: API key is configured via app.json for Expo
-        const isConfigured = await Purchases.isConfigured();
-        
-        if (!isConfigured) {
-          // For Expo, RevenueCat is configured via app.json plugins
-          // This initialization should happen automatically
-          console.log("[RevenueCat] SDK configured via app.json");
-        }
+        // Ensure SDK is ready first
+        await ensureRevenueCatInitialized();
+        console.log("[RevenueCat] ✅ SDK is ready");
 
         if (userId) {
           // Link RevenueCat user to our TellBill user ID
@@ -34,7 +72,7 @@ export function useRevenueCatInitialization(userId?: string) {
             await Purchases.logIn(userId);
             console.log(`[RevenueCat] Logged in user: ${userId}`);
           } catch (loginError) {
-            console.error("[RevenueCat] Login error:", loginError);
+            console.warn("[RevenueCat] Login error (non-critical):", loginError);
           }
 
           // Get customer info to check entitlements
@@ -42,7 +80,7 @@ export function useRevenueCatInitialization(userId?: string) {
             const customerInfo = await Purchases.getCustomerInfo();
             handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
           } catch (customerError) {
-            console.error("[RevenueCat] Failed to get customer info:", customerError);
+            console.warn("[RevenueCat] Failed to get customer info:", customerError);
             // Default to free tier on error
             setUserEntitlement("none");
           }
@@ -69,11 +107,18 @@ export function useRevenueCatListener() {
   const { setUserEntitlement, setSubscription } = useSubscriptionStore();
 
   useEffect(() => {
-    // Set up listener for customer info updates
-    Purchases.addCustomerInfoUpdateListener((customerInfo: CustomerInfo) => {
-      console.log("[RevenueCat] Customer info updated");
-      handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
-    });
+    // Ensure SDK is ready before setting up listeners
+    ensureRevenueCatInitialized()
+      .then(() => {
+        // Set up listener for customer info updates
+        Purchases.addCustomerInfoUpdateListener((customerInfo: CustomerInfo) => {
+          console.log("[RevenueCat] Customer info updated");
+          handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+        });
+      })
+      .catch((error) => {
+        console.warn("[RevenueCat] Failed to set up listener:", error);
+      });
 
     // Note: RevenueCat SDK doesn't require explicit unsubscribe for listeners
     return () => {
@@ -92,12 +137,19 @@ export function useEntitlementRefresh() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      console.log("[Entitlement] Skipping refresh - not authenticated");
+      return;
+    }
 
     const syncEntitlementsWithBackend = async () => {
       try {
         setIsRefreshing(true);
         console.log("[Entitlement] Refreshing subscription for user:", user.id);
+
+        // Ensure SDK is ready first
+        await ensureRevenueCatInitialized();
+        console.log("[Entitlement] ✅ SDK ready for entitlement check");
 
         // Get auth token
         const token = await AsyncStorage.getItem("authToken");
@@ -145,7 +197,7 @@ export function useEntitlementRefresh() {
           console.log(`[Entitlement] User entitlement updated: ${data.plan}`);
         }
       } catch (error) {
-        console.error("[Entitlement] Sync error:", error);
+        console.warn("[Entitlement] Sync error:", error);
         // Silently fail - user can still access free features
       } finally {
         setIsRefreshing(false);
