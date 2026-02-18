@@ -82,7 +82,15 @@ export default function HomeScreen() {
     }, [hydrateInvoices])
   );
 
-  const recentInvoices = invoices.slice(0, 5);
+  const recentInvoices = invoices
+    .sort((a, b) => {
+      // ✅ FIXED: Sort by updatedAt (descending) so paid status changes appear
+      // Previously: sorted by createdAt only, missing updates
+      const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+      return dateB - dateA;  // Most recent first
+    })
+    .slice(0, 5);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -199,9 +207,9 @@ export default function HomeScreen() {
     <ActivityItem
       clientName={item.clientName}
       invoiceNumber={item.invoiceNumber}
-      amount={item.total}
+      amount={item.total}  // ✅ In cents from centralized money utility
       status={item.status as ActivityStatus}
-      date={new Date(item.createdAt).toLocaleDateString()}
+      date={new Date(item.updatedAt || item.createdAt).toLocaleDateString()}  // ✅ Show update date so paid status changes appear
       onPress={() =>
         navigation.navigate("InvoiceDetail", { invoiceId: item.id })
       }

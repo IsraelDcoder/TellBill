@@ -10,13 +10,14 @@ import Animated, {
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { formatCents } from "@/lib/money";
 
 export type ActivityStatus = "draft" | "created" | "sent" | "paid" | "pending" | "overdue";
 
 interface ActivityItemProps {
   clientName: string;
   invoiceNumber: string;
-  amount: number;
+  amount: number;  // Amount in cents
   status: ActivityStatus;
   date: string;
   onPress?: () => void;
@@ -64,14 +65,9 @@ export function ActivityItem({
     scale.value = withSpring(1, { damping: 15, stiffness: 200 });
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  // ✅ FIXED: Use centralized formatCents (divides by 100 and shows 2 decimals)
+  // Previously: local formatCurrency treated input as dollars (100x bug!)
+  // Now: formatCents properly handles cents→dollars conversion
 
   return (
     <AnimatedPressable
@@ -104,7 +100,7 @@ export function ActivityItem({
             {clientName}
           </ThemedText>
           <ThemedText type="h4" style={styles.amount}>
-            {formatCurrency(amount)}
+            {formatCents(amount)}
           </ThemedText>
         </View>
         <View style={styles.bottomRow}>

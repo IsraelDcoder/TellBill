@@ -39,6 +39,7 @@ export interface Invoice {
   safetyNotes: string;
   paymentTerms: string;
   createdAt: string;
+  updatedAt?: string;  // ✅ FIXED: Track when invoice was last updated (enables sorting by paid date)
   sentAt?: string;
   paidAt?: string;
   dueDate?: string;
