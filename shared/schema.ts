@@ -222,6 +222,11 @@ export const invoices = pgTable("invoices", {
     .defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
+  
+  // Payment tracking (Stripe)
+  paymentLinkUrl: text("payment_link_url"), // Stripe checkout URL for this invoice
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"), // Stripe session ID
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
 });
 
 export type Invoice = typeof invoices.$inferSelect;

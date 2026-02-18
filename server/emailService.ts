@@ -302,7 +302,8 @@ export async function sendInvoiceEmail(
     materialsTotal?: number | string;
     notes?: string;
     paymentTerms?: string;
-  }
+  },
+  paymentLinkUrl?: string // ✅ Added payment link parameter
 ) {
   try {
     console.log(
@@ -329,6 +330,23 @@ export async function sendInvoiceEmail(
         ${
           invoiceData?.dueDate
             ? `<p><strong>Due Date:</strong> ${invoiceData.dueDate}</p>`
+            : ""
+        }
+        
+        ${
+          paymentLinkUrl
+            ? `
+            <div style="margin: 30px 0; padding: 20px; background-color: #f0f7ff; border-left: 4px solid #007bff; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0;"><strong>💳 Pay Now</strong></p>
+              <p style="margin: 0 0 15px 0;">Click the button below to pay this invoice securely with a credit card:</p>
+              <a href="${paymentLinkUrl}" style="display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                Pay Invoice
+              </a>
+              <p style="margin: 15px 0 0 0; font-size: 12px; color: #666;">
+                Or copy and paste this link in your browser: <a href="${paymentLinkUrl}">${paymentLinkUrl}</a>
+              </p>
+            </div>
+            `
             : ""
         }
         

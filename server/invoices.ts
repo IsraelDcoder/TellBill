@@ -3,6 +3,7 @@ import { db } from "./db";
 import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { stripe } from "./payments/stripeClient";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
@@ -233,13 +234,13 @@ export function registerInvoiceRoutes(app: Express) {
           total: typeof dbInvoice.total === 'string' ? parseFloat(dbInvoice.total) : dbInvoice.total || 0,
           taxAmount: typeof dbInvoice.taxAmount === 'string' ? parseFloat(dbInvoice.taxAmount) : dbInvoice.taxAmount || 0,
           subtotal: typeof dbInvoice.subtotal === 'string' ? parseFloat(dbInvoice.subtotal) : dbInvoice.subtotal || 0,
-          items: items, // ✅ THIS WAS MISSING - now populated from database
+          items: items,
           laborHours: dbInvoice.laborHours || 0,
           laborRate: typeof dbInvoice.laborRate === 'string' ? parseFloat(dbInvoice.laborRate) : dbInvoice.laborRate || 0,
           laborTotal: typeof dbInvoice.laborTotal === 'string' ? parseFloat(dbInvoice.laborTotal) : dbInvoice.laborTotal || 0,
           materialsTotal: typeof dbInvoice.materialsTotal === 'string' ? parseFloat(dbInvoice.materialsTotal) : dbInvoice.materialsTotal || 0,
           notes: dbInvoice.notes || undefined,
-          dueDate: dbInvoice.dueDate ? new Date(dbInvoice.dueDate).toISOString().split('T')[0] : undefined, // Convert to YYYY-MM-DD format
+          dueDate: dbInvoice.dueDate ? new Date(dbInvoice.dueDate).toISOString().split('T')[0] : undefined,
           paymentTerms: dbInvoice.paymentTerms || undefined,
         };
 
@@ -248,6 +249,59 @@ export function registerInvoiceRoutes(app: Express) {
           itemCount: items.length,
           total: completeInvoiceData.total,
         });
+
+        // ✅ GENERATE PAYMENT LINK (for email/WhatsApp)
+        let paymentLinkUrl: string | null | undefined = dbInvoice.paymentLinkUrl;
+        if (!paymentLinkUrl) {
+          try {
+            console.log(`[Invoice] 💳 Generating payment link for invoice ${invoiceId}...`);
+            const totalInCents = Math.round(completeInvoiceData.total * 100);
+            if (totalInCents > 0) {
+              const checkoutSession = await stripe.checkout.sessions.create({
+                payment_method_types: ["card"],
+                mode: "payment",
+                client_reference_id: invoiceId,
+                customer_email: dbInvoice.clientEmail || undefined,
+                line_items: [
+                  {
+                    price_data: {
+                      currency: "usd",
+                      product_data: {
+                        name: `Invoice ${dbInvoice.invoiceNumber || invoiceId}`,
+                        description: `Payment for invoice from ${dbInvoice.clientName || "Client"}`,
+                      },
+                      unit_amount: totalInCents,
+                    },
+                    quantity: 1,
+                  },
+                ],
+                success_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}`,
+                cancel_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-cancelled?invoice_id=${invoiceId}`,
+                metadata: {
+                  invoiceId,
+                  userId: dbInvoice.userId,
+                  invoiceNumber: dbInvoice.invoiceNumber || "",
+                },
+              });
+              
+              paymentLinkUrl = checkoutSession.url || null;
+              
+              // Save to DB for future use
+              await db
+                .update(schema.invoices)
+                .set({
+                  paymentLinkUrl,
+                  stripeCheckoutSessionId: checkoutSession.id,
+                })
+                .where(eq(schema.invoices.id, invoiceId));
+              
+              console.log(`[Invoice] ✅ Payment link created: ${paymentLinkUrl}`);
+            }
+          } catch (paymentError) {
+            console.warn(`[Invoice] ⚠️  Failed to generate payment link:`, paymentError);
+            // Continue without payment link - email will still be sent
+          }
+        }
 
         // Route to appropriate service based on method
         try {
@@ -258,7 +312,8 @@ export function registerInvoiceRoutes(app: Express) {
                 clientName,
                 invoiceId,
                 "", // Empty HTML for now, can be enhanced
-                completeInvoiceData  // ✅ Use complete invoice data from database
+                completeInvoiceData,
+                paymentLinkUrl ?? undefined  // ✅ Pass payment link to email (convert null to undefined)
               );
               
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
@@ -904,6 +959,135 @@ export function registerInvoiceRoutes(app: Express) {
       return res.status(500).json({
         success: false,
         error: "Failed to update invoice",
+        details: error.message,
+      });
+    }
+  });
+
+  /**
+   * POST /api/invoices/:id/payment-link
+   * Generate a Stripe checkout link for an invoice
+   * Client can pay directly from this link
+   */
+  app.post("/api/invoices/:id/payment-link", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      console.log("[Invoice] POST /api/invoices/:id/payment-link");
+      console.log("[Invoice] invoiceId:", invoiceId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      // Validate invoiceId format
+      if (!validateUUID(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid invoice ID format",
+        });
+      }
+
+      // ✅ FETCH INVOICE
+      const invoiceResult = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId))
+        .limit(1);
+
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Invoice not found",
+        });
+      }
+
+      const invoice = invoiceResult[0];
+
+      // ✅ VERIFY OWNERSHIP
+      if (invoice.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: "Unauthorized - you don't own this invoice",
+        });
+      }
+
+      // ✅ CHECK IF PAYMENT LINK ALREADY EXISTS
+      if (invoice.paymentLinkUrl && invoice.stripeCheckoutSessionId) {
+        console.log("[Invoice] ✅ Payment link already exists for invoice", invoiceId);
+        return res.status(200).json({
+          success: true,
+          message: "Payment link already generated",
+          paymentLinkUrl: invoice.paymentLinkUrl,
+        });
+      }
+
+      // ✅ CREATE STRIPE CHECKOUT SESSION
+      const totalInCents = Math.round(parseFloat(invoice.total || "0") * 100);
+      if (totalInCents <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Invoice total must be greater than $0",
+        });
+      }
+
+      const checkoutSession = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        client_reference_id: invoiceId,
+        customer_email: invoice.clientEmail || undefined,
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Invoice ${invoice.invoiceNumber || invoiceId}`,
+                description: `Payment for invoice from ${invoice.clientName || "Client"}`,
+              },
+              unit_amount: totalInCents,
+            },
+            quantity: 1,
+          },
+        ],
+        success_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}`,
+        cancel_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-cancelled?invoice_id=${invoiceId}`,
+        metadata: {
+          invoiceId,
+          userId,
+          invoiceNumber: invoice.invoiceNumber || "",
+        },
+      });
+
+      // ✅ SAVE PAYMENT LINK AND SESSION ID TO DATABASE
+      const paymentLinkUrl = checkoutSession.url;
+      const stripeCheckoutSessionId = checkoutSession.id;
+
+      await db
+        .update(schema.invoices)
+        .set({
+          paymentLinkUrl,
+          stripeCheckoutSessionId,
+        })
+        .where(eq(schema.invoices.id, invoiceId));
+
+      console.log(`[Invoice] ✅ Generated payment link for invoice ${invoiceId}`);
+      console.log(`[Invoice] Payment URL: ${paymentLinkUrl}`);
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment link generated successfully",
+        paymentLinkUrl,
+        invoiceId,
+      });
+    } catch (error: any) {
+      console.error("[Invoice] Error generating payment link:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to generate payment link",
         details: error.message,
       });
     }

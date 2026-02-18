@@ -26,7 +26,7 @@ TellBill is a **voice-first invoicing app** for construction workers that transf
 ## 1. Product Core (90% Complete)
 
 ### Voice-First Invoicing Pipeline
-- ✅ Voice recording in-app (60-180 seconds)
+- ✅ Voice recording in-app (60-180 seconds)n
 - ✅ AI transcription (Groq/OpenRouter)
 - ✅ Automatic invoice generation from transcript
 - ✅ Line item extraction from voice
