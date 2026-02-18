@@ -26,7 +26,7 @@ import { LockedFeatureOverlay } from "@/components/LockedFeatureOverlay";
 import { useScopeProofStore } from "@/stores/scopeProofStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
-import { useFeatureLock } from "@/hooks/useFeatureLock";
+import { useHasEntitlement } from "@/hooks/useFeatureAccess";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 /**
@@ -41,7 +41,7 @@ export default function ApprovalsScreen() {
   const { theme, isDark } = useTheme();
   const store = useScopeProofStore();
   const { currentPlan } = useSubscriptionStore();
-  const { isLocked } = useFeatureLock("scope_proof");
+  const hasAccess = useHasEntitlement("professional");
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "expired">("pending");
   const [clientEmail, setClientEmail] = useState("");
   const [selectedProof, setSelectedProof] = useState<any>(null);
@@ -403,7 +403,7 @@ export default function ApprovalsScreen() {
   });
 
   // ✅ LOCK: Scope Proof/Approvals only available for Professional and Enterprise plans
-  if (isLocked) {
+  if (!hasAccess) {
     return <LockedFeatureOverlay feature="scope_proof" />;
   }
 
