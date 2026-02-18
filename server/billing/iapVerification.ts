@@ -14,11 +14,11 @@
 
 import { Router, Request, Response, Express } from "express";
 import axios from "axios";
-import { db } from "@/server/db";
-import { users } from "@/server/db/schema";
+import { db } from "../db";
+import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { logger } from "@/server/utils/logger";
-import { authMiddleware } from "@/server/middleware/auth";
+import { logger } from "../utils/logger";
+import { authMiddleware } from "../utils/authMiddleware";
 
 // ============================================
 // TYPES

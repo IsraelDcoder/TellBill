@@ -12,6 +12,8 @@ import { registerScopeProofRoutes } from "./scopeProof";
 import { registerTaxRoutes } from "./tax";
 import { registerMaterialCostRoutes } from "./materialCosts";
 import { registerMoneyAlertRoutes } from "./moneyAlerts";
+import { registerBillingRoutes } from "./billing/iapVerification";
+import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
 import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
@@ -37,6 +39,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhook (no auth) + protected checkout/portal routes
   registerStripeWebhookRoutes(app);
   registerStripeRoutes(app);
+
+  // ✅ MOBILE BILLING ROUTES (IAP via RevenueCat)
+  // Webhook (no auth) + protected verification routes
+  registerRevenueCatWebhook(app);
+  registerBillingRoutes(app);
 
   // ✅ PROTECTED ROUTES (Auth + Subscription required)
   // Apply auth middleware first, then subscription middleware
