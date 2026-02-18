@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { stripe } from "./stripeClient";
 import { getPlanByPriceId } from "./stripePlans";
 import { db } from "../db";
-import { users, webhookProcessed } from "@shared/schema";
+import { users, webhookProcessed, invoices as invoicesSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger";
 import type Stripe from "stripe";
@@ -50,6 +50,11 @@ export function registerStripeWebhookRoutes(app: Express) {
       // Handle checkout.session.completed
       if (event.type === "checkout.session.completed") {
         await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+      }
+
+      // ✅ Handle payment_intent.succeeded (Direct invoice payments)
+      if (event.type === "payment_intent.succeeded") {
+        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
       }
 
       // Handle invoice.payment_succeeded
@@ -263,4 +268,63 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .where(eq(users.id, userId));
 
   logger.info({ userId, status: subscription.status }, "Subscription status updated");
+}
+
+/**
+ * ✅ Handle payment_intent.succeeded
+ * - This fires when a direct payment (from checkout session) succeeds
+ * - Update invoice status to "paid"
+ * - Track payment in database
+ */
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const invoiceId = paymentIntent.metadata?.invoiceId;
+  const userId = paymentIntent.metadata?.userId;
+
+  if (!invoiceId) {
+    logger.warn({ paymentIntentId: paymentIntent.id }, "Payment intent missing invoiceId metadata");
+    return;
+  }
+
+  logger.info(
+    { invoiceId, paymentIntentId: paymentIntent.id, amount: paymentIntent.amount },
+    "Processing successful invoice payment"
+  );
+
+  try {
+    // Update invoice status to "paid"
+    const result = await db
+      .update(invoicesSchema)
+      .set({
+        status: "paid",
+        paidAt: new Date(),
+        stripePaymentIntentId: paymentIntent.id,
+      })
+      .where(eq(invoicesSchema.id, invoiceId));
+
+    logger.info(
+      { invoiceId, paymentIntentId: paymentIntent.id },
+      "✅ Invoice marked as paid"
+    );
+
+    // Fetch invoice details for logging
+    const invoice = await db
+      .select()
+      .from(invoicesSchema)
+      .where(eq(invoicesSchema.id, invoiceId))
+      .limit(1);
+
+    if (invoice && invoice.length > 0) {
+      const inv = invoice[0];
+      logger.info(
+        { invoiceId, clientName: inv.clientName, amount: inv.total, userId },
+        "💰 Payment received and processed"
+      );
+    }
+  } catch (error) {
+    logger.error(
+      { invoiceId, paymentIntentId: paymentIntent.id, error },
+      "❌ Failed to update invoice payment status"
+    );
+    throw error;
+  }
 }
