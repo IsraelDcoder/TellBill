@@ -26,7 +26,6 @@ import { LockedFeatureOverlay } from "@/components/LockedFeatureOverlay";
 import { useScopeProofStore } from "@/stores/scopeProofStore";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
-import { useHasEntitlement } from "@/hooks/useFeatureAccess";
 import { BrandColors, Spacing } from "@/constants/theme";
 
 /**
@@ -40,8 +39,8 @@ import { BrandColors, Spacing } from "@/constants/theme";
 export default function ApprovalsScreen() {
   const { theme, isDark } = useTheme();
   const store = useScopeProofStore();
-  const { currentPlan } = useSubscriptionStore();
-  const hasAccess = useHasEntitlement("professional");
+  const { userEntitlement } = useSubscriptionStore();
+  const hasAccess = userEntitlement === "professional" || userEntitlement === "enterprise";
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "expired">("pending");
   const [clientEmail, setClientEmail] = useState("");
   const [selectedProof, setSelectedProof] = useState<any>(null);

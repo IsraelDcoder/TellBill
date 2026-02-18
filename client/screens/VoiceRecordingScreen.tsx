@@ -30,7 +30,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { useAuth } from "@/context/AuthContext";
-import { useFeatureAccess, useFreeTierLimit } from "@/hooks/useFeatureAccess";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { PLAN_LIMITS } from "@/constants/planLimits";
@@ -69,7 +68,11 @@ export default function VoiceRecordingScreen() {
   const buttonScale = useSharedValue(1);
 
   // Check if user has reached recording limit using hook
-  const { hasReachedLimit, remaining, limit } = useFreeTierLimit("voice", voiceRecordingsUsed);
+  const { userEntitlement } = useSubscriptionStore();
+  const isFreeUser = !userEntitlement || userEntitlement === "none";
+  const limit = isFreeUser ? 3 : Infinity;
+  const hasReachedLimit = isFreeUser && voiceRecordingsUsed >= 3;
+  const remaining = isFreeUser ? Math.max(0, 3 - voiceRecordingsUsed) : Infinity;
   const recordingLimit = limit;
 
   // Initialize audio system on component mount

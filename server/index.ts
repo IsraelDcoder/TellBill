@@ -15,6 +15,7 @@ import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob
 import { securityHeaders } from "./utils/sanitize";
 import { setupCorsSecurely } from "./utils/cors";
 import { logger, attachRequestLogging } from "./utils/logger";
+import { createRateLimiter } from "./utils/rateLimiter";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -204,6 +205,28 @@ function setupErrorHandler(app: express.Application) {
     setupCors(app);
     setupBodyParsing(app);
     setupRequestLogging(app);
+
+    // ✅ GLOBAL API RATE LIMITER - Protects all /api endpoints
+    const apiLimiter = createRateLimiter({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      maxRequests: 1000, // 1000 requests per 15 minutes (≈ 1.1 req/sec)
+      keyGenerator: (req) => {
+        // Rate limit by IP address or user ID if authenticated
+        const userId = (req as any).user?.id;
+        return userId || req.ip || req.socket.remoteAddress || "unknown";
+      },
+      skip: (req) => {
+        // Skip rate limiting for health checks and non-API routes
+        return req.path === "/api/health" || !req.path.startsWith("/api");
+      },
+      onLimitReached: (req, key) => {
+        logger.warn(
+          { clientId: key, path: req.path, method: req.method },
+          "⚠️  API rate limit reached - possible abuse attempt"
+        );
+      },
+    });
+    app.use("/api", apiLimiter);
 
     // Attach Sentry request handlers early in middleware chain
     attachSentryMiddleware(app);
