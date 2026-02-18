@@ -1,15 +1,13 @@
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 
-export type Plan = "free" | "solo" | "professional" | "enterprise";
-export type Feature = "projects" | "team_members" | "inventory_management" | "scope_proof" | "advanced_features";
+export type Plan = "free" | "solo" | "professional";
+export type Feature = "projects" | "inventory_management" | "scope_proof";
 
 // Define which plans have access to which features
 const FEATURE_ACCESS: Record<Feature, Plan[]> = {
-  projects: ["solo", "professional", "enterprise"], // Free users: limited to viewing only
-  team_members: ["professional", "enterprise"], // Only professional and enterprise
-  inventory_management: ["solo", "professional", "enterprise"], // Free users cannot access
-  scope_proof: ["professional", "enterprise"], // Only professional and enterprise (Scope Proof feature)
-  advanced_features: ["enterprise"], // Only enterprise
+  projects: ["solo", "professional"],
+  inventory_management: ["solo", "professional"],
+  scope_proof: ["professional"],
 };
 
 interface FeatureLockResult {
@@ -25,7 +23,7 @@ export const useFeatureLock = (feature: Feature): FeatureLockResult => {
   const isLocked = !allowedPlans.includes(currentPlan as Plan);
 
   // Find the minimum required plan
-  const planHierarchy: Plan[] = ["free", "solo", "professional", "enterprise"];
+  const planHierarchy: Plan[] = ["free", "solo", "professional"];
   const requiredIndex = planHierarchy.findIndex((p) =>
     allowedPlans.includes(p)
   );
@@ -34,14 +32,10 @@ export const useFeatureLock = (feature: Feature): FeatureLockResult => {
   let reason = "";
   if (feature === "projects") {
     reason = "Projects feature is available in Solo plan and above";
-  } else if (feature === "team_members") {
-    reason = "Team management is available in Professional plan and above";
   } else if (feature === "inventory_management") {
     reason = "Inventory management is available in Solo plan and above";
   } else if (feature === "scope_proof") {
-    reason = "Scope Proof is available in Professional plan and above";
-  } else if (feature === "advanced_features") {
-    reason = "Advanced features are available in Enterprise plan";
+    reason = "Scope proof is available in Professional plan and above";
   }
 
   return {

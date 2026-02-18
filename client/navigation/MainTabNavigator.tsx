@@ -6,9 +6,9 @@ import { Platform, StyleSheet } from "react-native";
 
 import HomeStackNavigator from "@/navigation/HomeStackNavigator";
 import InvoicesStackNavigator from "@/navigation/InvoicesStackNavigator";
+import MoneyAlertsStackNavigator from "@/navigation/MoneyAlertsStackNavigator";
+import ApprovalStackNavigator from "@/navigation/ApprovalStackNavigator";
 import ProfileStackNavigator from "@/navigation/ProfileStackNavigator";
-import ApprovalsScreen from "@/screens/ApprovalsScreen";
-import MoneyAlertsScreen from "@/screens/MoneyAlertsScreen";
 import { useTheme } from "@/hooks/useTheme";
 import { BrandColors, Spacing } from "@/constants/theme";
 
@@ -80,7 +80,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="MoneyAlertsTab"
-        component={MoneyAlertsScreen}
+        component={MoneyAlertsStackNavigator}
         options={{
           title: "Money Alerts",
           tabBarIcon: ({ color, size }) => (
@@ -90,7 +90,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="ApprovalsTab"
-        component={ApprovalsScreen}
+        component={ApprovalStackNavigator}
         options={{
           title: "Approvals",
           tabBarIcon: ({ color, size }) => (

@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -26,7 +25,6 @@ import { ResolveAlertModal } from "@/components/ResolveAlertModal";
 
 export default function MoneyAlertsScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
   const { currentPlan } = useSubscriptionStore();
 
@@ -138,7 +136,7 @@ export default function MoneyAlertsScreen() {
   if (error) {
     return (
       <ThemedView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-        <View style={[styles.centerContent, { paddingTop: headerHeight + Spacing.xl }]}>
+        <View style={[styles.centerContent, { paddingTop: Spacing.xl }]}>
           <Feather name="alert-circle" size={48} color={theme.textSecondary} />
           <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.md }}>
             {error}
@@ -178,14 +176,7 @@ export default function MoneyAlertsScreen() {
           data={[]}
           renderItem={() => null}
           ListHeaderComponent={
-            <View style={{ paddingTop: headerHeight, paddingHorizontal: Spacing.lg }}>
-              <View style={styles.header}>
-                <ThemedText type="h2">Money Alerts</ThemedText>
-                <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
-                  Work you may have forgotten to bill for
-                </ThemedText>
-              </View>
-
+            <View style={{ paddingHorizontal: Spacing.lg }}>
               <View style={styles.spacer} />
 
               <View style={styles.emptyState}>
@@ -229,14 +220,7 @@ export default function MoneyAlertsScreen() {
         )}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          <View style={{ paddingHorizontal: Spacing.lg, paddingTop: headerHeight }}>
-            <View style={styles.header}>
-              <ThemedText type="h2">Money Alerts</ThemedText>
-              <ThemedText type="body" style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
-                Work you may have forgotten to bill for
-              </ThemedText>
-            </View>
-
+          <View style={{ paddingHorizontal: Spacing.lg }}>
             {/* Summary cards */}
             {summary && (
               <View style={styles.summaryRow}>
@@ -317,9 +301,6 @@ export default function MoneyAlertsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    marginBottom: Spacing.lg,
   },
   summaryRow: {
     flexDirection: "row",

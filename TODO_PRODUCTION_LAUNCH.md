@@ -47,12 +47,12 @@ Contractor app shows invoice as paid ✅
 - [ ] Create RevenueCat config file
 - [ ] Initialize RevenueCat on app launch (in app.tsx)
 - [ ] Configure app user ID (link to TellBill user ID)
-- [ ] Setup entitlements (Free, Solo, Professional, Enterprise)
+- [ ] Setup entitlements (Free, Solo, Professional)
 - [ ] Create PurchasesProvider wrapper
 
 #### Part 2: Implement Purchase Screen (2-3 hours)
 - [ ] Create PricingScreen component
-- [ ] Display 4 pricing tiers (Free, Solo, Pro, Enterprise)
+- [ ] Display 3 pricing tiers (Free, Solo, Professional)
 - [ ] Show features per tier (bullets/comparison)
 - [ ] Create "Upgrade Now" buttons
 - [ ] Implement purchase flow

@@ -10,7 +10,7 @@ export interface CheckoutResponse {
 }
 
 export interface SubscriptionStatus {
-  plan: "free" | "solo" | "professional" | "enterprise";
+  plan: "free" | "solo" | "professional";
   status: "active" | "past_due" | "canceled" | "incomplete";
   currentPeriodEnd: number | null;
 }
@@ -20,7 +20,7 @@ export const stripeService = {
    * Initiate Stripe checkout for subscription
    * Redirects to Stripe Checkout hosted page
    */
-  initiateCheckout: async (plan: "solo" | "professional" | "enterprise") => {
+  initiateCheckout: async (plan: "solo" | "professional") => {
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {

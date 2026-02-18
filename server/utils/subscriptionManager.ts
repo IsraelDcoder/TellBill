@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
  * Enforces plan limits on the backend (don't trust client)
  */
 
-export type PlanType = "free" | "solo" | "professional" | "enterprise";
+export type PlanType = "free" | "solo" | "professional";
 
 /**
  * Plan feature matrix - defines what each plan can do
@@ -84,28 +84,6 @@ export const PLAN_FEATURES = {
       approvalReminders: true,
     },
   },
-  enterprise: {
-    voiceRecordings: Infinity,
-    invoices: Infinity,
-    projectsCreated: Infinity,
-    teamMembers: Infinity,
-    storage: Infinity, // GB
-    features: {
-      voiceRecording: true,
-      basicInvoicing: true,
-      emailSupport: true,
-      advancedTemplates: true,
-      teamManagement: true,
-      paymentTracking: true,
-      recurringInvoices: true,
-      invoiceAutomation: true,
-      prioritySupport: true,
-      customBranding: true,
-      multipleProjects: true,
-      advancedAnalytics: true,
-      apiAccess: true,
-    },
-  },
 };
 
 /**
@@ -114,7 +92,6 @@ export const PLAN_FEATURES = {
 export const PLAN_PRICES = {
   solo: 2999, // $29.99
   professional: 7999, // $79.99
-  enterprise: 29999, // $299.99
 };
 
 /**
@@ -256,7 +233,7 @@ export async function upgradeSubscription(
   status: SubscriptionStatus = "active"
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (!["free", "solo", "professional", "enterprise"].includes(newPlan)) {
+    if (!["free", "solo", "professional"].includes(newPlan)) {
       return { success: false, error: "Invalid plan" };
     }
 
@@ -351,7 +328,7 @@ export async function getUserPlan(userId: string): Promise<PlanType> {
 
 /**
  * Check if a plan has access to a feature
- * @param requiredPlans - Array of plans that have access (e.g., ["solo", "professional", "enterprise"])
+     * @param requiredPlans - Array of plans that have access (e.g., ["solo", "professional"])
  * @param userPlan - User's current plan
  * @returns true if user's plan is in the requiredPlans array
  */
@@ -360,7 +337,6 @@ export function hasPlanAccess(requiredPlans: PlanType[], userPlan: PlanType): bo
     free: 0,
     solo: 1,
     professional: 2,
-    enterprise: 3,
   };
 
   // Find minimum required plan level

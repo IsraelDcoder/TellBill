@@ -4,20 +4,20 @@ import {
   View,
   Image,
   Dimensions,
+  FlatList,
+  Pressable,
 } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Feather } from "@expo/vector-icons";
 import { getApiUrl } from "@/lib/backendUrl";
 
 import { ThemedText } from "@/components/ThemedText";
-import {
-  ScreenContainer,
-  Section,
-  SectionTitle,
-} from "@/components/layout";
+import { Section, SectionTitle } from "@/components/layout";
 import { KPICard } from "@/components/KPICard";
 import { QuickActionButton } from "@/components/QuickActionButton";
 import { ActivityItem, ActivityStatus } from "@/components/ActivityItem";
@@ -33,24 +33,27 @@ const { width } = Dimensions.get("window");
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { invoices, getStats, hydrateInvoices } = useInvoiceStore();
+  
+  // ✅ Use proper Zustand selectors to subscribe to invoices
+  // This ensures the component re-renders ONLY when invoices change
+  const invoices = useInvoiceStore((state) => state.invoices);
+  const getStats = useInvoiceStore((state) => state.getStats);
+  const hydrateInvoices = useInvoiceStore((state) => state.hydrateInvoices);
+  
+  // ✅ Calculate stats from current invoices
+  // This recalculates every render, so it's always fresh
   const stats = getStats();
 
-  // ✅ CRITICAL: Refetch invoice data when screen comes into focus
-  // Ensures KPI metrics are always up-to-date after invoice status changes
   useFocusEffect(
     React.useCallback(() => {
       const refetchInvoices = async () => {
         try {
-          console.log("[Home] 🔄 Refetching invoices from backend...");
           const token = await AsyncStorage.getItem("authToken");
-          if (!token) {
-            console.warn("[Home] ⚠️  No auth token for refetch");
-            return;
-          }
+          if (!token) return;
 
           const response = await fetch(getApiUrl("/api/data/all"), {
             method: "GET",
@@ -63,33 +66,26 @@ export default function HomeScreen() {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data?.invoices) {
-              console.log(`[Home] ✅ Refetched ${data.data.invoices.length} invoices`);
-              // Parse items JSON for each invoice and update store
               const parsedInvoices = data.data.invoices.map((inv: any) => ({
                 ...inv,
                 items: typeof inv.items === 'string' ? JSON.parse(inv.items || '[]') : (inv.items || []),
               }));
               hydrateInvoices(parsedInvoices);
             }
-          } else {
-            console.warn("[Home] ⚠️  Failed to refetch invoices:", response.status);
           }
         } catch (err) {
-          console.warn("[Home] ⚠️  Refetch error:", err);
-          // Non-blocking: Continue showing cached data
+          console.warn("[Home] Refetch error:", err);
         }
       };
 
       refetchInvoices();
-      return () => {}; // cleanup
     }, [hydrateInvoices])
   );
 
   const recentInvoices = invoices.slice(0, 5);
 
-  return (
-    <ScreenContainer scrollable paddingBottom="default">
-      {/* Hero Section */}
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
       <View style={styles.heroContainer}>
         <Image
           source={require("../assets/images/dashboard_hero_construction_site.png")}
@@ -117,7 +113,6 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* KPI Cards Section */}
       <Section spacing="compact">
         <View style={styles.kpiRow}>
           <KPICard
@@ -148,7 +143,6 @@ export default function HomeScreen() {
         </View>
       </Section>
 
-      {/* Quick Actions Section */}
       <Section>
         <SectionTitle title="Quick Actions" />
         <View style={styles.quickActions}>
@@ -181,109 +175,168 @@ export default function HomeScreen() {
         </View>
       </Section>
 
-      {/* Recent Activity Section */}
       <Section>
         <View style={styles.sectionHeader}>
           <SectionTitle title="Recent Activity" />
-          <ThemedText
-            type="link"
-            style={[styles.seeAllLink, { color: BrandColors.constructionGold }]}
+          <Pressable
             onPress={() =>
               navigation.navigate("Main", { screen: "InvoicesTab" } as any)
             }
           >
-            See All
-          </ThemedText>
-        </View>
-        {recentInvoices.length > 0 ? (
-          <View style={styles.activityList}>
-            {recentInvoices.map((invoice) => (
-              <ActivityItem
-                key={invoice.id}
-                clientName={invoice.clientName}
-                invoiceNumber={invoice.invoiceNumber}
-                amount={invoice.total}
-                status={invoice.status as ActivityStatus}
-                date={new Date(invoice.createdAt).toLocaleDateString()}
-                onPress={() =>
-                  navigation.navigate("InvoiceDetail", { invoiceId: invoice.id })
-                }
-              />
-            ))}
-          </View>
-        ) : (
-          <GlassCard style={styles.emptyCard}>
             <ThemedText
-              type="body"
-              style={[styles.emptyText, { color: theme.textSecondary }]}
+              type="link"
+              style={[styles.seeAllLink, { color: BrandColors.constructionGold }]}
             >
-              No recent activity. Start by recording your first job!
+              See All
             </ThemedText>
-          </GlassCard>
-        )}
+          </Pressable>
+        </View>
       </Section>
-    </ScreenContainer>
+    </View>
+  );
+
+  const renderListItem = ({ item }: { item: typeof invoices[0] }) => (
+    <ActivityItem
+      clientName={item.clientName}
+      invoiceNumber={item.invoiceNumber}
+      amount={item.total}
+      status={item.status as ActivityStatus}
+      date={new Date(item.createdAt).toLocaleDateString()}
+      onPress={() =>
+        navigation.navigate("InvoiceDetail", { invoiceId: item.id })
+      }
+    />
+  );
+
+  const renderEmptyRecent = () => (
+    <GlassCard style={styles.emptyCard}>
+      <ThemedText
+        type="body"
+        style={[styles.emptyText, { color: theme.textSecondary }]}
+      >
+        No recent activity. Start by recording your first job!
+      </ThemedText>
+    </GlassCard>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      <FlatList
+        data={recentInvoices}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderHeader}
+        renderItem={renderListItem}
+        ListEmptyComponent={renderEmptyRecent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: tabBarHeight + Spacing.xl },
+        ]}
+        scrollIndicatorInsets={{ bottom: insets.bottom }}
+        scrollEnabled={true}
+        nestedScrollEnabled={false}
+      />
+
+      <Pressable
+        style={[
+          styles.fab,
+          { bottom: tabBarHeight + Spacing.lg },
+        ]}
+        onPress={() => navigation.navigate("VoiceRecording")}
+      >
+        <Feather name="plus" size={24} color={BrandColors.slateGrey} />
+      </Pressable>
+    </View>
   );
 }
 
+
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  headerContainer: {
+    paddingBottom: Spacing.lg,
+  },
   heroContainer: {
-    height: 220,
-    position: "relative",
+    position: 'relative',
+    width: '100%',
+    height: 320,
+    marginBottom: Spacing.xl,
     marginHorizontal: -Spacing.lg,
     marginTop: -Spacing.lg,
-    marginBottom: Spacing.md,
+    borderRadius: Spacing.lg,
+    overflow: 'hidden',
   },
   heroImage: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
   },
   heroGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 160,
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
   heroContent: {
-    position: "absolute",
+    position: 'absolute',
     bottom: Spacing.lg,
     left: Spacing.lg,
     right: Spacing.lg,
   },
   heroTitle: {
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: Spacing.sm,
   },
   heroSubtitle: {
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: '600',
   },
   kpiRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
   },
   quickActions: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginBottom: Spacing.lg,
   },
-  seeAllLink: {
-    fontWeight: "600",
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
-  activityList: {
-    gap: Spacing.sm,
+  seeAllLink: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyCard: {
-    alignItems: "center",
-    paddingVertical: Spacing["2xl"],
+    marginVertical: Spacing.lg,
+    padding: Spacing.lg,
   },
   emptyText: {
-    textAlign: "center",
+    textAlign: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    right: Spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: BrandColors.constructionGold,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

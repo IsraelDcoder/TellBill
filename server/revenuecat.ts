@@ -44,10 +44,8 @@ interface EntitlementInfo {
 /**
  * Map RevenueCat entitlements to subscription tiers
  */
-function mapEntitlementToPlan(entitlementId?: string): "solo" | "professional" | "enterprise" | "free" {
+function mapEntitlementToPlan(entitlementId?: string): "solo" | "professional" | "free" {
   switch (entitlementId) {
-    case "enterprise_plan":
-      return "enterprise";
     case "professional_plan":
       return "professional";
     case "solo_plan":
@@ -197,7 +195,7 @@ export function registerRevenueCatRoutes(app: Express) {
       const subscriber = customerData.subscriber;
 
       // Get active entitlement
-      let activePlan: "solo" | "professional" | "enterprise" | "free" = "free";
+      let activePlan: "solo" | "professional" | "free" = "free";
       let expiryDate: Date | null = null;
       let isActive = false;
 
@@ -307,7 +305,7 @@ export function registerRevenueCatRoutes(app: Express) {
       const subscriber = customerData.subscriber;
 
       // Get active entitlement
-      let activePlan: "solo" | "professional" | "enterprise" | "free" = "free";
+      let activePlan: "solo" | "professional" | "free" = "free";
       let expiryDate: Date | null = null;
       let isActive = false;
 
@@ -482,14 +480,8 @@ export function registerRevenueCatRoutes(app: Express) {
  */
 function mapProductIdToPlan(
   productId: string
-): "solo" | "professional" | "enterprise" {
+): "solo" | "professional" {
   // Example mapping - update with your actual product IDs
-  if (
-    productId.includes("enterprise") ||
-    productId.includes("team")
-  ) {
-    return "enterprise";
-  }
   if (
     productId.includes("professional") ||
     productId.includes("pro")

@@ -34,13 +34,13 @@ import { BrandColors, Spacing } from "@/constants/theme";
  * Shows pending, approved, and expired scope proofs
  * Contractors manage client approvals here
  * 
- * 🔒 LOCKED: Scope Proof is only available on Professional and Enterprise plans
+ * 🔒 LOCKED: Scope Proof is only available on Professional plan
  */
 export default function ApprovalsScreen() {
   const { theme, isDark } = useTheme();
   const store = useScopeProofStore();
   const { userEntitlement } = useSubscriptionStore();
-  const hasAccess = userEntitlement === "professional" || userEntitlement === "enterprise";
+  const hasAccess = userEntitlement === "professional";
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "expired">("pending");
   const [clientEmail, setClientEmail] = useState("");
   const [selectedProof, setSelectedProof] = useState<any>(null);
@@ -407,15 +407,7 @@ export default function ApprovalsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Approvals</ThemedText>
-        <ThemedText style={{ color: theme.textSecondary, marginTop: Spacing.xs }}>
-          Get client approval for extra work
-        </ThemedText>
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundRoot }]} edges={['bottom']}>
 
       {/* Tab Navigation */}
       <View style={[styles.tabContainer, { backgroundColor: theme.backgroundDefault }]}>
@@ -663,14 +655,6 @@ export default function ApprovalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
   },
   tabContainer: {
     flexDirection: "row",

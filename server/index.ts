@@ -32,7 +32,7 @@ console.log(`  OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? "✅ SET" 
 console.log(`  STRIPE_SECRET_KEY: ${process.env.STRIPE_SECRET_KEY ? "✅ SET" : "❌ NOT SET"}`);
 console.log(`  STRIPE_SOLO_PRICE_ID: ${process.env.STRIPE_SOLO_PRICE_ID || "⚠️ NOT SET"}`);
 console.log(`  STRIPE_PROFESSIONAL_PRICE_ID: ${process.env.STRIPE_PROFESSIONAL_PRICE_ID || "⚠️ NOT SET"}`);
-console.log(`  STRIPE_ENTERPRISE_PRICE_ID: ${process.env.STRIPE_ENTERPRISE_PRICE_ID || "⚠️ NOT SET"}`);
+
 console.log(`  RESEND_API_KEY: ${process.env.RESEND_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
 console.log("[Server] Environment check complete\n");
 

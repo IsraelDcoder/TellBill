@@ -22,7 +22,7 @@ export const users = pgTable("users", {
   companyAddress: text("company_address"),
   companyWebsite: text("company_website"),
   companyTaxId: text("company_tax_id"),
-  currentPlan: text("current_plan").default("free"), // free, solo, professional, enterprise
+  currentPlan: text("current_plan").default("free"), // free, solo, professional
   isSubscribed: boolean("is_subscribed").default(false),
   subscriptionStatus: text("subscription_status").default("inactive"), // active, inactive, cancelled, expired
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -31,7 +31,7 @@ export const users = pgTable("users", {
   // RevenueCat subscription fields (replaces Flutterwave)
   revenuecatAppUserId: text("revenuecat_app_user_id"), // RevenueCat customer ID
   subscriptionPlatform: text("subscription_platform"), // "ios" or "android"
-  subscriptionTier: text("subscription_tier").default("free"), // free, solo, professional, enterprise
+  subscriptionTier: text("subscription_tier").default("free"), // free, solo, professional
   subscriptionExpiryDate: timestamp("subscription_expiry_date", { withTimezone: true }),
   subscriptionRenewalDate: timestamp("subscription_renewal_date", { withTimezone: true }),
   subscriptionCancellationDate: timestamp("subscription_cancellation_date", { withTimezone: true }),
@@ -40,7 +40,7 @@ export const users = pgTable("users", {
   // Stripe subscription fields
   stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
   stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
-  stripePriceId: text("stripe_price_id"), // Current Stripe price ID (solo, professional, enterprise)
+  stripePriceId: text("stripe_price_id"), // Current Stripe price ID (solo, professional)
   // Security: Email verification
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }), // NULL = not verified, timestamp = verified time
   // Security: Account lockout

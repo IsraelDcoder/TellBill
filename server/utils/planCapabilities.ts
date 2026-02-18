@@ -6,7 +6,7 @@
  * Frontend reads capabilities and prevents UX access (backend enforces).
  */
 
-export type Plan = "free" | "solo" | "professional" | "enterprise";
+export type Plan = "free" | "solo" | "professional";
 
 export type Capability =
   | "voice_recording"
@@ -103,24 +103,6 @@ export const PLAN_CAPABILITIES: Record<Plan, PlanCapabilities> = {
     customBranding: false,
     dedicatedSupport: false,
   },
-
-  enterprise: {
-    voiceRecordingsMonthly: Infinity,
-    invoicesMonthly: Infinity,
-    projectsPerMonth: Infinity,
-
-    // Enterprise = Professional + Premium features
-    projectManagement: true,
-    receiptScanning: true,
-    scopeProof: true,
-    clientApprovals: true,
-    photoProof: true,
-    approvalReminders: true,
-    advancedAnalytics: true, // ✅ Enterprise only
-    apiAccess: true, // ✅ Enterprise only
-    customBranding: true, // ✅ Enterprise only
-    dedicatedSupport: true, // ✅ Enterprise only
-  },
 };
 
 /**
@@ -162,7 +144,7 @@ export function hasCapability(plan: Plan, capability: Capability): boolean {
  * Get the minimum required plan for a capability
  */
 export function getMinimumPlanFor(capability: Capability): Plan {
-  const plans: Plan[] = ["free", "solo", "professional", "enterprise"];
+  const plans: Plan[] = ["free", "solo", "professional"];
 
   for (const plan of plans) {
     if (hasCapability(plan, capability)) {

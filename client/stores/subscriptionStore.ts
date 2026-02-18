@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export type Entitlement = "none" | "solo" | "professional" | "enterprise";
-export type Plan = "free" | "solo" | "professional" | "enterprise";
+export type Entitlement = "none" | "solo" | "professional";
+export type Plan = "free" | "solo" | "professional";
 
 export interface Subscription {
   plan: Entitlement;
@@ -15,7 +15,7 @@ export interface Subscription {
 
 export interface PricingTier {
   id: string;
-  name: "solo" | "professional" | "enterprise";
+  name: "solo" | "professional";
   displayName: string;
   monthlyPrice: number;
   annualPrice: number;
@@ -65,20 +65,6 @@ export const PLAN_LIMITS = {
       "Photo proof with timestamps",
       "Approval reminders",
       "Dispute-ready work logs",
-    ],
-  },
-  enterprise: {
-    displayName: "Enterprise",
-    usageLimit: Infinity,
-    invoices: Infinity,
-    voiceRecordings: Infinity,
-    features: [
-      "Unlimited everything",
-      "Unlimited team members",
-      "Custom branding",
-      "Advanced analytics",
-      "API access",
-      "Dedicated account manager",
     ],
   },
 };
@@ -171,25 +157,6 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
             "Advanced analytics",
           ],
           revenueCatProductId: "professional_plan_monthly",
-        },
-        {
-          id: "enterprise_tier",
-          name: "enterprise",
-          displayName: "Enterprise",
-          monthlyPrice: 99,         // ✅ 4.1x Professional (skip mid-tier)
-          annualPrice: 990,         // ✅ Save 17% ($82.50/month)
-          isPopular: false,
-          features: [
-            "Unlimited everything",
-            "Unlimited team members",
-            "Custom branding",
-            "Advanced analytics",
-            "API access",
-            "24/7 priority support",
-            "Dedicated account manager",
-            "Custom integrations",
-          ],
-          revenueCatProductId: "enterprise_plan_monthly",
         },
       ],
 

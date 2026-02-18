@@ -79,38 +79,7 @@ export const PLAN_LIMITS = {
       dedicatedSupport: false,
     },
   },
-  // 🔴 ENTERPRISE — Revenue Infrastructure
-  enterprise: {
-    voiceRecordings: Infinity,
-    invoices: Infinity,
-    projects: Infinity,
-    features: {
-      // ✅ Everything in Professional +
-      voiceRecording: true,
-      basicInvoicing: true,
-      emailInvoiceDelivery: true,
-      projects: true,
-      receiptScanning: true,
-      paymentTracking: true,
-      whatsappDelivery: true,
-      invoiceHistory: true,
-      scopeProof: true,
-      clientApprovals: true,
-      autoAddApprovedWork: true,
-      photoProofWithTimestamps: true,
-      approvalReminders: true,
-      disputeReadyLogs: true,
-      unlimitedProjects: true,
-      // ✅ NEW in Enterprise
-      advancedAnalytics: true,
-      apiAccess: true,
-      customBranding: true,
-      dedicatedSupport: true,
-      moneyRecoveredMetrics: true,
-      approvalRateAnalytics: true,
-      customApprovalRules: true,
-    },
-  },
+
 };
 
 export const PRICING_TIERS = [
@@ -181,26 +150,5 @@ export const PRICING_TIERS = [
     cta: "Get Professional",
     highlighted: true,
   },
-  // 🔴 ENTERPRISE — Revenue Infrastructure
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "$299",
-    period: "/month",
-    badge: "Revenue Infrastructure",
-    description: "For serious operators and growing businesses",
-    copy: "This runs part of my business.",
-    features: [
-      "✅ Everything in Professional",
-      "✅ Unlimited usage everywhere",
-      "✅ Advanced analytics (money recovered, approvals, delays)",
-      "✅ API access",
-      "✅ Custom branding",
-      "✅ Priority support",
-      "✅ Dedicated account contact",
-      "✅ Custom approval rules",
-    ],
-    cta: "Contact for Enterprise",
-    highlighted: false,
-  },
+
 ];

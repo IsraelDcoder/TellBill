@@ -28,18 +28,11 @@ const PLAN_BENEFITS = {
     "Priority support",
     "Custom branding",
   ],
-  enterprise: [
-    "Everything in Team",
-    "API access",
-    "Custom integrations",
-    "SSO/SAML",
-    "Dedicated account manager",
-    "Custom SLA",
-  ],
+
 };
 
 interface PaymentSuccessScreenProps {
-  route?: { params?: { planId?: "solo" | "professional" | "enterprise" } };
+  route?: { params?: { planId?: "solo" | "professional" } };
 }
 
 export default function PaymentSuccessScreen(props: PaymentSuccessScreenProps) {

@@ -238,10 +238,10 @@ export function validatePayment(body: any): ValidationResult {
   // Validate planId
   if (!isRequired(body.planId)) {
     errors.push({ field: "planId", message: "Plan ID is required" });
-  } else if (!validateEnum(body.planId, ["solo", "professional", "enterprise"])) {
+  } else if (!validateEnum(body.planId, ["solo", "professional"])) {
     errors.push({
       field: "planId",
-      message: 'Plan ID must be solo, professional, or enterprise',
+      message: 'Plan ID must be solo or professional',
     });
   }
 

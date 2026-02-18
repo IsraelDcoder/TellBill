@@ -14,7 +14,7 @@ import { eq, sql } from "drizzle-orm";
 
 export interface SubscriptionInfo {
   userId: string;
-  plan: "free" | "solo" | "professional" | "enterprise";
+  plan: "free" | "solo" | "professional";
   status: "active" | "inactive" | "canceled" | "expired";
   subscriptionId?: string;
   currentPeriodEnd?: Date;
@@ -88,7 +88,7 @@ export async function attachSubscriptionMiddleware(
     // Attach subscription info with real data
     req.subscription = {
       userId: user.id,
-      plan: (user.currentPlan || "free") as "free" | "solo" | "professional" | "enterprise",
+      plan: (user.currentPlan || "free") as "free" | "solo" | "professional",
       status: (user.subscriptionStatus || "inactive") as "active" | "inactive" | "canceled" | "expired",
       subscriptionId: user.revenuecatAppUserId, // RevenueCat customer ID
       currentPeriodEnd: user.subscriptionRenewalDate || user.subscriptionExpiryDate, // Real renewal date
@@ -140,7 +140,7 @@ export function requirePlan(...plans: string[]) {
     }
 
     if (!plans.includes(req.subscription.plan)) {
-      const planHierarchy = ["free", "solo", "professional", "enterprise"];
+      const planHierarchy = ["free", "solo", "professional"];
       const requiredPlan = plans[0];
 
       return res.status(403).json({
@@ -210,7 +210,7 @@ export async function getUserSubscription(
 
     return {
       userId: user.id,
-      plan: (user.currentPlan || "free") as "free" | "solo" | "professional" | "enterprise",
+      plan: (user.currentPlan || "free") as "free" | "solo" | "professional",
       status: (user.subscriptionStatus || "inactive") as "active" | "inactive" | "canceled" | "expired",
       subscriptionId: undefined,
       currentPeriodEnd: undefined,

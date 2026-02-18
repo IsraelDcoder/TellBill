@@ -216,7 +216,7 @@ export function registerDataLoadingRoutes(app: Express) {
             } : null,
             voiceRecordingsUsed: 0, // Track voice recordings from activity log if needed
             invoicesCreated: userInvoices.length,
-            currentPlan: (userProfile[0]?.currentPlan || "free") as "free" | "solo" | "professional" | "enterprise",
+            currentPlan: (userProfile[0]?.currentPlan || "free") as "free" | "solo" | "professional",
             isSubscribed: userProfile[0]?.isSubscribed || false,
           },
         },

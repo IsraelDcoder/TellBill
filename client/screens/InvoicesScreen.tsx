@@ -7,7 +7,6 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -33,7 +32,6 @@ const filters: { label: string; value: ActivityStatus | "all" }[] = [
 
 export default function InvoicesScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const tabBarHeight = useBottomTabBarHeight();
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
@@ -64,70 +62,75 @@ export default function InvoicesScreen() {
     );
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
-      <View
-        style={[
-          styles.filterContainer,
-          {}
-        ]}
-      >
-        {filters.map((filter) => (
-          <Pressable
-            key={filter.value}
-            onPress={() => setActiveFilter(filter.value)}
+  // ✅ Filter header moved into ListHeaderComponent
+  const renderFilterHeader = () => (
+    <View style={[styles.filterContainer, { backgroundColor: theme.backgroundRoot }]}>
+      {filters.map((filter) => (
+        <Pressable
+          key={filter.value}
+          onPress={() => setActiveFilter(filter.value)}
+          style={[
+            styles.filterChip,
+            {
+              backgroundColor:
+                activeFilter === filter.value
+                  ? BrandColors.constructionGold
+                  : isDark
+                    ? theme.backgroundDefault
+                    : theme.backgroundSecondary,
+            },
+          ]}
+        >
+          <ThemedText
+            type="small"
             style={[
-              styles.filterChip,
+              styles.filterText,
               {
-                backgroundColor:
+                color:
                   activeFilter === filter.value
-                    ? BrandColors.constructionGold
-                    : isDark
-                      ? theme.backgroundDefault
-                      : theme.backgroundSecondary,
+                    ? BrandColors.slateGrey
+                    : theme.text,
               },
             ]}
           >
-            <ThemedText
-              type="small"
-              style={[
-                styles.filterText,
-                {
-                  color:
-                    activeFilter === filter.value
-                      ? BrandColors.slateGrey
-                      : theme.text,
-                },
-              ]}
-            >
-              {filter.label}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
+            {filter.label}
+          </ThemedText>
+        </Pressable>
+      ))}
+    </View>
+  );
 
+  // Item renderer
+  const renderItem = ({ item }: { item: typeof invoices[0] }) => (
+    <ActivityItem
+      clientName={item.clientName}
+      invoiceNumber={item.invoiceNumber}
+      amount={item.total}
+      status={item.status as ActivityStatus}
+      date={new Date(item.createdAt).toLocaleDateString()}
+      onPress={() =>
+        navigation.navigate("InvoiceDetail", { invoiceId: item.id })
+      }
+      onLongPress={() => handleLongPress(item.id, item.invoiceNumber)}
+    />
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.backgroundRoot }]}>
+      {/* ✅ Single scroll container with filters as ListHeaderComponent */}
       <FlatList
         data={filteredInvoices}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderFilterHeader}
+        renderItem={renderItem}
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: tabBarHeight + Spacing.xl },
           filteredInvoices.length === 0 && styles.emptyContainer,
         ]}
         scrollIndicatorInsets={{ bottom: insets.bottom }}
-        renderItem={({ item }) => (
-          <ActivityItem
-            clientName={item.clientName}
-            invoiceNumber={item.invoiceNumber}
-            amount={item.total}
-            status={item.status as ActivityStatus}
-            date={new Date(item.createdAt).toLocaleDateString()}
-            onPress={() =>
-              navigation.navigate("InvoiceDetail", { invoiceId: item.id })
-            }
-            onLongPress={() => handleLongPress(item.id, item.invoiceNumber)}
-          />
-        )}
+        scrollEnabled={true}
+        nestedScrollEnabled={false}
         ListEmptyComponent={
           <EmptyState
             icon="invoice"
@@ -139,16 +142,25 @@ export default function InvoicesScreen() {
         }
       />
 
-      <Pressable
+      {/* ✅ FAB positioned absolutely OUTSIDE scroll container */}
+      <View
         style={[
-          styles.fab,
-          { backgroundColor: BrandColors.constructionGold, bottom: tabBarHeight + Spacing.lg },
-          Shadows.fab,
+          styles.fabContainer,
+          { bottom: tabBarHeight + Spacing.lg },
         ]}
-        onPress={() => navigation.navigate("VoiceRecording")}
+        pointerEvents="box-none"
       >
-        <Feather name="plus" size={24} color={BrandColors.slateGrey} />
-      </Pressable>
+        <Pressable
+          style={[
+            styles.fab,
+            { backgroundColor: BrandColors.constructionGold },
+            Shadows.fab,
+          ]}
+          onPress={() => navigation.navigate("VoiceRecording")}
+        >
+          <Feather name="plus" size={24} color={BrandColors.slateGrey} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -160,7 +172,7 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: "row",
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
   filterChip: {
@@ -174,13 +186,17 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
+    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
   },
-  fab: {
+  fabContainer: {
     position: "absolute",
     right: Spacing.lg,
+    zIndex: 10,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,

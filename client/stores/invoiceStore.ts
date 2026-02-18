@@ -108,6 +108,8 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const overdue = invoices.filter((i) => i.status === "overdue").length;
         // ✅ FIXED: Revenue calculation properly handles undefined values
         // Only count paid invoices toward revenue
+        // ✅ NOTE: This is calculated fresh every time from current invoices
+        // Do NOT cache stats - always recalculate so they stay in sync with invoice updates
         const revenue = invoices
           .filter((i) => i.status === "paid")
           .reduce((sum, i) => sum + (i.total || 0), 0);

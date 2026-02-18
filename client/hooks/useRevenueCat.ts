@@ -224,10 +224,10 @@ function handleCustomerInfo(
     console.log("[RevenueCat] Active entitlements:", entitlementIds);
 
     // Map entitlements to our tier system (highest tier wins)
-    let currentEntitlement: "none" | "solo" | "professional" | "enterprise" = "none";
+    let currentEntitlement: "none" | "solo" | "professional" = "none";
 
-    if (entitlementIds.includes("enterprise")) {
-      currentEntitlement = "enterprise";
+    if (entitlementIds.includes("professional")) {
+      currentEntitlement = "professional";
     } else if (entitlementIds.includes("professional")) {
       currentEntitlement = "professional";
     } else if (entitlementIds.includes("solo")) {

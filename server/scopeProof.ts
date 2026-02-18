@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+﻿import type { Express, Request, Response } from "express";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { db } from "./db";
 import { scopeProofs, scopeProofNotifications, users as usersTable } from "@shared/schema";
@@ -9,7 +9,7 @@ import { verifyPlanAccess } from "./utils/subscriptionManager";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 
 /**
- * ✅ SCOPE PROOF & CLIENT APPROVAL ENGINE ROUTES
+ * âœ… SCOPE PROOF & CLIENT APPROVAL ENGINE ROUTES
  * 
  * Revenue protection feature:
  * - Contractors capture extra work
@@ -17,7 +17,7 @@ import { MoneyAlertsEngine } from "./moneyAlertsEngine";
  * - Auto-convert to invoice line items
  * - 24-hour expiry with 12-hour reminder
  * 
- * 🔒 PLAN GATING: Professional & Enterprise only
+ * ðŸ”’ PLAN GATING: Professional only
  */
 
 // Type for authenticated user
@@ -32,7 +32,7 @@ export function registerScopeProofRoutes(app: Express) {
    * GET /api/scope-proof
    * List all scope proofs for authenticated contractor
    * 
-   * 🔒 Requires: Professional or Enterprise plan
+   * ðŸ”’ Requires: Professional plan
    * Query params: status (pending|approved|expired), projectId
    */
   app.get("/api/scope-proof", async (req: any, res: Response) => {
@@ -44,16 +44,16 @@ export function registerScopeProofRoutes(app: Express) {
       const userId = req.user?.userId || req.user?.id;
 
       if (!userId) {
-        console.log(`[ScopeProof GET] ❌ No user ID found. req.user:`, JSON.stringify(req.user));
+        console.log(`[ScopeProof GET] âŒ No user ID found. req.user:`, JSON.stringify(req.user));
         return res.status(401).json({
           success: false,
           error: "Unauthorized - no user ID",
         });
       }
 
-      // ✅ PLAN GATING: Only professional+ users can view scope proofs
+      // âœ… PLAN GATING: Only professional+ users can view scope proofs
       try {
-        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+        await verifyPlanAccess(userId, ["professional"]);
       } catch (err) {
         return res.status(403).json({
           success: false,
@@ -96,7 +96,7 @@ export function registerScopeProofRoutes(app: Express) {
    * POST /api/scope-proof
    * Create a new scope proof (manually by contractor)
    * 
-   * 🔒 Requires: Professional or Enterprise plan
+   * ðŸ”’ Requires: Professional plan
    * Body: { projectId?, description, estimatedCost, photos[] }
    */
   app.post("/api/scope-proof", async (req: any, res: Response) => {
@@ -109,13 +109,13 @@ export function registerScopeProofRoutes(app: Express) {
       const { projectId, description, estimatedCost, photos = [] } = req.body;
 
       if (!userId) {
-        console.log(`[ScopeProof POST] ❌ No user ID found. req.user:`, JSON.stringify(req.user));
+        console.log(`[ScopeProof POST] âŒ No user ID found. req.user:`, JSON.stringify(req.user));
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // ✅ PLAN GATING: Only professional+ users can create scope proofs
+      // âœ… PLAN GATING: Only professional+ users can create scope proofs
       try {
-        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+        await verifyPlanAccess(userId, ["professional"]);
       } catch (err) {
         return res.status(403).json({
           success: false,
@@ -163,7 +163,7 @@ export function registerScopeProofRoutes(app: Express) {
    * POST /api/scope-proof/:id/request
    * Request client approval for a scope proof
    * 
-   * 🔒 Requires: Professional or Enterprise plan
+   * ðŸ”’ Requires: Professional plan
    */
   app.post("/api/scope-proof/:id/request", async (req: any, res: Response) => {
     try {
@@ -177,9 +177,9 @@ export function registerScopeProofRoutes(app: Express) {
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
       if (!clientEmail) return res.status(400).json({ error: "clientEmail required" });
 
-      // ✅ PLAN GATING: Only professional+ users can request scope proof approvals
+      // âœ… PLAN GATING: Only professional+ users can request scope proof approvals
       try {
-        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+        await verifyPlanAccess(userId, ["professional"]);
       } catch (err) {
         return res.status(403).json({
           success: false,
@@ -311,7 +311,7 @@ export function registerScopeProofRoutes(app: Express) {
    * POST /api/scope-proof/:id/resend
    * Resend approval request to client
    * 
-   * 🔒 Requires: Professional or Enterprise plan
+   * ðŸ”’ Requires: Professional plan
    */
   app.post("/api/scope-proof/:id/resend", async (req: any, res: Response) => {
     try {
@@ -322,9 +322,9 @@ export function registerScopeProofRoutes(app: Express) {
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
       if (!clientEmail) return res.status(400).json({ error: "clientEmail required" });
 
-      // ✅ PLAN GATING: Only professional+ users can resend scope proof approvals
+      // âœ… PLAN GATING: Only professional+ users can resend scope proof approvals
       try {
-        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+        await verifyPlanAccess(userId, ["professional"]);
       } catch (err) {
         return res.status(403).json({
           success: false,
@@ -381,7 +381,7 @@ export function registerScopeProofRoutes(app: Express) {
    * DELETE /api/scope-proof/:id
    * Cancel approval request
    * 
-   * 🔒 Requires: Professional or Enterprise plan
+   * ðŸ”’ Requires: Professional plan
    */
   app.delete("/api/scope-proof/:id", async (req: any, res: Response) => {
     try {
@@ -390,9 +390,9 @@ export function registerScopeProofRoutes(app: Express) {
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      // ✅ PLAN GATING: Only professional+ users can delete scope proofs
+      // âœ… PLAN GATING: Only professional+ users can delete scope proofs
       try {
-        await verifyPlanAccess(userId, ["professional", "enterprise"]);
+        await verifyPlanAccess(userId, ["professional"]);
       } catch (err) {
         return res.status(403).json({
           success: false,
@@ -619,3 +619,4 @@ export function registerScopeProofRoutes(app: Express) {
     }
   });
 }
+

@@ -1,6 +1,6 @@
 import React from "react";
 import { ScrollView, View, ViewStyle } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
@@ -19,7 +19,7 @@ interface ScreenContainerProps {
   paddingHorizontal?: "default" | "compact" | "relaxed" | number;
   /**
    * Controls bottom padding for content.
-   * @default "default" (Spacing.xl + insets)
+   * @default "default" (Spacing.xl)
    */
   paddingBottom?: "default" | "compact" | "relaxed" | number;
 }
@@ -27,9 +27,10 @@ interface ScreenContainerProps {
 /**
  * Enterprise-level screen container with consistent spacing.
  *
- * Handles:
- * - Safe area insets
- * - Horizontal padding consistency
+ * ✅ IMPROVED: Now handles safe areas correctly
+ * - Uses SafeAreaView with edges={['bottom']} ONLY
+ * - No top padding (React Navigation header handles that)
+ * - Consistent horizontal padding
  * - Bottom padding for tab bar + buffer
  * - ScrollView vs View selection
  * - Theme integration
@@ -53,7 +54,6 @@ export function ScreenContainer({
   paddingHorizontal = "default",
   paddingBottom = "default",
 }: ScreenContainerProps) {
-  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
 
   // Resolve horizontal padding
@@ -67,13 +67,13 @@ export function ScreenContainer({
     return paddingMap[paddingHorizontal];
   };
 
-  // Resolve bottom padding
+  // Resolve bottom padding (NO safe area - SafeAreaView handles it)
   const getPaddingBottom = () => {
     if (typeof paddingBottom === "number") return paddingBottom;
     const paddingMap = {
-      compact: Spacing.lg + insets.bottom,
-      default: Spacing.xl + insets.bottom,
-      relaxed: Spacing["2xl"] + insets.bottom,
+      compact: Spacing.lg,
+      default: Spacing.xl,
+      relaxed: Spacing["2xl"],
     };
     return paddingMap[paddingBottom];
   };
@@ -97,36 +97,34 @@ export function ScreenContainer({
 
   if (scrollable) {
     return (
-      <ScrollView
-        style={containerStyle}
-        contentContainerStyle={[scrollContentStyle, { flexGrow: 1, minHeight: '100%' }]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
-        showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-        scrollEnabled={true}
-        nestedScrollEnabled={true}
-        keyboardShouldPersistTaps="handled"
-        bounces={true}
-        alwaysBounceVertical={false}
-        testID={testID}
-      >
-        {children}
-      </ScrollView>
+      <SafeAreaView style={containerStyle} edges={['bottom']} testID={testID}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[scrollContentStyle, { flexGrow: 1 }]}
+          showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          bounces={true}
+          alwaysBounceVertical={false}
+        >
+          {children}
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={containerStyle} testID={testID}>
+    <SafeAreaView style={containerStyle} edges={['bottom']} testID={testID}>
       <View
-        style={[
-          { flex: 1 },
-          {
-            paddingHorizontal: horizontalPadding,
-            paddingBottom: bottomPadding,
-          },
-        ]}
+        style={{
+          flex: 1,
+          paddingHorizontal: horizontalPadding,
+          paddingBottom: bottomPadding,
+        }}
       >
         {children}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

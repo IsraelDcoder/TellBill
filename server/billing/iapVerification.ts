@@ -78,7 +78,7 @@ async function verifyPurchaseWithRevenueCat(
       if ((entitlement as any).expires_date === null) {
         // Active entitlement (no expiry)
         activeEntitlement = entitlement;
-        activePlan = key; // SOLO, PROFESSIONAL, ENTERPRISE
+        activePlan = key; // SOLO, PROFESSIONAL
         break;
       } else {
         // Check if currently active but expiring
@@ -120,11 +120,11 @@ async function verifyPurchaseWithRevenueCat(
  */
 function mapEntitlementToPlan(
   entitlementKey: string
-): "free" | "solo" | "professional" | "enterprise" {
+): "free" | "solo" | "professional" {
   const mapping: Record<string, any> = {
     SOLO: "solo",
     PROFESSIONAL: "professional",
-    ENTERPRISE: "enterprise",
+
   };
   return mapping[entitlementKey] || "free";
 }

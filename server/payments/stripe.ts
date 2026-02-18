@@ -16,7 +16,7 @@ export function registerStripeRoutes(app: Express) {
    *
    * Required:
    * - JWT auth
-   * - plan: "solo" | "professional" | "enterprise"
+   * - plan: "solo" | "professional"
    *
    * Returns:
    * - checkoutUrl: URL to redirect user to Stripe Checkout

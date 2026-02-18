@@ -228,10 +228,10 @@ export default function BillingScreen() {
       description: "For growing teams",
       features: [
         "✓ Unlimited invoices",
-        "✓ Team collaboration",
-        "✓ Scope proof photos",
-        "✓ Payment links",
-        "✓ Priority support",
+        "✓ Scope proof & client approval",
+        "✓ Advanced money alerts",
+        "✓ Dispute-ready work logs",
+        "✓ Priority processing",
       ],
       package: offerings?.availablePackages.find(
         (p) =>
@@ -239,20 +239,6 @@ export default function BillingScreen() {
           p.identifier.includes("pro")
       ),
       isPopular: true,
-    },
-    {
-      name: "Enterprise",
-      description: "For enterprises",
-      features: [
-        "✓ Everything in Professional",
-        "✓ Custom invoicing",
-        "✓ API access",
-        "✓ Dedicated support",
-        "✓ White-label options",
-      ],
-      package: offerings?.availablePackages.find(
-        (p) => p.identifier.includes("enterprise")
-      ),
     },
   ];
 
@@ -503,6 +489,34 @@ export default function BillingScreen() {
             Android: Google Play → Account → Subscriptions
           </ThemedText>
         </View>
+
+        {/* Enterprise Contact */}
+        <View style={styles.enterpriseContact}>
+          <ThemedText
+            type="small"
+            style={{
+              color: theme.textSecondary,
+              textAlign: "center",
+            }}
+          >
+            Need enterprise tools?{" "}
+            <ThemedText
+              type="small"
+              style={{
+                color: BrandColors.constructionGold,
+                fontWeight: "bold",
+              }}
+              onPress={() =>
+                Alert.alert(
+                  "Contact Sales",
+                  "Email us at support@tellbill.app to discuss enterprise solutions."
+                )
+              }
+            >
+              Contact us
+            </ThemedText>
+          </ThemedText>
+        </View>
       </ScrollView>
     </View>
   );
@@ -572,6 +586,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   legalText: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+  },
+  enterpriseContact: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.lg,
   },

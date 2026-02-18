@@ -100,7 +100,8 @@ export default function ProfileScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { getStats } = useInvoiceStore();
+  // ✅ Use proper Zustand selector to subscribe to getStats
+  const getStats = useInvoiceStore((state) => state.getStats);
   const { userProfile, companyInfo } = useProfileStore();
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -337,12 +338,6 @@ export default function ProfileScreen() {
             icon="map-pin"
             label="GPS Verification Audit"
             onPress={() => navigation.navigate("ComingSoon", { feature: "GPS Verification Audit" })}
-          />
-          <MenuDivider />
-          <MenuItem
-            icon="star"
-            label="White-Label Enterprise"
-            onPress={() => navigation.navigate("ComingSoon", { feature: "White-Label Enterprise" })}
           />
         </ScreenGroup>
       </Section>

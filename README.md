@@ -15,8 +15,7 @@
 ### Subscription Plans
 - **Free**: 3 voice recordings, 3 invoices lifetime
 - **Solo** ($29/month): Unlimited voice-to-invoice, projects, receipt scanning
-- **Professional** ($99/month): Everything in Solo + scope proof & client approvals
-- **Enterprise**: Custom pricing with dedicated support
+- **Professional** ($79/month): Everything in Solo + scope proof, client approvals, advanced money alerts, dispute-ready work logs, priority processing
 
 ### Technical Features
 - Cross-platform (iOS/Android via React Native + Expo)
@@ -145,7 +144,6 @@ STRIPE_SECRET_KEY=sk_test_xxxxx  # Use sk_live_xxxxx for production
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 STRIPE_SOLO_PRICE_ID=price_xxxxx
 STRIPE_PROFESSIONAL_PRICE_ID=price_xxxxx
-STRIPE_ENTERPRISE_PRICE_ID=price_xxxxx
 ```
 
 #### Email (Resend)
@@ -301,16 +299,15 @@ npm run db:reset
 
 ### 3. Create Subscription Prices
 - Dashboard → Products → Create Product
-- Create 3 products:
+- Create 2 products:
   - **Solo**: $29/month recurring
-  - **Professional**: $99/month recurring
-  - **Enterprise**: Custom (set as one-time for custom pricing)
+  - **Professional**: $79.99/month recurring
 - Copy each **Price ID** (starts with `price_`)
 - Add to `.env`:
   ```env
   STRIPE_SOLO_PRICE_ID=price_xxxxx
   STRIPE_PROFESSIONAL_PRICE_ID=price_xxxxx
-  STRIPE_ENTERPRISE_PRICE_ID=price_xxxxx
+
   ```
 
 ### 4. Set Up Webhook

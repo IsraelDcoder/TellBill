@@ -6,7 +6,7 @@
 export interface StripePlan {
   priceId: string;
   name: string;
-  tier: "solo" | "professional" | "enterprise";
+  tier: "solo" | "professional";
   features: string[];
 }
 
@@ -31,17 +31,6 @@ export const STRIPE_PLANS: Record<string, StripePlan> = {
       "Money Alerts",
       "Scope proof",
       "Priority support",
-    ],
-  },
-  enterprise: {
-    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || "",
-    name: "Enterprise",
-    tier: "enterprise",
-    features: [
-      "Everything in Pro",
-      "Custom integrations",
-      "Dedicated support",
-      "SLA",
     ],
   },
 };

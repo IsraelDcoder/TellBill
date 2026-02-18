@@ -31,7 +31,7 @@ export function useSubscriptionGuard(
 
 /**
  * Hook to check if user has access to a feature
- * Usage: const hasAccess = useHasAccess(['team', 'enterprise']);
+ * Usage: const hasAccess = useHasAccess(['professional']);
  */
 export function useHasAccess(entitlements: Entitlement | Entitlement[]): boolean {
   const { userEntitlement } = useSubscriptionStore();
@@ -52,7 +52,7 @@ export function useSubscriptionStatus() {
     isFree: userEntitlement === "none",
     isSolo: userEntitlement === "solo",
     isProfessional: userEntitlement === "professional",
-    isEnterprise: userEntitlement === "enterprise",
+
     isPaid: userEntitlement !== "none",
   };
 }

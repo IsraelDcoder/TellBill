@@ -19,7 +19,7 @@ const RATE_LIMIT_WINDOW = 24 * 60 * 60 * 1000; // 24 hours
  * Returns 403 if user is free tier
  */
 function isPaidPlan(plan: string | null): boolean {
-  return !!plan && ["solo", "professional", "enterprise"].includes(plan);
+  return !!plan && ["solo", "professional"].includes(plan);
 }
 
 /**

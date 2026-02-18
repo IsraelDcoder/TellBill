@@ -68,7 +68,7 @@ function getActivePlan(
       const planMap: Record<string, string> = {
         SOLO: "solo",
         PROFESSIONAL: "professional",
-        ENTERPRISE: "enterprise",
+
       };
       activePlan = planMap[key] || "free";
       expiresAt = ent.expires_date || new Date().toISOString();

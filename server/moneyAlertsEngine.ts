@@ -31,7 +31,7 @@ export class MoneyAlertsEngine {
 
       if (!user) return false;
 
-      const paidPlans = ["solo", "professional", "enterprise"];
+      const paidPlans = ["solo", "professional"];
       return paidPlans.includes(user.currentPlan?.toLowerCase() || "");
     } catch (error) {
       console.error("[MoneyAlertsEngine] Error checking plan:", error);

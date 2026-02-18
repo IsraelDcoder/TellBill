@@ -63,8 +63,7 @@ export default function PricingScreen({ route, navigation }: any) {
               packageMap.set("solo", pkg);
             } else if (pkg.identifier.includes("professional")) {
               packageMap.set("professional", pkg);
-            } else if (pkg.identifier.includes("enterprise")) {
-              packageMap.set("enterprise", pkg);
+
             }
           });
           
@@ -121,8 +120,8 @@ export default function PricingScreen({ route, navigation }: any) {
           // Map entitlements to our tier system
           let entitlement: Entitlement = "none";
           
-          if (activeEntitlements.includes("enterprise")) {
-            entitlement = "enterprise";
+          if (activeEntitlements.includes("professional")) {
+            entitlement = "professional";
           } else if (activeEntitlements.includes("professional")) {
             entitlement = "professional";
           } else if (activeEntitlements.includes("solo")) {
