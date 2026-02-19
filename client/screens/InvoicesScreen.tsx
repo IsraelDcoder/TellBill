@@ -11,6 +11,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ActivityItem, ActivityStatus } from "@/components/ActivityItem";
@@ -19,6 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
+import { getApiUrl } from "@/lib/backendUrl";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,6 +45,40 @@ export default function InvoicesScreen() {
       ? invoices
       : invoices.filter((inv) => inv.status === activeFilter);
 
+  const handleDeleteInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      // Get auth token
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Error", "Authentication required");
+        return;
+      }
+
+      // ✅ Call DELETE API endpoint
+      const response = await fetch(getApiUrl(`/api/invoices/${invoiceId}`), {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        Alert.alert("Error", data.error || "Failed to delete invoice");
+        return;
+      }
+
+      // ✅ ONLY remove from store after successful API response
+      deleteInvoice(invoiceId);
+      Alert.alert("Success", `Invoice ${invoiceNumber} deleted`);
+    } catch (error) {
+      console.error("[Invoices] Delete error:", error);
+      Alert.alert("Error", "Failed to delete invoice");
+    }
+  };
+
   const handleLongPress = (invoiceId: string, invoiceNumber: string) => {
     Alert.alert(
       "Delete Invoice",
@@ -55,7 +91,7 @@ export default function InvoicesScreen() {
         },
         {
           text: "Delete",
-          onPress: () => deleteInvoice(invoiceId),
+          onPress: () => handleDeleteInvoice(invoiceId, invoiceNumber),
           style: "destructive",
         },
       ]

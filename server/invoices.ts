@@ -968,6 +968,83 @@ export function registerInvoiceRoutes(app: Express) {
   });
 
   /**
+   * DELETE /api/invoices/:id
+   * Delete an invoice permanently from database
+   * ✅ CRITICAL: Verify user ownership (userId + invoiceId)
+   */
+  app.delete("/api/invoices/:id", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      console.log("[Invoice] DELETE /api/invoices/:id");
+      console.log("[Invoice] invoiceId:", invoiceId);
+      console.log("[Invoice] userId:", userId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      // Validate invoiceId format
+      if (!validateUUID(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid invoice ID format",
+        });
+      }
+
+      // ✅ CRITICAL: Verify ownership BEFORE deleting
+      // Make sure user owns this invoice
+      const existingInvoice = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId))
+        .limit(1);
+
+      if (!existingInvoice || existingInvoice.length === 0) {
+        console.log(`[Invoice] ❌ Invoice ${invoiceId} not found`);
+        return res.status(404).json({
+          success: false,
+          error: "Invoice not found",
+        });
+      }
+
+      if (existingInvoice[0].userId !== userId) {
+        console.log(`[Invoice] ❌ User ${userId} does not own invoice ${invoiceId}`);
+        return res.status(403).json({
+          success: false,
+          error: "Unauthorized - you don't own this invoice",
+        });
+      }
+
+      // ✅ DELETE: Remove invoice from database
+      const invoiceNumber = existingInvoice[0].invoiceNumber;
+      await db
+        .delete(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId));
+
+      console.log(`[Invoice] ✅ Invoice ${invoiceNumber} (${invoiceId}) deleted permanently`);
+
+      return res.status(200).json({
+        success: true,
+        message: "Invoice deleted successfully",
+        invoiceId,
+        invoiceNumber,
+      });
+    } catch (error: any) {
+      console.error("[Invoice] Error deleting invoice:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to delete invoice",
+        details: error.message,
+      });
+    }
+  });
+
+  /**
    * POST /api/invoices/:id/payment-link
    * Generate a Stripe checkout link for an invoice
    * Client can pay directly from this link
