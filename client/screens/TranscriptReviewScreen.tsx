@@ -28,7 +28,16 @@ type RouteProps = RouteProp<RootStackParamList, "TranscriptReview">;
 
 // ✅ RULE 2: SAFE HELPERS (MANDATORY)
 const safeText = (value?: string | null): string => value ?? '';
-const safeArray = <T,>(value?: T[] | null): T[] => value ?? [];
+const safeArray = <T,>(value?: T[] | string | null): T[] => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  return value ?? [];
+};
 const safeNumber = (value?: number | null): number => value ?? 0;
 
 interface ExtractedInvoiceData {

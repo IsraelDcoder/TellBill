@@ -452,6 +452,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      // TODO: Call Supabase signInWithOAuth for Google
+      // const { error } = await supabase.auth.signInWithOAuth({
+      //   provider: "google",
+      //   options: {
+      //     skipBrowserRedirect: true,
+      //   },
+      // });
+      //
+      // if (error) throw error;
+
+      console.log("[Auth] Google sign in initiated");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Google sign in failed";
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const resetPassword = async (email: string) => {
     try {
       setError(null);
@@ -641,6 +666,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signIn,
     signInWithApple,
+    signInWithGoogle,
     signOut,
     resetPassword,
     error,
