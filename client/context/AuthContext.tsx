@@ -5,6 +5,7 @@ import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 
 export interface User {
   id: string;
@@ -42,6 +43,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setCompanyInfo } = useProfileStore();
   const { hydrateActivities, clearActivities } = useActivityStore();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  /**
+   * ✅ Initialize Google Sign-In
+   */
+  useEffect(() => {
+    const initGoogleSignIn = async () => {
+      try {
+        const webClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!webClientId) {
+          console.warn("[Auth] ⚠️  EXPO_PUBLIC_GOOGLE_CLIENT_ID not set - Google Sign-In disabled");
+          return;
+        }
+
+        await GoogleSignin.configure({
+          webClientId: webClientId,
+          offlineAccess: true,
+          forceCodeForRefreshToken: true,
+          accountName: "",
+        });
+        console.log("[Auth] ✅ Google Sign-In configured");
+      } catch (err) {
+        console.error("[Auth] Error configuring Google Sign-In:", err);
+      }
+    };
+
+    initGoogleSignIn();
+  }, []);
 
   /**
    * ✅ Save JWT token to AsyncStorage
@@ -457,20 +485,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setIsLoading(true);
 
-      // TODO: Call Supabase signInWithOAuth for Google
-      // const { error } = await supabase.auth.signInWithOAuth({
-      //   provider: "google",
-      //   options: {
-      //     skipBrowserRedirect: true,
-      //   },
-      // });
-      //
-      // if (error) throw error;
+      // Check if Google Client ID is configured
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+      if (!webClientId) {
+        throw new Error("Google authentication not configured. Please set EXPO_PUBLIC_GOOGLE_CLIENT_ID");
+      }
 
-      console.log("[Auth] Google sign in initiated");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Google sign in failed";
-      setError(message);
+      // ✅ Get the Google user and ID token
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      
+      if (!userInfo.data?.idToken) {
+        throw new Error("Failed to get Google ID token");
+      }
+
+      console.log("[Auth] ✅ Google Sign-In successful, exchanging token...");
+
+      // ✅ Send Google ID token to TellBill backend for authentication
+      const response = await fetch(getApiUrl("/api/auth/google"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken: userInfo.data.idToken,
+          email: userInfo.data.user.email,
+          name: userInfo.data.user.name,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.status !== 200) {
+        throw new Error(data.error || "Google authentication failed");
+      }
+
+      if (!data.user) {
+        throw new Error("No user data returned from Google auth");
+      }
+
+      // ✅ Successful Google authentication
+      const newUser: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        createdAt: data.user.createdAt,
+      };
+
+      // ✅ Save JWT token
+      if (data.accessToken) {
+        await saveToken(data.accessToken);
+      } else if (data.token) {
+        await saveToken(data.token);
+      }
+
+      // ✅ Check for user switch (multi-device scenario)
+      if (currentUserId && currentUserId !== newUser.id) {
+        clearDataForNewUser();
+      }
+
+      setUser(newUser);
+      setSession({ user: newUser });
+      setCurrentUserId(newUser.id);
+      setCurrentPlan("free");
+
+      console.log("[Auth] ✅ Google Sign-In complete:", newUser.email);
+
+      // ✅ Background data rehydration
+      setTimeout(() => {
+        loadUserDataFromBackend(newUser.id);
+      }, 500);
+
+    } catch (err: any) {
+      console.error("[Auth] Google Sign-In error:", err);
+      
+      // Handle specific Google Sign-In errors
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+        setError("Sign-in cancelled");
+      } else if (err.code === statusCodes.IN_PROGRESS) {
+        setError("Sign-in in progress");
+      } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError("Google Play Services not available");
+      } else {
+        const message = err.message || "Google Sign-In failed";
+        setError(message);
+      }
+
+      setUser(null);
+      setSession(null);
       throw err;
     } finally {
       setIsLoading(false);

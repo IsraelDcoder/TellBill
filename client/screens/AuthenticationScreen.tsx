@@ -44,7 +44,7 @@ interface AuthScreenProps {
 
 export default function AuthenticationScreen({ onSuccess, initialResetToken }: AuthScreenProps) {
   const { theme } = useTheme();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
 
   // Auth mode state
   const [mode, setMode] = useState<"signup" | "login">("signup");
@@ -612,6 +612,26 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
                 />
               </View>
 
+              {/* Google Sign-In Button */}
+              <Pressable
+                style={[
+                  styles.socialButton,
+                  { borderColor: theme.border }
+                ]}
+                onPress={() => {
+                  setIsLoading(true);
+                  signInWithGoogle()
+                    .catch(err => console.log("[Auth] Google sign-in cancelled or failed"))
+                    .finally(() => setIsLoading(false));
+                }}
+                disabled={isLoading}
+              >
+                <Feather name="mail" size={18} color={theme.text} />
+                <ThemedText style={styles.socialButtonText}>
+                  Continue with Google
+                </ThemedText>
+              </Pressable>
+
               {/* Footer CTA */}
               <View style={styles.footerCTA}>
                 <ThemedText style={styles.footerText}>
@@ -746,6 +766,26 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
                   style={[styles.divider, { backgroundColor: theme.border }]}
                 />
               </View>
+
+              {/* Google Sign-In Button */}
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  { borderColor: theme.border }
+                ]}
+                onPress={() => {
+                  setIsLoading(true);
+                  signInWithGoogle()
+                    .catch(err => console.log("[Auth] Google signin cancelled or failed"))
+                    .finally(() => setIsLoading(false));
+                }}
+                disabled={isLoading}
+              >
+                <Feather name="mail" size={18} color={theme.text} />
+                <ThemedText style={styles.secondaryButtonText}>
+                  Sign In with Google
+                </ThemedText>
+              </Pressable>
 
               {/* Footer CTA */}
               <View style={styles.footerCTA}>
@@ -964,5 +1004,35 @@ const styles = StyleSheet.create({
   successReveal: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: height,
+  },
+  socialButton: {
+    flexDirection: "row",
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  socialButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    flexDirection: "row",
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

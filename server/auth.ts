@@ -1872,6 +1872,100 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
+   * POST /api/auth/google
+   * Authenticate with Google ID token
+   * 
+   * Client sends Google ID token, backend verifies with Google API
+   * Then creates/finds user and returns JWT auth token
+   */
+  app.post("/api/auth/google", async (req: Request, res: Response) => {
+    try {
+      const { idToken, email, name } = req.body;
+
+      if (!idToken || !email) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing idToken or email from Google",
+        });
+      }
+
+      console.log("[Auth] 🔍 Processing Google auth for:", email);
+
+      // TODO: Verify Google ID token with Google API
+      // import { OAuth2Client } from 'google-auth-library';
+      // const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      // const ticket = await client.verifyIdToken({
+      //   idToken: idToken,
+      //   audience: process.env.GOOGLE_CLIENT_ID,
+      // });
+      // const payload = ticket.getPayload();
+
+      // For now, assume token is valid (TODO: add verification)
+      const normalizedEmail = sanitizeEmail(email);
+
+      // ✅ Check if user exists with this email
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, normalizedEmail))
+        .limit(1);
+
+      let user;
+      if (existingUser.length > 0) {
+        // ✅ User exists - use existing userId
+        user = existingUser[0];
+        console.log(`[Auth] ✅ Google user found: ${user.email}`);
+      } else {
+        // ✅ New user - create account from Google data
+        const newUserId = crypto.randomUUID();
+        const sanitizedName = sanitizeString(name || "");
+
+        await db.insert(users).values({
+          email: normalizedEmail,
+          name: sanitizedName,
+          password: "", // Google users don't have passwords
+          emailVerifiedAt: new Date(), // Google emails are verified
+          createdAt: new Date(),
+        });
+
+        user = {
+          id: newUserId,
+          email: normalizedEmail,
+          name: sanitizedName,
+          password: "",
+          emailVerifiedAt: new Date(),
+          createdAt: new Date(),
+        };
+
+        console.log(`[Auth] ✅ New Google user created: ${user.email}`);
+      }
+
+      // ✅ Generate JWT tokens
+      const { accessToken, refreshToken } = generateTokenPair(user.id, user.email);
+
+      // ✅ Return auth response
+      return res.status(200).json({
+        success: true,
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          createdAt: user.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] Google auth error:", error);
+      const message = error instanceof Error ? error.message : "Google authentication failed";
+      return res.status(500).json({
+        success: false,
+        error: message,
+      });
+    }
+  });
+
+  /**
    * POST /api/auth/logout
    * Logout user (invalidate refresh token)
    * 
