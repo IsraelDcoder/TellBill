@@ -114,9 +114,11 @@ export const useInvoiceStore = create<InvoiceStore>()(
         let revenue = 0;
         const paidInvoices = invoices.filter((i) => i.status === "paid");
         
+        console.log(`[💰 Revenue Calc] Total invoices: ${invoices.length}, Paid: ${paid}`);
+        
         paidInvoices.forEach((inv, idx) => {
           const total = inv.total || 0;
-          console.log(`[Revenue] Invoice ${idx}: total = ${total} (type: ${typeof total})`);
+          console.log(`[💰 Paid Invoice ${idx + 1}/${paidInvoices.length}] Client: ${inv.clientName}, Total: ${total} (type: ${typeof total}, in dollars: $${(total / 100).toFixed(2)})`);
           
           // ✅ CRITICAL: Ensure total is in cents (integer)
           // If it's a large number (> 10000), assume it's already in cents
@@ -126,18 +128,25 @@ export const useInvoiceStore = create<InvoiceStore>()(
           // Sanity check: if total > 100,000,000 cents ($1,000,000+) it's suspicious
           // Most invoices should be under $100,000
           if (invoiceTotal > 10000000) {
-            console.warn(`[Revenue] ⚠️  SUSPICIOUSLY LARGE TOTAL: ${invoiceTotal} cents (${(invoiceTotal/100).toFixed(2)} dollars)`);
+            console.warn(`[⚠️  SUSPICIOUSLY LARGE] Invoice total: ${invoiceTotal} cents (${(invoiceTotal/100).toFixed(2)} dollars)`);
+          }
+          
+          // If total < 100 and not zero, assume it's in dollars (100 cents = $1 minimum)
+          if (invoiceTotal > 0 && invoiceTotal < 100) {
+            console.warn(`[⚠️  POSSIBLY IN DOLLARS] Invoice total: ${invoiceTotal} (should be in cents, converting...)`);
+            invoiceTotal = invoiceTotal * 100;
           }
           
           // Ensure it's an integer (never a decimal like 1001.5)
           invoiceTotal = Math.round(invoiceTotal);
           revenue += invoiceTotal;
+          console.log(`[✅ Added to revenue] New total: ${revenue} cents ($${(revenue/100).toFixed(2)})`);
         });
         
         // ✅ Time saved: count all invoices (draft, created, sent, pending, paid, overdue)
         const timeSaved = invoices.length * 0.5;
 
-        console.log(`[InvoiceStore] getStats: ${paid} paid invoices, raw revenue = ${revenue} cents`);
+        console.log(`[📊 FINAL REVENUE] Paid invoices: ${paid}, Total revenue: ${revenue} cents ($${(revenue/100).toFixed(2)})`);
 
         return { sent, paid, pending, overdue, revenue, timeSaved };
       },
