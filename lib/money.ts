@@ -154,3 +154,45 @@ export function isValidMoney(amount: any): boolean {
 export function roundToCents(amount: number): number {
   return Math.round(amount);
 }
+
+/**
+ * ✅ CRITICAL: Calculate total revenue from invoices
+ * MUST be used everywhere for consistency
+ * 
+ * @param invoices - Array of invoices from store
+ * @returns Total revenue in CENTS (integer) from PAID invoices only
+ * 
+ * @example
+ * const revenueCents = calculateTotalRevenue(invoices);
+ * const formatted = formatCents(revenueCents); // "$3,600.00"
+ * 
+ * RULE: Never calculate revenue differently in different screens
+ * RULE: Only sum invoices with status === 'paid'
+ * RULE: Always return amount in CENTS
+ */
+export function calculateTotalRevenue(invoices: any[]): number {
+  if (!Array.isArray(invoices)) {
+    console.warn("[Revenue] ⚠️  invoices is not an array:", typeof invoices);
+    return 0;
+  }
+
+  // ✅ RULE: Only sum paid invoices
+  const paidInvoices = invoices.filter(inv => inv?.status === 'paid');
+  
+  const total = paidInvoices.reduce((sum, inv) => {
+    // Safely add invoice total (in cents)
+    const invoiceTotal = inv.total || 0;
+    
+    if (typeof invoiceTotal !== 'number') {
+      console.warn(`[Revenue] ⚠️  Invoice ${inv.id} has non-numeric total:`, invoiceTotal);
+      return sum;
+    }
+    
+    // ✅ Always work with integer cents
+    return sum + Math.round(invoiceTotal);
+  }, 0);
+
+  console.log(`[Revenue] ✅ Calculated total from ${paidInvoices.length} paid invoices: ${total} cents ($${(total / 100).toFixed(2)})`);
+  
+  return total;
+}

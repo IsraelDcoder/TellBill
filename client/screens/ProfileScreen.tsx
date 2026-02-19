@@ -20,7 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
-import { formatCurrency } from "@/utils/formatCurrency";
+import { formatCents } from "@/lib/money";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
@@ -142,18 +142,19 @@ export default function ProfileScreen() {
       const revenueInCents = stats.revenue; // Integer cents from store
       const timeSavedHours = Math.round(stats.timeSaved * 10) / 10;
       
-      // Format revenue as K (e.g., 3200000 cents -> $32K, 540000 cents -> $5.4K)
-      const revenueInDollars = revenueInCents / 100;
+      // ✅ FIXED: Use formatCents for consistent formatting across app
+      // All revenue calculations now go through the same function
       let formattedRevenue: string;
       
+      const revenueInDollars = revenueInCents / 100;
       if (revenueInDollars >= 1000) {
+        // Format as K for large amounts (e.g., $3,200.00 -> "$3.2K")
         const kilos = revenueInDollars / 1000;
-        // Use 1 decimal place if it's not a whole thousand, otherwise no decimals
         const shouldShowDecimals = kilos % 1 !== 0;
         formattedRevenue = `$${kilos.toFixed(shouldShowDecimals ? 1 : 0)}K`;
       } else {
-        // For amounts less than $1000, show full formatted currency
-        formattedRevenue = formatCurrency(revenueInCents);
+        // Use standard currency format for smaller amounts
+        formattedRevenue = formatCents(revenueInCents);
       }
       
       setProfileStats({
@@ -213,7 +214,7 @@ export default function ProfileScreen() {
                 const shouldShowDecimals = kilos % 1 !== 0;
                 formattedRevenue = `$${kilos.toFixed(shouldShowDecimals ? 1 : 0)}K`;
               } else {
-                formattedRevenue = formatCurrency(revenueInCents);
+                formattedRevenue = formatCents(revenueInCents);
               }
               
               setProfileStats({
