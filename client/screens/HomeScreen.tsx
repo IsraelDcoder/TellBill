@@ -2,7 +2,7 @@ import React from "react";
 import {
   StyleSheet,
   View,
-  Image,
+  ImageBackground,
   Dimensions,
   FlatList,
   Pressable,
@@ -95,30 +95,32 @@ export default function HomeScreen() {
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.heroContainer}>
-        <Image
+        <ImageBackground
           source={require("../assets/images/dashboard_hero_construction_site.png")}
-          style={styles.heroImage}
+          style={styles.heroImageBackground}
+          imageStyle={styles.heroImageStyle}
           resizeMode="cover"
-        />
-        <LinearGradient
-          colors={[
-            "transparent",
-            isDark ? "rgba(45, 46, 46, 0.8)" : "rgba(255, 255, 255, 0.8)",
-            isDark ? BrandColors.slateGrey : BrandColors.white,
-          ]}
-          style={styles.heroGradient}
-        />
-        <View style={styles.heroContent}>
-          <ThemedText type="h1" style={styles.heroTitle}>
-            Finished the job?
-          </ThemedText>
-          <ThemedText
-            type="h2"
-            style={[styles.heroSubtitle, { color: BrandColors.constructionGold }]}
-          >
-            Just tell Bill.
-          </ThemedText>
-        </View>
+        >
+          <LinearGradient
+            colors={[
+              "transparent",
+              isDark ? "rgba(45, 46, 46, 0.8)" : "rgba(255, 255, 255, 0.8)",
+              isDark ? BrandColors.slateGrey : BrandColors.white,
+            ]}
+            style={styles.heroGradient}
+          />
+          <View style={styles.heroContent}>
+            <ThemedText type="h1" style={styles.heroTitle}>
+              Finished the job?
+            </ThemedText>
+            <ThemedText
+              type="h2"
+              style={[styles.heroSubtitle, { color: BrandColors.constructionGold }]}
+            >
+              Just tell Bill.
+            </ThemedText>
+          </View>
+        </ImageBackground>
       </View>
 
       <Section spacing="compact">
@@ -270,30 +272,31 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   heroContainer: {
-    position: 'relative',
     width: '100%',
-    height: 320,
+    height: 240,
     marginBottom: Spacing.xl,
-    marginHorizontal: -Spacing.lg,
-    marginTop: -Spacing.lg,
-    borderRadius: Spacing.lg,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     overflow: 'hidden',
   },
-  heroImage: {
+  heroImageBackground: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
+    justifyContent: 'flex-end',
+  },
+  heroImageStyle: {
+    resizeMode: 'cover',
   },
   heroGradient: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 140,
   },
   heroContent: {
-    position: 'absolute',
-    bottom: Spacing.lg,
-    left: Spacing.lg,
-    right: Spacing.lg,
+    padding: Spacing.lg,
+    zIndex: 1,
   },
   heroTitle: {
     fontSize: 24,
