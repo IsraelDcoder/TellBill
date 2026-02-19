@@ -10,7 +10,7 @@ import Animated, {
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
-import { formatCents } from "@/lib/money";
+import { formatCents } from "../lib/money";
 
 export type ActivityStatus = "draft" | "created" | "sent" | "paid" | "pending" | "overdue";
 

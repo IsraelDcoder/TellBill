@@ -18,6 +18,9 @@
     "declarationMap": true,
     "sourceMap": true,
     "paths": {
+      "@/lib/*": [
+        "./lib/*"
+      ],
       "@/*": [
         "./client/*"
       ],

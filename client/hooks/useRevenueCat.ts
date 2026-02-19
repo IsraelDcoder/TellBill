@@ -7,8 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/backendUrl";
 
 /**
- * ⚠️ FIX: Ensure RevenueCat SDK is initialized with retry logic
- * The native plugin initialization is asynchronous, so we need to wait for it
+ * ✅ FIXED: Initialize RevenueCat SDK with proper configuration
+ * Must call Purchases.configure() BEFORE using any other SDK methods
  */
 let sdkInitialized = false;
 let sdkInitializationPromise: Promise<void> | null = null;
@@ -23,27 +23,26 @@ async function ensureRevenueCatInitialized(): Promise<void> {
   }
 
   sdkInitializationPromise = (async () => {
-    let retries = 0;
-    const maxRetries = 10;
-    const delayMs = 500;
-
-    while (retries < maxRetries) {
-      try {
-        // Try to check if SDK is ready by calling a simple method
-        await Purchases.getCustomerInfo();
-        console.log(`[RevenueCat] ✅ SDK initialized successfully (attempt ${retries + 1})`);
+    try {
+      // Get API key from environment
+      const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+      if (!apiKey) {
+        console.warn("[RevenueCat] ⚠️ EXPO_PUBLIC_REVENUECAT_API_KEY not set - subscriptions disabled");
         sdkInitialized = true;
         return;
-      } catch (error) {
-        retries++;
-        if (retries < maxRetries) {
-          console.log(`[RevenueCat] ⏳ SDK not ready, retrying... (attempt ${retries}/${maxRetries})`);
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        } else {
-          console.error(`[RevenueCat] ❌ Failed to initialize after ${maxRetries} attempts`, error);
-          throw error;
-        }
       }
+
+      // ✅ CRITICAL: Configure SDK with API key FIRST
+      await Purchases.configure({
+        apiKey: apiKey,
+      });
+      console.log("[RevenueCat] ✅ SDK configured successfully");
+      
+      sdkInitialized = true;
+    } catch (error) {
+      console.error("[RevenueCat] ❌ Failed to configure SDK:", error);
+      // Don't throw - allow app to continue in free tier mode
+      sdkInitialized = true;
     }
   })();
 
@@ -62,15 +61,24 @@ export function useRevenueCatInitialization(userId?: string) {
       try {
         setIsLoading(true);
 
-        // Ensure SDK is ready first
+        // ✅ Configure SDK first
         await ensureRevenueCatInitialized();
-        console.log("[RevenueCat] ✅ SDK is ready");
+        console.log("[RevenueCat] ✅ SDK configured and ready");
+
+        // Check if SDK was actually configured (API key present)
+        const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+        if (!apiKey) {
+          console.log("[RevenueCat] No API key - running in free tier mode");
+          setUserEntitlement("none");
+          setIsLoading(false);
+          return;
+        }
 
         if (userId) {
           // Link RevenueCat user to our TellBill user ID
           try {
             await Purchases.logIn(userId);
-            console.log(`[RevenueCat] Logged in user: ${userId}`);
+            console.log(`[RevenueCat] ✅ Logged in user: ${userId}`);
           } catch (loginError) {
             console.warn("[RevenueCat] Login error (non-critical):", loginError);
           }
@@ -79,18 +87,22 @@ export function useRevenueCatInitialization(userId?: string) {
           try {
             const customerInfo = await Purchases.getCustomerInfo();
             handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+            console.log("[RevenueCat] ✅ Retrieved customer info");
           } catch (customerError) {
             console.warn("[RevenueCat] Failed to get customer info:", customerError);
             // Default to free tier on error
             setUserEntitlement("none");
           }
+        } else {
+          console.log("[RevenueCat] No userId provided - skipping login");
+          setUserEntitlement("none");
         }
 
         setIsLoading(false);
       } catch (error) {
         console.error("[RevenueCat] Initialization error:", error);
         setIsLoading(false);
-        // Silently fail and default to free tier
+        // Default to free tier on error
         setUserEntitlement("none");
       }
     };
