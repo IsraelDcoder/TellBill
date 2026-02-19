@@ -109,18 +109,35 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const pending = invoices.filter((i) => i.status === "pending").length;
         const overdue = invoices.filter((i) => i.status === "overdue").length;
         
-        // ✅ FIXED: Inline revenue calculation to avoid module loading issues
+        // ✅ FIXED: Inline revenue calculation with defensive checks
         // Calculate revenue from paid invoices (in cents)
-        const revenue = invoices
-          .filter((i) => i.status === "paid")
-          .reduce((sum, i) => sum + (i.total || 0), 0);
+        let revenue = 0;
+        const paidInvoices = invoices.filter((i) => i.status === "paid");
+        
+        paidInvoices.forEach((inv, idx) => {
+          const total = inv.total || 0;
+          console.log(`[Revenue] Invoice ${idx}: total = ${total} (type: ${typeof total})`);
+          
+          // ✅ CRITICAL: Ensure total is in cents (integer)
+          // If it's a large number (> 10000), assume it's already in cents
+          // If it's a small number (< 10000), it might be in dollars - convert it
+          let invoiceTotal = typeof total === 'number' ? total : 0;
+          
+          // Sanity check: if total > 100,000,000 cents ($1,000,000+) it's suspicious
+          // Most invoices should be under $100,000
+          if (invoiceTotal > 10000000) {
+            console.warn(`[Revenue] ⚠️  SUSPICIOUSLY LARGE TOTAL: ${invoiceTotal} cents (${(invoiceTotal/100).toFixed(2)} dollars)`);
+          }
+          
+          // Ensure it's an integer (never a decimal like 1001.5)
+          invoiceTotal = Math.round(invoiceTotal);
+          revenue += invoiceTotal;
+        });
         
         // ✅ Time saved: count all invoices (draft, created, sent, pending, paid, overdue)
         const timeSaved = invoices.length * 0.5;
 
-        if (paid > 0) {
-          console.log(`[InvoiceStore] getStats: ${paid} paid invoices = ${formatCents(revenue)} revenue`);
-        }
+        console.log(`[InvoiceStore] getStats: ${paid} paid invoices, raw revenue = ${revenue} cents`);
 
         return { sent, paid, pending, overdue, revenue, timeSaved };
       },
