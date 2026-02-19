@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { generateId } from "../lib/uuid";
-import { calculateTotalRevenue, formatCents } from "@/lib/money";
+import { formatCents } from "@/lib/money";
 
 export interface InvoiceItem {
   id: string;
@@ -109,14 +109,18 @@ export const useInvoiceStore = create<InvoiceStore>()(
         const pending = invoices.filter((i) => i.status === "pending").length;
         const overdue = invoices.filter((i) => i.status === "overdue").length;
         
-        // ✅ FIXED: Use shared calculateTotalRevenue function for consistency
-        // This ensures HomeScreen, ProfileScreen, and all other screens show the same revenue
-        const revenue = calculateTotalRevenue(invoices);
+        // ✅ FIXED: Inline revenue calculation to avoid module loading issues
+        // Calculate revenue from paid invoices (in cents)
+        const revenue = invoices
+          .filter((i) => i.status === "paid")
+          .reduce((sum, i) => sum + (i.total || 0), 0);
         
         // ✅ Time saved: count all invoices (draft, created, sent, pending, paid, overdue)
         const timeSaved = invoices.length * 0.5;
 
-        console.log(`[InvoiceStore] getStats: ${paid} paid invoices = ${formatCents(revenue)} revenue`);
+        if (paid > 0) {
+          console.log(`[InvoiceStore] getStats: ${paid} paid invoices = ${formatCents(revenue)} revenue`);
+        }
 
         return { sent, paid, pending, overdue, revenue, timeSaved };
       },
