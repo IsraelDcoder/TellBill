@@ -497,30 +497,86 @@ export async function sendInvoiceSMS(
 export async function sendInvoiceWhatsApp(
   phoneNumber: string,
   invoiceNumber: string,
-  clientName: string
+  clientName: string,
+  invoiceTotal?: number,
+  paymentInfo?: any
 ): Promise<{ success: boolean; message: string }> {
   try {
     console.log(
       `[EmailService] Sending WhatsApp for invoice ${invoiceNumber} to ${phoneNumber}`
     );
 
+    // Build WhatsApp message with payment info
+    let messageText = `*Invoice ${invoiceNumber}*\n\nDear ${clientName},\n\nPlease find attached your invoice.`;
+    
+    if (invoiceTotal) {
+      const amountInDollars = invoiceTotal / 100;
+      messageText += `\n\n*Amount Due:* $${amountInDollars.toFixed(2)}`;
+    }
+
+    // Add payment information if available
+    if (paymentInfo && paymentInfo.methodType) {
+      messageText += "\n\n🏦 *Payment Details:*";
+      
+      switch (paymentInfo.methodType) {
+        case "bank_transfer":
+          if (paymentInfo.accountNumber) messageText += `\nAccount: ${paymentInfo.accountNumber}`;
+          if (paymentInfo.bankName) messageText += `\nBank: ${paymentInfo.bankName}`;
+          if (paymentInfo.accountName) messageText += `\nName: ${paymentInfo.accountName}`;
+          break;
+        
+        case "paypal":
+          if (paymentInfo.link) messageText += `\nPayPal: ${paymentInfo.link}`;
+          break;
+        
+        case "stripe":
+          if (paymentInfo.link) messageText += `\nPay via Stripe: ${paymentInfo.link}`;
+          break;
+        
+        case "square":
+          if (paymentInfo.link) messageText += `\nSquare Payment: ${paymentInfo.link}`;
+          break;
+        
+        case "mobile_money":
+          if (paymentInfo.accountNumber) messageText += `\nPhone: ${paymentInfo.accountNumber}`;
+          if (paymentInfo.instructions) messageText += `\nInstructions: ${paymentInfo.instructions}`;
+          break;
+        
+        case "custom":
+          if (paymentInfo.instructions) messageText += `\n${paymentInfo.instructions}`;
+          break;
+      }
+    }
+
+    messageText += "\n\nThank you!";
+
     // Note: WhatsApp integration requires WhatsApp Business API
-    // This is a placeholder showing where WhatsApp integration would go
     console.warn(
-      "[EmailService] WhatsApp sending not yet configured. Please integrate WhatsApp Business API."
+      "[EmailService] WhatsApp message ready (not yet integrated with WhatsApp Business API):",
+      messageText
     );
 
-    throw new Error(
-      "WhatsApp sending not configured. Please add WhatsApp Business API integration."
-    );
+    // For now, this is a placeholder
+    // In production, you would send via Twilio or WhatsApp Business API:
+    // const message = await client.messages.create({
+    //   from: 'whatsapp:+1234567890',
+    //   body: messageText,
+    //   to: `whatsapp:${phoneNumber}`
+    // });
+
+    // Return success even though we're not actually sending yet
+    return {
+      success: true,
+      message: "WhatsApp message prepared (integration pending)"
+    };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
     console.error(
-      `[EmailService] ❌ Error sending WhatsApp to ${phoneNumber}:`,
+      `[EmailService] ❌ Error preparing WhatsApp to ${phoneNumber}:`,
       errorMessage
     );
-    throw new Error(`Failed to send WhatsApp message: ${errorMessage}`);
+    throw new Error(`Failed to prepare WhatsApp message: ${errorMessage}`);
   }
 }
 

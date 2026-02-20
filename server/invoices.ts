@@ -411,10 +411,29 @@ export function registerInvoiceRoutes(app: Express) {
             }
           } else if (method === "whatsapp") {
             try {
+              // ✅ Fetch user data for payment info
+              const userId = dbInvoice.userId;
+              const userResult = await db
+                .select()
+                .from(schema.users)
+                .where(eq(schema.users.id, userId))
+                .limit(1);
+
+              if (!userResult || userResult.length === 0) {
+                throw new Error("User data not found");
+              }
+
+              const user = userResult[0];
+
+              // ✅ Build payment info object (invoice override > user default)
+              const paymentInfo = resolvePaymentInfo(dbInvoice, user);
+
               const result = await sendInvoiceWhatsApp(
                 contact,
-                invoiceId,
-                clientName
+                dbInvoice.invoiceNumber || invoiceId,
+                clientName,
+                dbInvoice.total ? Math.round(Number(dbInvoice.total) * 100) : 0,
+                paymentInfo
               );
               
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
