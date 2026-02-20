@@ -20,6 +20,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 import { formatCents } from "@/lib/money";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -328,6 +329,14 @@ export default function ProfileScreen() {
             label="Help & Support"
             onPress={() => navigation.navigate("HelpSupport")}
           />
+        </ScreenGroup>
+      </Section>
+
+      {/* Preferences */}
+      <Section>
+        <SectionTitle title="Preferences" />
+        <ScreenGroup bordered>
+          <PreferencesSection theme={theme} authToken={authToken} />
         </ScreenGroup>
       </Section>
 
