@@ -473,21 +473,29 @@ export function registerAuthRoutes(app: Express) {
 
   /**
    * PUT /api/auth/company-info
-   * Update user's company information
-   * - Requires user ID in request body
-   * - Updates company fields in database
-   * - Returns updated user data including preferences
+   * Update user's company information + payment info
+   * - Accepts company fields: name, phone, email, address, website, taxId
+   * - Accepts payment fields: methodType, accountNumber, bankName, accountName, link, instructions
+   * - Returns updated user data with all fields
    */
   app.put("/api/auth/company-info", async (req: Request, res: Response) => {
     try {
       const {
         userId,
+        // Company fields
         companyName,
         companyPhone,
         companyEmail,
         companyAddress,
         companyWebsite,
         companyTaxId,
+        // ✅ Payment info fields
+        paymentMethodType,
+        paymentAccountNumber,
+        paymentBankName,
+        paymentAccountName,
+        paymentLink,
+        paymentInstructions,
       } = req.body;
 
       // Validate input
@@ -512,7 +520,7 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Update company info
+      // Update company info + payment info
       const updatedUser = await db
         .update(users)
         .set({
@@ -522,6 +530,13 @@ export function registerAuthRoutes(app: Express) {
           companyAddress: companyAddress || null,
           companyWebsite: companyWebsite || null,
           companyTaxId: companyTaxId || null,
+          // ✅ Payment info fields
+          paymentMethodType: paymentMethodType || "custom",
+          paymentAccountNumber: paymentAccountNumber || null,
+          paymentBankName: paymentBankName || null,
+          paymentAccountName: paymentAccountName || null,
+          paymentLink: paymentLink || null,
+          paymentInstructions: paymentInstructions || null,
         })
         .where(eq(users.id, userId))
         .returning();
@@ -550,16 +565,25 @@ export function registerAuthRoutes(app: Express) {
           id: user.id,
           email: user.email,
           name: user.name,
+          // Company info
           companyName: user.companyName,
           companyPhone: user.companyPhone,
           companyEmail: user.companyEmail,
           companyAddress: user.companyAddress,
           companyWebsite: user.companyWebsite,
           companyTaxId: user.companyTaxId,
+          // Preferences
           preferredCurrency: user.preferredCurrency || "USD",
           defaultTaxRate: user.defaultTaxRate || 0.08,
           invoiceTemplate: user.invoiceTemplate || "professional",
           defaultPaymentTerms: user.defaultPaymentTerms || "Net 30",
+          // ✅ Payment info
+          paymentMethodType: user.paymentMethodType || "custom",
+          paymentAccountNumber: user.paymentAccountNumber,
+          paymentBankName: user.paymentBankName,
+          paymentAccountName: user.paymentAccountName,
+          paymentLink: user.paymentLink,
+          paymentInstructions: user.paymentInstructions,
           createdAt: user.createdAt,
         },
         preferences: prefs ? {
