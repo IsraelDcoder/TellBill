@@ -13,6 +13,15 @@
  * - Dividers: #E5E7EB
  */
 
+export interface PaymentInfo {
+  methodType?: "bank_transfer" | "paypal" | "stripe" | "square" | "mobile_money" | "custom";
+  accountNumber?: string;
+  bankName?: string;
+  accountName?: string;
+  link?: string;
+  instructions?: string;
+}
+
 export interface InvoiceData {
   invoiceNumber: string;
   clientName: string;
@@ -36,6 +45,7 @@ export interface InvoiceData {
   notes?: string;
   safetyNotes?: string;
   paymentLinkUrl?: string;
+  paymentInfo?: PaymentInfo;
 }
 
 export interface InvoiceItem {
@@ -477,6 +487,85 @@ const NotesSection = (invoice: InvoiceData): string => {
   return html;
 };
 
+const PaymentInfoSection = (invoice: InvoiceData): string => {
+  const payment = invoice.paymentInfo;
+  if (!payment || !payment.methodType) return "";
+
+  let paymentDisplay = "";
+  
+  switch (payment.methodType) {
+    case "bank_transfer":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
+          <div><strong>Bank Transfer</strong></div>
+          ${payment.bankName ? `<div>Bank: ${payment.bankName}</div>` : ""}
+          ${payment.accountName ? `<div>Account Name: ${payment.accountName}</div>` : ""}
+          ${payment.accountNumber ? `<div>Account Number: ${payment.accountNumber}</div>` : ""}
+        </div>
+      `;
+      break;
+    case "paypal":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
+          <div><strong>PayPal</strong></div>
+          ${payment.link ? `<div>Email/Link: ${payment.link}</div>` : ""}
+        </div>
+      `;
+      break;
+    case "stripe":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
+          <div><strong>Stripe Payment Link</strong></div>
+          ${payment.link ? `<div>${payment.link}</div>` : ""}
+        </div>
+      `;
+      break;
+    case "square":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
+          <div><strong>Square Payment Link</strong></div>
+          ${payment.link ? `<div>${payment.link}</div>` : ""}
+        </div>
+      `;
+      break;
+    case "mobile_money":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
+          <div><strong>Mobile Money</strong></div>
+          ${payment.accountNumber ? `<div>Phone Number: ${payment.accountNumber}</div>` : ""}
+        </div>
+      `;
+      break;
+    case "custom":
+      paymentDisplay = `
+        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.6;">
+          ${payment.instructions || ""}
+        </div>
+      `;
+      break;
+  }
+
+  return `
+    <div style="
+      margin-top: ${SPACING.lg};
+      padding: ${SPACING.lg};
+      background-color: ${COLORS.softAccent};
+      border-radius: 8px;
+      border-left: 4px solid ${COLORS.accent};
+    ">
+      <div style="
+        font-size: ${TYPOGRAPHY.sectionHeader};
+        font-weight: bold;
+        color: ${COLORS.primaryText};
+        margin-bottom: ${SPACING.md};
+      ">
+        💳 Payment Instructions
+      </div>
+      ${paymentDisplay}
+    </div>
+  `;
+};
+
 const FooterSection = (): string => {
   return `
     <div style="
@@ -556,6 +645,7 @@ const generateProfessionalTemplate = (invoice: InvoiceData): string => {
       ${LineItemsTable(invoice)}
       ${TotalsSection(invoice)}
       ${PaymentSection(invoice)}
+      ${PaymentInfoSection(invoice)}
       ${NotesSection(invoice)}
       ${FooterSection()}
     </body>
@@ -604,6 +694,7 @@ const generateMinimalTemplate = (invoice: InvoiceData): string => {
       ${LineItemsTable(invoice)}
       ${TotalsSection(invoice)}
       ${PaymentSection(invoice)}
+      ${PaymentInfoSection(invoice)}
       ${NotesSection(invoice)}
       ${FooterSection()}
     </body>
@@ -667,6 +758,7 @@ const generateModernTemplate = (invoice: InvoiceData): string => {
       ${LineItemsTable(invoice)}
       ${TotalsSection(invoice)}
       ${PaymentSection(invoice)}
+      ${PaymentInfoSection(invoice)}
       ${NotesSection(invoice)}
       ${FooterSection()}
     </body>
@@ -715,6 +807,7 @@ const generateFormalTemplate = (invoice: InvoiceData): string => {
       ${LineItemsTable(invoice)}
       ${TotalsSection(invoice)}
       ${PaymentSection(invoice)}
+      ${PaymentInfoSection(invoice)}
       ${NotesSection(invoice)}
       ${FooterSection()}
     </body>
