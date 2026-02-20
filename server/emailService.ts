@@ -325,7 +325,8 @@ export async function sendInvoiceEmail(
     notes?: string;
     paymentTerms?: string;
   },
-  paymentLinkUrl?: string // ✅ Added payment link parameter
+  paymentLinkUrl?: string, // ✅ Added payment link parameter
+  paymentInfo?: any // ✅ Added payment info parameter
 ) {
   try {
     console.log(
@@ -456,7 +457,9 @@ export async function sendInvoiceEmail(
 export async function sendInvoiceSMS(
   phoneNumber: string,
   invoiceNumber: string,
-  clientName: string
+  clientName: string,
+  invoiceTotal?: number,
+  paymentInfo?: any // ✅ Added payment info parameter
 ): Promise<{ success: boolean; message: string }> {
   try {
     console.log(

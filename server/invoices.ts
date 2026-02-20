@@ -233,6 +233,23 @@ export function registerInvoiceRoutes(app: Express) {
 
         const dbInvoice = invoiceResult[0];
         
+        // ✅ FETCH USER FOR PAYMENT INFO RESOLUTION
+        const userResult = await db
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.id, dbInvoice.userId))
+          .limit(1);
+
+        if (!userResult || userResult.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: "User not found",
+          });
+        }
+
+        const user = userResult[0];
+        const paymentInfo = resolvePaymentInfo(dbInvoice, user);
+        
         // ✅ Parse items JSON and build complete invoiceData object
         let items: any[] = [];
         if (dbInvoice.items) {
@@ -334,7 +351,8 @@ export function registerInvoiceRoutes(app: Express) {
                 invoiceId,
                 "", // Empty HTML for now, can be enhanced
                 completeInvoiceData,
-                paymentLinkUrl ?? undefined  // ✅ Pass payment link to email (convert null to undefined)
+                paymentLinkUrl ?? undefined, // ✅ Pass payment link to email (convert null to undefined)
+                paymentInfo // ✅ Pass resolved payment info
               );
               
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
@@ -378,7 +396,9 @@ export function registerInvoiceRoutes(app: Express) {
               const result = await sendInvoiceSMS(
                 contact,
                 invoiceId,
-                clientName
+                clientName,
+                dbInvoice.total ? Math.round(Number(dbInvoice.total) * 100) : 0,
+                paymentInfo // ✅ Pass resolved payment info
               );
               
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
@@ -411,23 +431,7 @@ export function registerInvoiceRoutes(app: Express) {
             }
           } else if (method === "whatsapp") {
             try {
-              // ✅ Fetch user data for payment info
-              const userId = dbInvoice.userId;
-              const userResult = await db
-                .select()
-                .from(schema.users)
-                .where(eq(schema.users.id, userId))
-                .limit(1);
-
-              if (!userResult || userResult.length === 0) {
-                throw new Error("User data not found");
-              }
-
-              const user = userResult[0];
-
-              // ✅ Build payment info object (invoice override > user default)
-              const paymentInfo = resolvePaymentInfo(dbInvoice, user);
-
+              // ✅ Use already-fetched paymentInfo (resolved earlier)
               const result = await sendInvoiceWhatsApp(
                 contact,
                 dbInvoice.invoiceNumber || invoiceId,
