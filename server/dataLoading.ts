@@ -113,6 +113,91 @@ export function registerDataLoadingRoutes(app: Express) {
   });
 
   /**
+   * PUT /api/preferences
+   * Save user preferences (currency, tax rate, invoice template, payment terms)
+   * 
+   * ✅ REQUIRES: Authentication header
+   */
+  app.put("/api/preferences", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+      const { currency, language, theme, invoiceTemplate, defaultPaymentTerms } = req.body;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "User not authenticated",
+        });
+      }
+
+      console.log("[Preferences] Saving preferences for user:", userId);
+
+      // ✅ Check if preferences record exists
+      const existingPrefs = await db
+        .select()
+        .from(preferences)
+        .where(eq(preferences.userId, userId))
+        .limit(1);
+
+      let savedPrefs;
+
+      if (existingPrefs.length > 0) {
+        // Update existing preferences
+        savedPrefs = await db
+          .update(preferences)
+          .set({
+            currency: currency || existingPrefs[0].currency,
+            language: language || existingPrefs[0].language,
+            theme: theme || existingPrefs[0].theme,
+            invoiceTemplate: invoiceTemplate || existingPrefs[0].invoiceTemplate,
+            defaultPaymentTerms: defaultPaymentTerms || existingPrefs[0].defaultPaymentTerms,
+            updatedAt: new Date(),
+          })
+          .where(eq(preferences.userId, userId))
+          .returning();
+      } else {
+        // Create new preferences record
+        savedPrefs = await db
+          .insert(preferences)
+          .values({
+            userId,
+            currency: currency || "USD",
+            language: language || "en",
+            theme: theme || "light",
+            invoiceTemplate: invoiceTemplate || "default",
+            defaultPaymentTerms: defaultPaymentTerms || "Due upon receipt",
+          })
+          .returning();
+      }
+
+      // ✅ Also save to users table for quick access
+      if (currency || invoiceTemplate || defaultPaymentTerms) {
+        await db
+          .update(users)
+          .set({
+            preferredCurrency: currency || undefined,
+            invoiceTemplate: invoiceTemplate || undefined,
+            defaultPaymentTerms: defaultPaymentTerms || undefined,
+          })
+          .where(eq(users.id, userId));
+      }
+
+      console.log("[Preferences] ✅ Preferences saved for user:", userId);
+
+      return res.status(200).json({
+        success: true,
+        data: savedPrefs[0],
+      });
+    } catch (error) {
+      console.error("[Preferences] Error saving preferences:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to save preferences",
+      });
+    }
+  });
+
+  /**
    * GET /api/data/activity?userId={userId}&limit=50
    * Get user's activity log (recent actions)
    */

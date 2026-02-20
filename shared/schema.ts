@@ -22,6 +22,12 @@ export const users = pgTable("users", {
   companyAddress: text("company_address"),
   companyWebsite: text("company_website"),
   companyTaxId: text("company_tax_id"),
+  // ✅ User preferences (default values for new invoices)
+  preferredCurrency: text("preferred_currency").default("USD"),
+  defaultTaxRate: numeric("default_tax_rate", { precision: 5, scale: 2 }).default("8.00"),
+  invoiceTemplate: text("invoice_template").default("default"), // default, minimal, detailed
+  defaultPaymentTerms: text("default_payment_terms").default("Due upon receipt"),
+  // Subscription fields
   currentPlan: text("current_plan").default("free"), // free, solo, professional
   isSubscribed: boolean("is_subscribed").default(false),
   subscriptionStatus: text("subscription_status").default("inactive"), // active, inactive, cancelled, expired
@@ -138,7 +144,7 @@ export const jobSites = pgTable("job_sites", {
     .defaultNow(),
 });
 
-// Preferences table - user preferences
+// Preferences table - user preferences (UI and behavior settings)
 export const preferences = pgTable("preferences", {
   id: text("id")
     .primaryKey()
@@ -149,7 +155,13 @@ export const preferences = pgTable("preferences", {
   currency: text("currency").default("USD"),
   language: text("language").default("en"),
   theme: text("theme").default("light"),
+  defaultTaxProfileId: text("default_tax_profile_id"), // Link to user's default tax profile
+  invoiceTemplate: text("invoice_template").default("default"), // default, minimal, detailed
+  defaultPaymentTerms: text("default_payment_terms").default("Due upon receipt"),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
