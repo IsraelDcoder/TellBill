@@ -15,12 +15,14 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { GlassCard } from "@/components/GlassCard";
+import { PaymentInfoSection } from "@/components/PaymentInfoSection";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/context/AuthContext";
 import { useProfileStore } from "@/stores/profileStore";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { getApiUrl } from "@/lib/backendUrl";
+import { type PaymentInfoFormData } from "@/utils/paymentInfoUtils";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,6 +42,16 @@ export default function CompanyInfoScreen() {
   const [companyTaxId, setCompanyTaxId] = useState(companyInfo.taxId);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // ✅ Payment info state
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfoFormData>({
+    paymentMethodType: user?.paymentMethodType || "custom",
+    paymentAccountNumber: user?.paymentAccountNumber,
+    paymentBankName: user?.paymentBankName,
+    paymentAccountName: user?.paymentAccountName,
+    paymentLink: user?.paymentLink,
+    paymentInstructions: user?.paymentInstructions,
+  });
 
   const handleSaveCompanyInfo = async () => {
     if (!companyName.trim()) {
@@ -68,6 +80,8 @@ export default function CompanyInfoScreen() {
           companyAddress: companyAddress.trim(),
           companyWebsite: companyWebsite.trim(),
           companyTaxId: companyTaxId.trim(),
+          // ✅ Include current payment info in company save
+          ...paymentInfo,
         }),
       });
 
@@ -101,6 +115,40 @@ export default function CompanyInfoScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ✅ Handle payment info saving separately 
+  const handleSavePaymentInfo = async (data: PaymentInfoFormData) => {
+    if (!user?.id) {
+      throw new Error("User not authenticated");
+    }
+
+    const response = await fetch(getApiUrl("/api/auth/company-info"), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: user.id,
+        companyName__kept: companyName.trim(),
+        companyPhone: companyPhone.trim(),
+        companyEmail: companyEmail.trim(),
+        companyAddress: companyAddress.trim(),
+        companyWebsite: companyWebsite.trim(),
+        companyTaxId: companyTaxId.trim(),
+        // ✅ Payment info fields
+        ...data,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to save payment info");
+    }
+
+    // Update local state
+    setPaymentInfo(data);
+    return response.json();
   };
 
   const inputStyle = (isDark: boolean) => ({
