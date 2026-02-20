@@ -1184,10 +1184,12 @@ export function registerAuthRoutes(app: Express) {
    * Verifies the Supabase token, creates/finds user, returns backend JWT
    */
   app.post("/api/auth/supabase-oauth-callback", async (req: Request, res: Response) => {
+    console.log("[Auth] 🔐 OAuth callback started");
     try {
       const { supabaseToken } = req.body;
 
       if (!supabaseToken) {
+        console.warn("[Auth] Missing Supabase token in request body");
         return res.status(400).json({
           success: false,
           error: "Missing Supabase token",
@@ -1197,12 +1199,10 @@ export function registerAuthRoutes(app: Express) {
       console.log("[Auth] 🔐 Processing Supabase OAuth callback");
 
       // ✅ DECODE the Supabase JWT token to extract user data
-      // JWT format: header.payload.signature
-      // We don't need to verify signature here since Supabase already did it
       const parts = supabaseToken.split(".");
       
       if (parts.length !== 3) {
-        console.error("[Auth] ❌ Invalid token format");
+        console.error("[Auth] ❌ Invalid token format - not 3 parts");
         return res.status(401).json({
           success: false,
           error: "Invalid token format",
@@ -1213,15 +1213,16 @@ export function registerAuthRoutes(app: Express) {
       let decoded;
       try {
         const payload = parts[1];
-        // Add padding if needed
         const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
         const decoded_str = Buffer.from(padded, "base64").toString("utf-8");
         decoded = JSON.parse(decoded_str);
+        console.log("[Auth] ✅ Token decoded, payload keys:", Object.keys(decoded).join(", "));
       } catch (decodeError) {
-        console.error("[Auth] ❌ Failed to decode token:", decodeError);
+        console.error("[Auth] ❌ Failed to decode token:", decodeError instanceof Error ? decodeError.message : decodeError);
         return res.status(401).json({
           success: false,
           error: "Failed to decode token",
+          details: decodeError instanceof Error ? decodeError.message : String(decodeError),
         });
       }
 
@@ -1240,11 +1241,23 @@ export function registerAuthRoutes(app: Express) {
       console.log("[Auth] ✅ Supabase token decoded successfully for:", userEmail);
 
       // ✅ Check if user exists in our database
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, userEmail))
-        .limit(1);
+      console.log("[Auth] 🔍 Checking for existing user:", userEmail);
+      let existingUser;
+      try {
+        existingUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, userEmail))
+          .limit(1);
+        console.log("[Auth] ✅ User query successful, found:", existingUser.length > 0 ? "existing user" : "new user");
+      } catch (dbError) {
+        console.error("[Auth] ❌ Database error querying user:", dbError instanceof Error ? dbError.message : dbError);
+        return res.status(500).json({
+          success: false,
+          error: "Database error checking user",
+          details: dbError instanceof Error ? dbError.message : String(dbError),
+        });
+      }
 
       let userToReturn;
 
@@ -1254,27 +1267,39 @@ export function registerAuthRoutes(app: Express) {
         console.log("[Auth] ✅ OAuth login for existing user:", userEmail);
       } else {
         // Create new user
-        const newUser = await db
-          .insert(users)
-          .values({
-            email: userEmail,
-            name: userName,
-            password: "", // No password for OAuth users
-          })
-          .returning();
-
-        if (!newUser || newUser.length === 0) {
-          console.error("[Auth] ❌ Failed to create user");
+        console.log("[Auth] 📝 Creating new OAuth user:", userEmail);
+        let newUser;
+        try {
+          newUser = await db
+            .insert(users)
+            .values({
+              email: userEmail,
+              name: userName,
+              password: "", // No password for OAuth users
+            })
+            .returning();
+          console.log("[Auth] ✅ New user created, id:", newUser[0]?.id);
+        } catch (createUserError) {
+          console.error("[Auth] ❌ Failed to create user:", createUserError instanceof Error ? createUserError.message : createUserError);
           return res.status(500).json({
             success: false,
             error: "Failed to create user account",
+            details: createUserError instanceof Error ? createUserError.message : String(createUserError),
+          });
+        }
+
+        if (!newUser || newUser.length === 0) {
+          console.error("[Auth] ❌ User insert returned empty");
+          return res.status(500).json({
+            success: false,
+            error: "User creation returned no data",
           });
         }
 
         userToReturn = newUser[0];
-        console.log("[Auth] ✅ New OAuth user created:", userEmail);
 
-        // ✅ Create default preferences for new OAuth user
+        // ✅ Create default preferences for new OAuth user (non-critical)
+        console.log("[Auth] 📝 Creating default preferences for user:", userToReturn.id);
         try {
           await db
             .insert(preferences)
@@ -1287,23 +1312,34 @@ export function registerAuthRoutes(app: Express) {
               defaultPaymentTerms: "Net 30",
               taxRate: 0.08,
             });
-          console.log("[Auth] ✅ Default preferences created for OAuth user:", userEmail);
+          console.log("[Auth] ✅ Default preferences created");
         } catch (prefError) {
-          console.warn("[Auth] Warning: Could not create preferences for OAuth user:", prefError);
-          // Continue anyway - preferences will be created later
+          console.warn("[Auth] ⚠️  Could not create preferences (non-critical):", prefError instanceof Error ? prefError.message : prefError);
+          // Continue anyway - preferences can be created on next update
         }
 
-        // Send welcome email
+        // Send welcome email (non-critical)
         sendWelcomeEmail(userToReturn.email, userToReturn.name || "User").catch((err) => {
-          console.error("[Auth] Failed to send welcome email:", err);
+          console.warn("[Auth] ⚠️  Failed to send welcome email:", err instanceof Error ? err.message : err);
         });
       }
 
-      // ✅ Generate backend JWT token for this user
-      const accessToken = generateToken(userToReturn.id, userToReturn.email);
+      // ✅ Generate backend JWT token
+      console.log("[Auth] 🔑 Generating backend JWT token...");
+      let accessToken;
+      try {
+        accessToken = generateToken(userToReturn.id, userToReturn.email);
+        console.log("[Auth] ✅ Backend JWT token generated");
+      } catch (tokenError) {
+        console.error("[Auth] ❌ Failed to generate token:", tokenError instanceof Error ? tokenError.message : tokenError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to generate authentication token",
+          details: tokenError instanceof Error ? tokenError.message : String(tokenError),
+        });
+      }
 
-      console.log("[Auth] ✅ Backend JWT token generated for OAuth user:", userToReturn.id);
-
+      console.log("[Auth] ✅ OAuth flow complete, returning user:", userEmail);
       return res.status(existingUser.length > 0 ? 200 : 201).json({
         success: true,
         token: accessToken,
@@ -1322,13 +1358,15 @@ export function registerAuthRoutes(app: Express) {
         },
       });
     } catch (error) {
-      console.error("[Auth] ❌ Supabase OAuth callback error:", error);
-      console.error("[Auth] Error details:", error instanceof Error ? error.message : String(error));
-      console.error("[Auth] Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+      console.error("[Auth] ❌ UNHANDLED OAuth callback error:", error);
+      console.error("[Auth] Error name:", error instanceof Error ? error.name : "unknown");
+      console.error("[Auth] Error message:", error instanceof Error ? error.message : String(error));
+      console.error("[Auth] Error stack:", error instanceof Error ? error.stack : "no stack");
+      
       return res.status(500).json({
         success: false,
         error: "OAuth exchange failed",
-        details: error instanceof Error ? error.message : String(error),
+        details: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
       });
     }
   });
