@@ -663,6 +663,96 @@ export function registerAuthRoutes(app: Express) {
   });
 
   /**
+   * GET /api/auth/google/callback
+   * Handles OAuth callback from Supabase after Google login
+   * Redirects back to Expo app via deep link with session token
+   */
+  app.get("/api/auth/google/callback", async (req: Request, res: Response) => {
+    try {
+      console.log("[Auth] 🔄 Google OAuth callback received");
+      console.log("[Auth] Query params:", req.query);
+
+      // Supabase returns the session in hash/query params when using OAuth
+      // We need to extract and process the callback
+      
+      // Option 1: If Supabase redirects with access_token in fragment
+      // Fragment is not sent to server, so we need to redirect client-side
+      // Option 2: If code is provided, exchange it
+      
+      const { code, error, error_description } = req.query;
+      
+      if (error) {
+        console.error("[Auth] ❌ OAuth error:", error_description);
+        // Redirect back to app with error
+        return res.redirect(`tellbill://auth-callback?error=${encodeURIComponent(error_description as string)}`);
+      }
+
+      // If no code, it means Supabase is trying to pass the session in the fragment
+      // In that case, we need to do a redirect that preserves the fragment
+      // Redirect to a page that will extract the fragment and exchange it
+      
+      console.log("[Auth] ✅ OAuth callback processing complete, redirecting to app");
+      
+      // Create a simple HTML page that will extract the session from URL fragment
+      // and store it, then redirect to the app
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Completing login...</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+        </head>
+        <body style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: Arial; background: #f5f5f5;">
+            <div style="text-align: center;">
+                <h2>Completing login...</h2>
+                <p>Please wait while we complete your sign in.</p>
+            </div>
+            <script>
+                // Extract the session from the URL fragment
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                
+                // Get access token and session data
+                const accessToken = params.get('access_token');
+                const type = params.get('type');
+                
+                if (accessToken && type === 'recovery') {
+                    // Store session temporarily and redirect to app
+                    sessionStorage.setItem('supabase_session', JSON.stringify({
+                        access_token: accessToken,
+                        token_type: 'Bearer'
+                    }));
+                    
+                    // Redirect to app via deep link
+                    window.location.href = 'tellbill://auth-callback?session=true';
+                } else if (accessToken) {
+                    // Session received, store it and redirect
+                    sessionStorage.setItem('supabase_session', JSON.stringify({
+                        access_token: accessToken,
+                        token_type: 'Bearer'
+                    }));
+                    
+                    // Redirect to app via deep link
+                    window.location.href = 'tellbill://auth-callback?session=true';
+                } else {
+                    console.error('No access token found in callback');
+                    // Redirect back with error
+                    window.location.href = 'tellbill://auth-callback?error=no_token';
+                }
+            </script>
+        </body>
+        </html>
+      `;
+      
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(html);
+    } catch (error) {
+      console.error("[Auth] ❌ Google callback error:", error);
+      return res.redirect(`tellbill://auth-callback?error=${encodeURIComponent("Authentication failed")}`);
+    }
+  });
+
+  /**
    * GET /api/auth/verify
    * Verify JWT token and restore user session
    * 

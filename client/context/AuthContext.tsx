@@ -569,15 +569,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
 
-      // Get the redirect URL for Expo
-      const redirectUrl = Linking.createURL("auth-callback");
+      // Redirect to backend endpoint instead of deep link
+      // Backend will handle OAuth callback and redirect back to app via deep link
+      const redirectUrl = "https://tellbill-api.onrender.com/auth/google/callback";
       console.log("[Auth] Redirect URL:", redirectUrl);
 
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
+          skipBrowserRedirect: true, // ✅ Don't let Supabase auto-redirect, we'll handle it
         },
       });
 
@@ -587,8 +588,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data?.url) {
         // Open OAuth URL in system browser
-        await WebBrowser.openBrowserAsync(data.url);
-        console.log("[Auth] ✅ Google OAuth browser opened");
+        console.log("[Auth] Opening browser for OAuth...");
+        const result = await WebBrowser.openBrowserAsync(data.url);
+        console.log("[Auth] ✅ Google OAuth browser opened, result:", result.type);
+        
+        // After browser closes, try to get the session
+        if (result.type === "dismiss" || result.type === "cancel") {
+          console.log("[Auth] Browser closed, checking for new session...");
+          // Give Supabase a moment to process the session
+          setTimeout(() => {
+            supabase.auth.getSession().then(({ data: { session: newSession } }) => {
+              if (newSession) {
+                console.log("[Auth] ✅ Session found after OAuth callback");
+              } else {
+                console.log("[Auth] No session found yet, waiting for deep link...");
+              }
+            });
+          }, 500);
+        }
       }
     } catch (err) {
       console.error("[Auth] ❌ Error starting Google sign-in:", err);
