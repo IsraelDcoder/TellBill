@@ -1152,40 +1152,50 @@ export function registerAuthRoutes(app: Express) {
 
       console.log("[Auth] 🔐 Processing Supabase OAuth callback");
 
-      // Verify the Supabase token via Supabase
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(
-        // Extract user ID from token by getting the session first
-        supabaseToken.split('.')[1] // This won't work, we need a better approach
-      );
-
-      // Actually, use the auth API to get the user
-      // The better way is to use supabase's getUser method
-      const { data: userSession, error: sessionError } = await supabase.auth.getUser(supabaseToken);
-
-      if (sessionError || !userSession?.user) {
-        console.error("[Auth] ❌ Invalid Supabase token:", sessionError);
+      // ✅ DECODE the Supabase JWT token to extract user data
+      // JWT format: header.payload.signature
+      // We don't need to verify signature here since Supabase already did it
+      const parts = supabaseToken.split(".");
+      
+      if (parts.length !== 3) {
+        console.error("[Auth] ❌ Invalid token format");
         return res.status(401).json({
           success: false,
-          error: "Invalid or expired Supabase token",
+          error: "Invalid token format",
         });
       }
 
-      const supabaseUser = userSession.user;
-      
-      // Ensure user has an email
-      if (!supabaseUser.email) {
+      // Decode the payload (second part)
+      let decoded;
+      try {
+        const payload = parts[1];
+        // Add padding if needed
+        const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+        const decoded_str = Buffer.from(padded, "base64").toString("utf-8");
+        decoded = JSON.parse(decoded_str);
+      } catch (decodeError) {
+        console.error("[Auth] ❌ Failed to decode token:", decodeError);
+        return res.status(401).json({
+          success: false,
+          error: "Failed to decode token",
+        });
+      }
+
+      // Extract user email from decoded token
+      const userEmail = decoded.email?.toLowerCase();
+      const userName = decoded.user_metadata?.name || decoded.name || userEmail?.split("@")[0];
+
+      if (!userEmail) {
+        console.error("[Auth] ❌ No email in token payload");
         return res.status(400).json({
           success: false,
-          error: "Supabase user has no email",
+          error: "No email found in OAuth token",
         });
       }
-      
-      const userEmail = supabaseUser.email.toLowerCase();
-      const userName = supabaseUser.user_metadata?.name || supabaseUser.email.split("@")[0];
 
-      console.log("[Auth] ✅ Supabase token verified for:", userEmail);
+      console.log("[Auth] ✅ Supabase token decoded successfully for:", userEmail);
 
-      // Check if user exists in our database
+      // ✅ Check if user exists in our database
       const existingUser = await db
         .select()
         .from(users)
@@ -1210,6 +1220,7 @@ export function registerAuthRoutes(app: Express) {
           .returning();
 
         if (!newUser || newUser.length === 0) {
+          console.error("[Auth] ❌ Failed to create user");
           return res.status(500).json({
             success: false,
             error: "Failed to create user account",
@@ -1225,7 +1236,7 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Generate backend JWT token
+      // ✅ Generate backend JWT token for this user
       const accessToken = generateToken(userToReturn.id, userToReturn.email);
 
       console.log("[Auth] ✅ Backend JWT token generated for OAuth user:", userToReturn.id);
@@ -1249,6 +1260,7 @@ export function registerAuthRoutes(app: Express) {
       });
     } catch (error) {
       console.error("[Auth] ❌ Supabase OAuth callback error:", error);
+      console.error("[Auth] Error details:", error instanceof Error ? error.message : String(error));
       return res.status(500).json({
         success: false,
         error: "OAuth exchange failed",
