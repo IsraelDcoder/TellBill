@@ -626,7 +626,30 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
                 }}
                 disabled={isLoading}
               >
-                <Feather name="mail" size={18} color={theme.text} />
+                <Svg.Svg width={18} height={18} viewBox="0 0 24 24">
+                  {/* Google Logo */}
+                  <Svg.Circle cx="12" cy="12" r="11" fill="white" />
+                  {/* Blue segment */}
+                  <Svg.Path
+                    d="M 12 1 A 11 11 0 0 1 22.5 13 L 12 12 Z"
+                    fill="#4285F4"
+                  />
+                  {/* Red segment */}
+                  <Svg.Path
+                    d="M 22.5 13 A 11 11 0 0 1 12 23 L 12 12 Z"
+                    fill="#EA4335"
+                  />
+                  {/* Yellow segment */}
+                  <Svg.Path
+                    d="M 12 23 A 11 11 0 0 1 1.5 13 L 12 12 Z"
+                    fill="#FBBC04"
+                  />
+                  {/* Green segment */}
+                  <Svg.Path
+                    d="M 1.5 13 A 11 11 0 0 1 12 1 L 12 12 Z"
+                    fill="#34A853"
+                  />
+                </Svg.Svg>
                 <ThemedText style={styles.socialButtonText}>
                   Continue with Google
                 </ThemedText>
@@ -781,7 +804,30 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
                 }}
                 disabled={isLoading}
               >
-                <Feather name="mail" size={18} color={theme.text} />
+                <Svg.Svg width={18} height={18} viewBox="0 0 24 24">
+                  {/* Google Logo */}
+                  <Svg.Circle cx="12" cy="12" r="11" fill="white" />
+                  {/* Blue segment */}
+                  <Svg.Path
+                    d="M 12 1 A 11 11 0 0 1 22.5 13 L 12 12 Z"
+                    fill="#4285F4"
+                  />
+                  {/* Red segment */}
+                  <Svg.Path
+                    d="M 22.5 13 A 11 11 0 0 1 12 23 L 12 12 Z"
+                    fill="#EA4335"
+                  />
+                  {/* Yellow segment */}
+                  <Svg.Path
+                    d="M 12 23 A 11 11 0 0 1 1.5 13 L 12 12 Z"
+                    fill="#FBBC04"
+                  />
+                  {/* Green segment */}
+                  <Svg.Path
+                    d="M 1.5 13 A 11 11 0 0 1 12 1 L 12 12 Z"
+                    fill="#34A853"
+                  />
+                </Svg.Svg>
                 <ThemedText style={styles.secondaryButtonText}>
                   Sign In with Google
                 </ThemedText>
