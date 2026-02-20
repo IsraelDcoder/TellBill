@@ -1,11 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
+
+// Initialize Supabase client
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uwlxzwvggvqqsbgukjsz.supabase.co";
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
 
 export interface User {
   id: string;
@@ -32,7 +43,7 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ✅ Listen for Supabase auth state changes
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         console.log("[Auth] Supabase auth state changed:", event);
         if (session?.user) {
           console.log("[Auth] User authenticated via Supabase:", session.user.email);
@@ -59,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const newUser: User = {
             id: session.user.id,
             email: session.user.email || "",
-            name: session.user.user_metadata?.name,
+            name: session.user.user_metadata?.name as string | undefined,
             createdAt: session.user.created_at,
           };
           
@@ -509,9 +520,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: `${getApiUrl()}/auth/callback`,
-        },
       });
 
       if (error) {
