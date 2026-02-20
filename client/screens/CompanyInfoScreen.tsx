@@ -274,6 +274,17 @@ export default function CompanyInfoScreen() {
           </Button>
         </GlassCard>
       </View>
+
+      {/* ✅ Payment Information Section */}
+      <View style={styles.section}>
+        <GlassCard>
+          <PaymentInfoSection
+            initialData={paymentInfo}
+            onSave={handleSavePaymentInfo}
+            isLoading={isLoading}
+          />
+        </GlassCard>
+      </View>
     </ScrollView>
   );
 }
