@@ -7,6 +7,7 @@ import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 import { getApiUrl } from "@/lib/backendUrl";
 
 // Configure web browser to use system browser
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { resetInvoices } = useInvoiceStore();
   const { setCompanyInfo } = useProfileStore();
   const { hydrateActivities, clearActivities } = useActivityStore();
+  const { loadPreferences, resetPreferences } = usePreferencesStore();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Initialize Supabase client
@@ -118,6 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCurrentUserId(exchangeData.user.id);
             setCurrentPlan("free");
             setIsLoading(false);
+
+            // ✅ Load user preferences from backend
+            setTimeout(() => {
+              loadPreferences(exchangeData.user.id, backendJWT).catch((err) => {
+                console.warn("[Auth] Failed to load preferences:", err);
+              });
+            }, 300);
 
             // Rehydrate user data with backend token
             setTimeout(() => {
@@ -585,6 +594,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("[Auth] User:", newUser.email);
       console.log("[Auth] About to exit signIn function...");
       
+      // ✅ Load user preferences from backend
+      const token = data.accessToken || data.token;
+      if (token) {
+        setTimeout(() => {
+          loadPreferences(newUser.id, token).catch((err) => {
+            console.warn("[Auth] Failed to load preferences:", err);
+          });
+        }, 300);
+      }
 
       // ✅ CRITICAL: Wait a bit for Zustand persist middleware to hydrate from AsyncStorage
       // Then call backend rehydration to OVERWRITE with fresh server data
@@ -846,6 +864,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("[Auth] ✅ Removed cached invoice store");
     } catch (err) {
       console.warn("[Auth] ⚠️  Could not remove cached invoice store:", err);
+    }
+
+    // ✅ Reset preferences to defaults
+    try {
+      resetPreferences();
+      console.log("[Auth] ✅ User preferences reset");
+    } catch (err) {
+      console.warn("[Auth] ⚠️  Could not reset preferences:", err);
     }
     
     setUser(null);
