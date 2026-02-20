@@ -47,6 +47,13 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
   stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
   stripePriceId: text("stripe_price_id"), // Current Stripe price ID (solo, professional)
+  // ✅ Payment info for non-payment-processor model (user's own payment instructions)
+  paymentMethodType: text("payment_method_type").default("custom"), // bank_transfer, paypal, stripe, square, mobile_money, custom
+  paymentAccountNumber: text("payment_account_number"), // Bank account or mobile money
+  paymentBankName: text("payment_bank_name"), // Bank name
+  paymentAccountName: text("payment_account_name"), // Account holder name
+  paymentLink: text("payment_link"), // PayPal, Stripe link, etc.
+  paymentInstructions: text("payment_instructions"), // Custom instructions
   // Security: Email verification
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }), // NULL = not verified, timestamp = verified time
   // Security: Account lockout
@@ -234,6 +241,14 @@ export const invoices = pgTable("invoices", {
     .defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
+  
+  // ✅ Payment info override (company-level default can be overridden per invoice)
+  paymentMethodTypeOverride: text("payment_method_type_override"),
+  paymentAccountNumberOverride: text("payment_account_number_override"),
+  paymentBankNameOverride: text("payment_bank_name_override"),
+  paymentAccountNameOverride: text("payment_account_name_override"),
+  paymentLinkOverride: text("payment_link_override"),
+  paymentInstructionsOverride: text("payment_instructions_override"),
   
   // Payment tracking (Stripe)
   paymentLinkUrl: text("payment_link_url"), // Stripe checkout URL for this invoice
