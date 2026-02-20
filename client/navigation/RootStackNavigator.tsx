@@ -2,7 +2,9 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { useAuth } from "@/context/AuthContext";
+import { useOnboardingStore } from "@/stores/onboardingStore";
 import WelcomeScreen from "@/screens/WelcomeScreen";
+import OnboardingScreen from "@/screens/OnboardingScreen";
 import MainTabNavigator from "@/navigation/MainTabNavigator";
 import VoiceRecordingScreen from "@/screens/VoiceRecordingScreen";
 import TranscriptReviewScreen from "@/screens/TranscriptReviewScreen";
@@ -31,6 +33,7 @@ import { BrandColors } from "@/constants/theme";
 
 export type RootStackParamList = {
   Welcome: undefined;
+  Onboarding: undefined;
   Main: undefined;
   Pricing: { returnTo?: string; message?: string };
   VoiceRecording: undefined;
@@ -61,6 +64,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootStackNavigator() {
   const screenOptions = useScreenOptions();
   const { isAuthenticated, isLoading } = useAuth();
+  const { hasCompletedOnboarding } = useOnboardingStore();
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
@@ -69,6 +73,13 @@ export default function RootStackNavigator() {
           <Stack.Screen
             name="Welcome"
             component={WelcomeScreen}
+          />
+        </Stack.Group>
+      ) : !hasCompletedOnboarding ? (
+        <Stack.Group screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="Onboarding"
+            component={OnboardingScreen}
           />
         </Stack.Group>
       ) : (

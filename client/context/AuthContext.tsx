@@ -8,6 +8,8 @@ import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { analyticsService } from "@/services/analyticsService";
 import { getApiUrl } from "@/lib/backendUrl";
 
 // Configure web browser to use system browser
@@ -121,6 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCurrentPlan("free");
             setIsLoading(false);
 
+            // 📊 Initialize analytics and track OAuth signup/login
+            await analyticsService.initialize(newUser.id, newUser.email);
+            await analyticsService.trackLogin(newUser.id, newUser.email, "google");
+
             // ✅ Load user preferences from backend
             setTimeout(() => {
               loadPreferences(exchangeData.user.id, backendJWT).catch((err) => {
@@ -149,6 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCurrentUserId(session.user.id);
             setCurrentPlan("free");
             setIsLoading(false);
+
+            // 📊 Initialize analytics even without token exchange
+            await analyticsService.initialize(session.user.id, session.user.email);
+            await analyticsService.trackLogin(session.user.id, session.user.email || "", "google");
           }
         } else {
           console.log("[Auth] User logged out");
@@ -497,6 +507,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession({ user: newUser });
       setCurrentPlan("free");
 
+      // 📊 Track analytics for new user signup
+      await analyticsService.trackSignUp(newUser.id, newUser.email || "", "email");
+
+      // 🎯 Reset onboarding for new user
+      const onboardingStore = useOnboardingStore.getState();
+      onboardingStore.resetOnboarding();
+
       console.log("[Auth] Sign up successful:", email);
     } catch (err) {
       // ✅ IMPORTANT: On error, ensure user remains null
@@ -589,6 +606,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession({ user: newUser });
       setCurrentUserId(newUser.id); // ✅ Track current user for multi-user safety
       setCurrentPlan("free");
+
+      // 📊 Track analytics for returning user login
+      await analyticsService.trackLogin(newUser.id, newUser.email || "", "email");
       
       console.log("[Auth] ✅ Login complete! Navigation should happen now");
       console.log("[Auth] User:", newUser.email);
@@ -878,6 +898,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setCurrentUserId(null);
     setError(null);
+
+    // 📊 Track analytics for user logout
+    await analyticsService.trackLogout();
 
     console.log("[Auth] ✅ Signed out and cleared all user data");
   };

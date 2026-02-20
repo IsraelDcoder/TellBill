@@ -24,6 +24,7 @@ import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useAuth } from "@/context/AuthContext";
+import { analyticsService } from "@/services/analyticsService";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
@@ -170,6 +171,9 @@ export default function InvoiceDraftScreen() {
     
     // Update invoice status to "created" to mark it as successfully created/approved
     updateInvoice(invoice.id, { status: "created" });
+
+    // 📊 Track analytics for invoice creation
+    analyticsService.trackInvoiceEvent("invoice_created", invoice.id, invoice.total / 100); // Convert cents to dollars
     
     // ✅ Log activity: User created invoice
     addActivity({

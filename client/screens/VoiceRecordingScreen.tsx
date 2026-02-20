@@ -30,6 +30,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { useAuth } from "@/context/AuthContext";
+import { analyticsService } from "@/services/analyticsService";
 import { Spacing, BorderRadius, BrandColors, Shadows } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { PLAN_LIMITS } from "@/constants/planLimits";
@@ -278,6 +279,13 @@ export default function VoiceRecordingScreen() {
         setAudioUri(null);
 
         await audioRecorderService.startRecording();
+        
+        // 📊 Track analytics for voice recording started
+        analyticsService.trackFeatureAccess("voice_recording", {
+          recordingTime: 0,
+          isUpgrade: !isFreeUser,
+        });
+
         console.log("[AudioRecorder] Recording successfully started");
 
         timerRef.current = setInterval(() => {

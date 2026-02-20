@@ -18,6 +18,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
+import { analyticsService } from "@/services/analyticsService";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
@@ -139,6 +140,9 @@ export default function InvoiceDetailScreen() {
 
       const data = await response.json();
       console.log("[InvoiceDetail] ✅ Invoice marked as paid on backend:", data.invoice);
+
+      // 📊 Track analytics for invoice marked as paid
+      await analyticsService.trackInvoiceEvent("invoice_marked_paid", invoice.id, invoice.total / 100);
 
       // ✅ Update local state with backend response
       updateInvoice(invoice.id, data.invoice);
