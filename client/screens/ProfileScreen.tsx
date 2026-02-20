@@ -468,4 +468,33 @@ const styles = StyleSheet.create({
     marginBottom: Spacing["2xl"],
     marginTop: Spacing.xl,
   },
+  preferenceItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  preferenceLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    flex: 1,
+  },
+  preferenceText: {
+    flex: 1,
+  },
+  menuDropdown: {
+    borderRadius: 8,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.sm,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  dropdownItemActive: {
+    backgroundColor: `${BrandColors.constructionGold}10`,
+  },
 });
