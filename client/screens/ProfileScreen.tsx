@@ -238,7 +238,13 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScreenContainer scrollable paddingBottom="default">
+    <ScreenContainer 
+      scrollable 
+      paddingBottom="default"
+      contentContainerStyle={{
+        paddingBottom: tabBarHeight + Spacing.xl,
+      }}
+    >
       {/* Profile Header */}
       <View style={styles.profileHeader}>
         <View
@@ -365,6 +371,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   profileHeader: {
     alignItems: "center",
+    marginTop: Spacing["2xl"],
     marginBottom: Spacing["2xl"],
     marginHorizontal: -Spacing.lg,
     paddingHorizontal: Spacing.lg,

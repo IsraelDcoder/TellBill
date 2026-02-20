@@ -10,6 +10,7 @@ import {
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 import { generateToken, verifyToken } from "./utils/jwt";
 import { generateTokenPair, verifyAccessToken, verifyRefreshToken, generateAccessTokenFromRefresh } from "./services/tokenService";
+import { decodeGoogleIdToken } from "./supabaseClient";
 import {
   validateSignup,
   validateLogin,
@@ -560,49 +561,35 @@ export function registerAuthRoutes(app: Express) {
 
   /**
    * POST /api/auth/google
-   * Google OAuth sign-in/sign-up
-   * Exchanges Google token for user account (creates if doesn't exist)
+   * Google OAuth sign-in/sign-up via Supabase
+   * Exchanges Google ID token for user account (creates if doesn't exist)
+   * Returns JWT token for session management
    */
   app.post("/api/auth/google", async (req: Request, res: Response) => {
     try {
-      const { googleToken, idToken } = req.body;
+      const { idToken } = req.body;
 
-      if (!googleToken && !idToken) {
+      if (!idToken) {
         return res.status(400).json({
           success: false,
-          error: "Missing Google token",
+          error: "Missing Google ID token",
         });
       }
 
-      // ✅ VERIFY GOOGLE TOKEN
-      // In production, you'd verify the token with Google's API
-      // For now, we'll decode the idToken to get user info
-      // Example: const decoded = await verifyGoogleToken(idToken);
+      // ✅ DECODE GOOGLE TOKEN (Supabase verifies the signature)
+      const decoded = decodeGoogleIdToken(idToken);
       
-      // Mock decoding (in production, use google-auth-library)
-      let googleUserEmail: string | null = null;
-      let googleUserName: string | null = null;
-
-      // Try to decode JWT (basic decode, not verifying signature)
-      try {
-        if (idToken) {
-          const parts = idToken.split('.');
-          if (parts.length === 3) {
-            const decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-            googleUserEmail = decoded.email;
-            googleUserName = decoded.name;
-          }
-        }
-      } catch (e) {
-        console.error("[Auth] Error decoding Google token:", e);
-      }
-
-      if (!googleUserEmail) {
+      if (!decoded || !decoded.email) {
         return res.status(400).json({
           success: false,
           error: "Could not extract email from Google token",
         });
       }
+
+      const googleUserEmail = decoded.email.toLowerCase();
+      const googleUserName = decoded.name;
+
+      console.log("[Auth] 🔐 Google OAuth: Processing token for", googleUserEmail);
 
       // ✅ EXISTING USER: Check if user with this email exists
       const existingUser = await db
@@ -611,70 +598,66 @@ export function registerAuthRoutes(app: Express) {
         .where(eq(users.email, googleUserEmail))
         .limit(1);
 
+      let userToReturn;
+
       if (existingUser.length > 0) {
         // User exists - return existing user (login)
-        const user = existingUser[0];
-        console.log("[Auth] Google login for existing user:", googleUserEmail);
+        userToReturn = existingUser[0];
+        console.log("[Auth] ✅ Google login for existing user:", googleUserEmail);
+      } else {
+        // ✅ NEW USER: Create user account
+        const newUser = await db
+          .insert(users)
+          .values({
+            email: googleUserEmail,
+            name: googleUserName,
+            password: "", // No password for OAuth users
+          })
+          .returning();
 
-        return res.status(200).json({
-          success: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            companyName: user.companyName,
-            companyPhone: user.companyPhone,
-            companyEmail: user.companyEmail,
-            companyAddress: user.companyAddress,
-            companyWebsite: user.companyWebsite,
-            companyTaxId: user.companyTaxId,
-            createdAt: user.createdAt,
-          },
+        if (!newUser || newUser.length === 0) {
+          return res.status(500).json({
+            success: false,
+            error: "Failed to create user account",
+          });
+        }
+
+        userToReturn = newUser[0];
+        console.log("[Auth] ✅ New Google user created:", googleUserEmail);
+
+        // Send welcome email
+        sendWelcomeEmail(userToReturn.email, userToReturn.name || "User").catch((err) => {
+          console.error("[Auth] Failed to send welcome email:", err);
         });
       }
 
-      // ✅ NEW USER: Create user account
-      const newUser = await db
-        .insert(users)
-        .values({
-          email: googleUserEmail,
-          name: googleUserName,
-          password: "", // No password for OAuth users
-        })
-        .returning();
-
-      if (!newUser || newUser.length === 0) {
-        return res.status(500).json({
-          success: false,
-          error: "Failed to create user account",
-        });
-      }
-
-      const createdUser = newUser[0];
-      console.log("[Auth] New Google user created:", googleUserEmail);
-
-      // Send welcome email
-      sendWelcomeEmail(createdUser.email, createdUser.name || "User").catch((err) => {
-        console.error("[Auth] Failed to send welcome email:", err);
+      // ✅ GENERATE JWT TOKEN FOR SESSION
+      const accessToken = generateToken({
+        userId: userToReturn.id,
+        email: userToReturn.email,
       });
 
-      return res.status(201).json({
+      console.log("[Auth] ✅ JWT token generated for Google user:", userToReturn.id);
+
+      return res.status(existingUser.length > 0 ? 200 : 201).json({
         success: true,
+        token: accessToken,
+        accessToken: accessToken,
         user: {
-          id: createdUser.id,
-          email: createdUser.email,
-          name: createdUser.name,
-          companyName: createdUser.companyName,
-          companyPhone: createdUser.companyPhone,
-          companyEmail: createdUser.companyEmail,
-          companyAddress: createdUser.companyAddress,
-          companyWebsite: createdUser.companyWebsite,
-          companyTaxId: createdUser.companyTaxId,
-          createdAt: createdUser.createdAt,
+          id: userToReturn.id,
+          email: userToReturn.email,
+          name: userToReturn.name,
+          companyName: userToReturn.companyName,
+          companyPhone: userToReturn.companyPhone,
+          companyEmail: userToReturn.companyEmail,
+          companyAddress: userToReturn.companyAddress,
+          companyWebsite: userToReturn.companyWebsite,
+          companyTaxId: userToReturn.companyTaxId,
+          createdAt: userToReturn.createdAt,
         },
       });
     } catch (error) {
-      console.error("[Auth] Google sign-in error:", error);
+      console.error("[Auth] ❌ Google sign-in error:", error);
       return res.status(500).json({
         success: false,
         error: "Google authentication failed",

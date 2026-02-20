@@ -272,8 +272,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   heroContainer: {
-    width: '100%',
-    height: 240,
+    width: '120%',
+    height: 260,
+    marginHorizontal: '-10%',
     marginBottom: Spacing.xl,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -296,6 +297,7 @@ const styles = StyleSheet.create({
   },
   heroContent: {
     padding: Spacing.lg,
+    paddingLeft: Spacing['3xl'],
     zIndex: 1,
   },
   heroTitle: {

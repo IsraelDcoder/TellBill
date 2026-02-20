@@ -490,7 +490,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      if (response.status !== 200) {
+      if (!response.ok || !data.success) {
         throw new Error(data.error || "Google authentication failed");
       }
 
@@ -506,11 +506,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         createdAt: data.user.createdAt,
       };
 
-      // ✅ Save JWT token
+      // ✅ Save JWT token (returned from backend)
       if (data.accessToken) {
         await saveToken(data.accessToken);
+        console.log("[Auth] ✅ JWT token saved");
       } else if (data.token) {
         await saveToken(data.token);
+        console.log("[Auth] ✅ JWT token saved");
+      } else {
+        console.warn("[Auth] ⚠️  No token returned from Google auth");
       }
 
       // ✅ Check for user switch
