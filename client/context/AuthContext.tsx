@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Google from "expo-auth-session/providers/google";
+import { supabase } from "@/lib/supabaseClient";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
@@ -44,23 +44,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { hydrateActivities, clearActivities } = useActivityStore();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // ✅ Setup Google Auth using expo-auth-session (works in Expo Go)
-  const [googleRequest, googleResponse, promptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || "",
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  });
-
-  // ✅ Handle Google response when user completes authentication
+  // ✅ Listen for Supabase auth state changes
   useEffect(() => {
-    if (googleResponse?.type === "success") {
-      const { id_token } = googleResponse.params;
-      if (id_token) {
-        handleGoogleResponse(id_token);
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log("[Auth] Supabase auth state changed:", event);
+        if (session?.user) {
+          console.log("[Auth] User authenticated via Supabase:", session.user.email);
+          // Extract access token from session
+          const accessToken = session.access_token;
+          await saveToken(accessToken);
+          
+          // Set user data
+          const newUser: User = {
+            id: session.user.id,
+            email: session.user.email || "",
+            name: session.user.user_metadata?.name,
+            createdAt: session.user.created_at,
+          };
+          
+          setUser(newUser);
+          setSession(session);
+          setCurrentUserId(session.user.id);
+          setCurrentPlan("free");
+          
+          // Rehydrate user data
+          setTimeout(() => {
+            loadUserDataFromBackend(session.user.id).catch((err) => {
+              console.error("[Auth] Data rehydration failed:", err);
+            });
+          }, 500);
+        } else {
+          console.log("[Auth] User logged out");
+          setUser(null);
+          setSession(null);
+        }
       }
-    }
-  }, [googleResponse]);
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
 
   /**
    * ✅ Save JWT token to AsyncStorage
@@ -471,81 +496,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  /**
-   * ✅ Handle Google ID token response from expo-auth-session
-   */
-  const handleGoogleResponse = async (idToken: string) => {
-    try {
-      setError(null);
-      setIsLoading(true);
 
-      console.log("[Auth] 🔐 Exchanging Google ID token with backend...");
-
-      // ✅ Send Google ID token to TellBill backend
-      const response = await fetch(getApiUrl("/api/auth/google"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Google authentication failed");
-      }
-
-      if (!data.user) {
-        throw new Error("No user data returned from Google auth");
-      }
-
-      // ✅ Successful authentication
-      const newUser: User = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        createdAt: data.user.createdAt,
-      };
-
-      // ✅ Save JWT token (returned from backend)
-      if (data.accessToken) {
-        await saveToken(data.accessToken);
-        console.log("[Auth] ✅ JWT token saved");
-      } else if (data.token) {
-        await saveToken(data.token);
-        console.log("[Auth] ✅ JWT token saved");
-      } else {
-        console.warn("[Auth] ⚠️  No token returned from Google auth");
-      }
-
-      // ✅ Check for user switch
-      if (currentUserId && currentUserId !== newUser.id) {
-        clearDataForNewUser();
-      }
-
-      setUser(newUser);
-      setSession({ user: newUser });
-      setCurrentUserId(newUser.id);
-      setCurrentPlan("free");
-
-      console.log("[Auth] ✅ Google Sign-In complete:", newUser.email);
-
-      // ✅ Rehydrate user data
-      setTimeout(() => {
-        loadUserDataFromBackend(newUser.id).catch((err) => {
-          console.error("[Auth] ❌ Data rehydration failed:", err);
-        });
-      }, 500);
-    } catch (err) {
-      console.error("[Auth] ❌ Google auth error:", err);
-      setUser(null);
-      setSession(null);
-      const message = err instanceof Error ? err.message : "Google sign-in failed";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   /**
    * ✅ Trigger Google Sign-In flow (called from UI button)
@@ -553,16 +504,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setError(null);
-      console.log("[Auth] Starting Google Sign-In flow...");
-      const result = await promptAsync();
-      if (result?.type !== "success") {
-        console.log("[Auth] Google sign-in cancelled or failed");
-        return;
+      setIsLoading(true);
+      console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${getApiUrl()}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw error;
       }
+
+      console.log("[Auth] ✅ Google OAuth flow initiated");
     } catch (err) {
-      console.error("[Auth] Error starting Google sign-in:", err);
+      console.error("[Auth] ❌ Error starting Google sign-in:", err);
       const message = err instanceof Error ? err.message : "Failed to start Google sign-in";
       setError(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
