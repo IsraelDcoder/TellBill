@@ -572,11 +572,11 @@ export function registerAuthRoutes(app: Express) {
           companyAddress: user.companyAddress,
           companyWebsite: user.companyWebsite,
           companyTaxId: user.companyTaxId,
-          // Preferences
-          preferredCurrency: user.preferredCurrency || "USD",
-          defaultTaxRate: user.defaultTaxRate || 0.08,
-          invoiceTemplate: user.invoiceTemplate || "professional",
-          defaultPaymentTerms: user.defaultPaymentTerms || "Net 30",
+          // Preferences (from prefs if available)
+          preferredCurrency: prefs?.currency || "USD",
+          defaultTaxRate: prefs?.taxRate || 0.08,
+          invoiceTemplate: prefs?.invoiceTemplate || "professional",
+          defaultPaymentTerms: prefs?.defaultPaymentTerms || "Net 30",
           // ✅ Payment info
           paymentMethodType: user.paymentMethodType || "custom",
           paymentAccountNumber: user.paymentAccountNumber,
@@ -589,7 +589,7 @@ export function registerAuthRoutes(app: Express) {
         preferences: prefs ? {
           taxRate: prefs.taxRate,
           invoiceTemplate: prefs.invoiceTemplate,
-          paymentTerms: prefs.paymentTerms,
+          paymentTerms: prefs.defaultPaymentTerms,
         } : null,
       });
     } catch (error) {
@@ -1271,6 +1271,25 @@ export function registerAuthRoutes(app: Express) {
 
         userToReturn = newUser[0];
         console.log("[Auth] ✅ New OAuth user created:", userEmail);
+
+        // ✅ Create default preferences for new OAuth user
+        try {
+          await db
+            .insert(preferences)
+            .values({
+              userId: userToReturn.id,
+              currency: "USD",
+              language: "en",
+              theme: "light",
+              invoiceTemplate: "professional",
+              defaultPaymentTerms: "Net 30",
+              taxRate: 0.08,
+            });
+          console.log("[Auth] ✅ Default preferences created for OAuth user:", userEmail);
+        } catch (prefError) {
+          console.warn("[Auth] Warning: Could not create preferences for OAuth user:", prefError);
+          // Continue anyway - preferences will be created later
+        }
 
         // Send welcome email
         sendWelcomeEmail(userToReturn.email, userToReturn.name || "User").catch((err) => {

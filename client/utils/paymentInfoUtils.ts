@@ -174,7 +174,7 @@ export function validatePaymentInfo(payment: PaymentInfoFormData): {
  * Get available payment method types
  */
 export const PAYMENT_METHOD_TYPES = [
-  { id: "bank_transfer", label: "Bank Transfer", icon: "bank" },
+  { id: "bank_transfer", label: "Bank Transfer", icon: "building" },
   { id: "paypal", label: "PayPal", icon: "dollar-sign" },
   { id: "stripe", label: "Stripe", icon: "credit-card" },
   { id: "square", label: "Square", icon: "credit-card" },
