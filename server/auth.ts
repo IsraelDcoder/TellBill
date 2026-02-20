@@ -1171,8 +1171,17 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const supabaseUser = userSession.user;
-      const userEmail = supabaseUser.email?.toLowerCase();
-      const userName = supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0];
+      
+      // Ensure user has an email
+      if (!supabaseUser.email) {
+        return res.status(400).json({
+          success: false,
+          error: "Supabase user has no email",
+        });
+      }
+      
+      const userEmail = supabaseUser.email.toLowerCase();
+      const userName = supabaseUser.user_metadata?.name || supabaseUser.email.split("@")[0];
 
       console.log("[Auth] ✅ Supabase token verified for:", userEmail);
 
@@ -1180,7 +1189,7 @@ export function registerAuthRoutes(app: Express) {
       const existingUser = await db
         .select()
         .from(users)
-        .where(eq(users.email, userEmail!))
+        .where(eq(users.email, userEmail))
         .limit(1);
 
       let userToReturn;
