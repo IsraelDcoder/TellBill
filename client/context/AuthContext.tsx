@@ -1,11 +1,16 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { createClient, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useActivityStore } from "@/stores/activityStore";
 import { getApiUrl } from "@/lib/backendUrl";
+
+// Configure web browser to use system browser
+WebBrowser.maybeCompleteAuthSession();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uwlxzwvggvqqsbgukjsz.supabase.co";
@@ -55,7 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { hydrateActivities, clearActivities } = useActivityStore();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // ✅ Listen for Supabase auth state changes
+  // Initialize Supabase client
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "https://uwlxzwvggvqqsbgukjsz.supabase.co";
+  const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+    },
+  });
+
+  // Listen for Supabase auth state changes
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
@@ -510,7 +525,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   /**
-   * ✅ Trigger Google Sign-In flow (called from UI button)
+   * ✅ Trigger Google Sign-In flow via Supabase OAuth
    */
   const signInWithGoogle = async () => {
     try {
@@ -518,20 +533,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Get the redirect URL for Expo
+      const redirectUrl = Linking.createURL("auth-callback");
+      console.log("[Auth] Redirect URL:", redirectUrl);
+
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+        },
       });
 
       if (error) {
         throw error;
       }
 
-      console.log("[Auth] ✅ Google OAuth flow initiated");
+      if (data?.url) {
+        // Open OAuth URL in system browser
+        await WebBrowser.openBrowserAsync(data.url);
+        console.log("[Auth] ✅ Google OAuth browser opened");
+      }
     } catch (err) {
       console.error("[Auth] ❌ Error starting Google sign-in:", err);
       const message = err instanceof Error ? err.message : "Failed to start Google sign-in";
       setError(message);
-    } finally {
       setIsLoading(false);
     }
   };

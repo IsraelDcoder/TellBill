@@ -8,6 +8,18 @@
     "scheme": "tellbill",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "deepLinking": {
+      "enabled": true,
+      "prefixes": [
+        "exp://",
+        "tellbill://"
+      ],
+      "config": {
+        "screens": {
+          "auth-callback": "auth-callback"
+        }
+      }
+    },
     "plugins": [
       [
         "expo-splash-screen",
