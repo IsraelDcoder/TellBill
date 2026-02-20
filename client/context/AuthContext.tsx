@@ -113,6 +113,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Listen for deep links from OAuth redirect
+  useEffect(() => {
+    const handleDeepLink = ({ url }: { url: string }) => {
+      console.log("[Auth] Deep link received:", url);
+      
+      // Extract the path from the deep link (e.g., "auth-callback" from "tellbill://auth-callback")
+      const deepLinkPath = url.replace(/.*?:\/\//g, "").split("?")[0];
+      
+      if (deepLinkPath === "auth-callback") {
+        console.log("[Auth] OAuth callback detected, syncing Supabase session...");
+        // Trigger session recovery from URL
+        supabase.auth.getSession().then(({ data: { session: newSession } }) => {
+          if (newSession) {
+            console.log("[Auth] ✅ Session recovered from OAuth callback");
+          } else {
+            console.log("[Auth] No session found after OAuth callback");
+          }
+        });
+      }
+    };
+
+    // Listen for deep links when app is already open
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    // Also check initial URL (in case app was closed and opened via deep link)
+    Linking.getInitialURL().then((url) => {
+      if (url != null) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   /**
    * ✅ Save JWT token to AsyncStorage
    */
