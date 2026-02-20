@@ -569,9 +569,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
 
-      // Redirect to backend endpoint instead of deep link
-      // Backend will handle OAuth callback and redirect back to app via deep link
-      const redirectUrl = "https://tellbill-api.onrender.com/auth/google/callback";
+      // Use Expo's auto-generated URL for OAuth redirect
+      // This will be exp://YOUR_IP:8081 in development
+      const redirectUrl = Linking.createURL("/");
       console.log("[Auth] Redirect URL:", redirectUrl);
 
       const { error, data } = await supabase.auth.signInWithOAuth({
