@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, sql, and, gt, isNull } from "drizzle-orm";
-import { users, invoices, projects, activityLog, passwordResetTokens } from "@shared/schema";
+import { users, invoices, projects, activityLog, passwordResetTokens, preferences } from "@shared/schema";
 import { db } from "./db";
 import {
   hashPassword,
@@ -476,7 +476,7 @@ export function registerAuthRoutes(app: Express) {
    * Update user's company information
    * - Requires user ID in request body
    * - Updates company fields in database
-   * - Returns updated user data
+   * - Returns updated user data including preferences
    */
   app.put("/api/auth/company-info", async (req: Request, res: Response) => {
     try {
@@ -535,6 +535,15 @@ export function registerAuthRoutes(app: Express) {
 
       const user = updatedUser[0];
 
+      // Fetch user preferences to include in response
+      const userPreferences = await db
+        .select()
+        .from(preferences)
+        .where(eq(preferences.userId, userId))
+        .limit(1);
+
+      const prefs = userPreferences.length > 0 ? userPreferences[0] : null;
+
       return res.status(200).json({
         success: true,
         user: {
@@ -547,8 +556,17 @@ export function registerAuthRoutes(app: Express) {
           companyAddress: user.companyAddress,
           companyWebsite: user.companyWebsite,
           companyTaxId: user.companyTaxId,
+          preferredCurrency: user.preferredCurrency || "USD",
+          defaultTaxRate: user.defaultTaxRate || 0.08,
+          invoiceTemplate: user.invoiceTemplate || "professional",
+          defaultPaymentTerms: user.defaultPaymentTerms || "Net 30",
           createdAt: user.createdAt,
         },
+        preferences: prefs ? {
+          taxRate: prefs.taxRate,
+          invoiceTemplate: prefs.invoiceTemplate,
+          paymentTerms: prefs.paymentTerms,
+        } : null,
       });
     } catch (error) {
       console.error("[Auth] Company info update error:", error);

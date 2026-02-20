@@ -22,6 +22,7 @@ import { UpgradeRequiredModal } from "@/components/UpgradeRequiredModal";
 import { useTheme } from "@/hooks/useTheme";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { useActivityStore } from "@/stores/activityStore";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useAuth } from "@/context/AuthContext";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -56,6 +57,7 @@ export default function InvoiceDraftScreen() {
   const { currentPlan, invoicesCreated, incrementInvoices } = useSubscriptionStore();
   const { addActivity } = useActivityStore();
   const { user } = useAuth();
+  const preferences = usePreferencesStore();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const invoiceData = route.params?.invoiceData ?? {
@@ -71,12 +73,12 @@ export default function InvoiceDraftScreen() {
     laborTotal: 0,
     materialsTotal: 0,
     subtotal: 0,
-    taxRate: 0.08,
+    taxRate: preferences.taxRate || 0.08, // Use preference or default to 8%
     taxAmount: 0,
     total: 0,
     notes: "",
     safetyNotes: "",
-    paymentTerms: "Net 30",
+    paymentTerms: preferences.defaultPaymentTerms || "Net 30", // Use preference or default
     status: "draft" as const,
   };
 
