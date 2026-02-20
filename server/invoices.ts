@@ -4,6 +4,7 @@ import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { stripe } from "./payments/stripeClient";
+import { resolvePaymentInfo } from "./lib/paymentResolver";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
@@ -1190,6 +1191,120 @@ export function registerInvoiceRoutes(app: Express) {
         error: "Failed to generate payment link",
         details: error.message,
       });
+    }
+  });
+
+  /**
+   * GET /api/invoices/:id
+   * Fetch invoice with resolved payment info
+   * Returns: invoice with paymentInfo object (override > default)
+   */
+  app.get("/api/invoices/:id", async (req: Request, res: Response) => {
+    try {
+      const invoiceId = req.params.id;
+
+      const invoice = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId))
+        .limit(1);
+
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ success: false, error: "Invoice not found" });
+      }
+
+      // ✅ Fetch user for payment info
+      const user = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, invoice[0].userId))
+        .limit(1);
+
+      if (!user || user.length === 0) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      // ✅ Resolve payment info (override > company default)
+      const paymentInfo = resolvePaymentInfo(invoice[0], user[0]);
+
+      return res.json({
+        success: true,
+        invoice: {
+          ...invoice[0],
+          paymentInfo,
+        },
+      });
+    } catch (error) {
+      console.error("[Invoices] Error fetching invoice:", error);
+      return res.status(500).json({ success: false, error: "Failed to fetch invoice" });
+    }
+  });
+
+  /**
+   * PATCH /api/invoices/:id
+   * Update invoice with payment info overrides
+   * Allows per-invoice override of company payment info
+   */
+  app.patch("/api/invoices/:id", async (req: Request, res: Response) => {
+    try {
+      const invoiceId = req.params.id;
+      const {
+        paymentMethodTypeOverride,
+        paymentAccountNumberOverride,
+        paymentBankNameOverride,
+        paymentAccountNameOverride,
+        paymentLinkOverride,
+        paymentInstructionsOverride,
+      } = req.body;
+
+      const invoice = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, invoiceId))
+        .limit(1);
+
+      if (!invoice || invoice.length === 0) {
+        return res.status(404).json({ success: false, error: "Invoice not found" });
+      }
+
+      // ✅ Update with payment overrides
+      const updated = await db
+        .update(schema.invoices)
+        .set({
+          paymentMethodTypeOverride,
+          paymentAccountNumberOverride,
+          paymentBankNameOverride,
+          paymentAccountNameOverride,
+          paymentLinkOverride,
+          paymentInstructionsOverride,
+        })
+        .where(eq(schema.invoices.id, invoiceId))
+        .returning();
+
+      // Fetch user for payment resolution
+      const user = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, updated[0].userId))
+        .limit(1);
+
+      if (!user || user.length === 0) {
+        return res.status(404).json({ success: false, error: "User not found" });
+      }
+
+      // ✅ Resolve payment info
+      const paymentInfo = resolvePaymentInfo(updated[0], user[0]);
+
+      return res.json({
+        success: true,
+        invoice: {
+          ...updated[0],
+          paymentInfo,
+        },
+      });
+    } catch (error) {
+      console.error("[Invoices] Error updating invoice:", error);
+      return res.status(500).json({ success: false, error: "Failed to update invoice" });
     }
   });
 }
