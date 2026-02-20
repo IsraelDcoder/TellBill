@@ -93,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setCurrentUserId(session.user.id);
           setCurrentPlan("free");
+          setIsLoading(false); // ✅ Stop loading spinner when user is authenticated
           
           // Rehydrate user data
           setTimeout(() => {
@@ -104,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log("[Auth] User logged out");
           setUser(null);
           setSession(null);
+          setIsLoading(false); // ✅ Stop loading spinner when user logs out
         }
       }
     );
@@ -117,19 +119,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleDeepLink = ({ url }: { url: string }) => {
       console.log("[Auth] Deep link received:", url);
+      console.log("[Auth] Processing OAuth callback...");
       
-      // Extract the path from the deep link (e.g., "auth-callback" from "tellbill://auth-callback")
-      const deepLinkPath = url.replace(/.*?:\/\//g, "").split("?")[0];
-      
-      if (deepLinkPath === "auth-callback") {
-        console.log("[Auth] OAuth callback detected, syncing Supabase session...");
-        // Trigger session recovery from URL
+      // When deep link comes in with session data (access_token in fragment),
+      // tell Supabase to extract and set the session from the URL
+      if (url.includes("access_token") || url.includes("code")) {
+        console.log("[Auth] OAuth callback detected, syncing session with Supabase...");
+        
+        // Supabase will automatically detect the session from the URL fragment
+        // Just trigger getSession to ensure it's properly loaded
         supabase.auth.getSession().then(({ data: { session: newSession } }) => {
           if (newSession) {
-            console.log("[Auth] ✅ Session recovered from OAuth callback");
+            console.log("[Auth] ✅ Session successfully recovered from OAuth callback!");
+            console.log("[Auth] User email:", newSession.user?.email);
           } else {
-            console.log("[Auth] No session found after OAuth callback");
+            console.log("[Auth] ⚠️  Session not yet available, auth listener should catch it...");
           }
+        }).catch((err) => {
+          console.error("[Auth] Error getting session:", err);
         });
       }
     };
@@ -140,8 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Also check initial URL (in case app was closed and opened via deep link)
     Linking.getInitialURL().then((url) => {
       if (url != null) {
+        console.log("[Auth] Initial URL detected:", url);
         handleDeepLink({ url });
       }
+    }).catch((err) => {
+      console.error("[Auth] Error getting initial URL:", err);
     });
 
     return () => {
