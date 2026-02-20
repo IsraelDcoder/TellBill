@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
+      detectSessionInUrl: true, // ✅ Detect session from URL hash
     },
   });
 
@@ -117,27 +118,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listen for deep links from OAuth redirect
   useEffect(() => {
-    const handleDeepLink = ({ url }: { url: string }) => {
+    const handleDeepLink = async ({ url }: { url: string }) => {
       console.log("[Auth] Deep link received:", url);
-      console.log("[Auth] Processing OAuth callback...");
       
       // When deep link comes in with session data (access_token in fragment),
-      // tell Supabase to extract and set the session from the URL
-      if (url.includes("access_token") || url.includes("code")) {
-        console.log("[Auth] OAuth callback detected, syncing session with Supabase...");
+      // manually extract and set the session since React Native doesn't auto-parse URL fragment
+      if (url.includes("access_token")) {
+        console.log("[Auth] 🔐 OAuth callback detected with token, manually syncing session...");
         
-        // Supabase will automatically detect the session from the URL fragment
-        // Just trigger getSession to ensure it's properly loaded
-        supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-          if (newSession) {
-            console.log("[Auth] ✅ Session successfully recovered from OAuth callback!");
-            console.log("[Auth] User email:", newSession.user?.email);
-          } else {
-            console.log("[Auth] ⚠️  Session not yet available, auth listener should catch it...");
+        try {
+          // Extract the fragment (everything after #)
+          const hashIndex = url.indexOf("#");
+          if (hashIndex === -1) {
+            console.log("[Auth] No hash fragment found");
+            return;
           }
-        }).catch((err) => {
-          console.error("[Auth] Error getting session:", err);
-        });
+          
+          const hashFragment = url.substring(hashIndex + 1);
+          console.log("[Auth] Hash fragment extracted");
+          
+          // Parse the fragment parameters
+          const params = new URLSearchParams(hashFragment);
+          const accessToken = params.get("access_token");
+          const refreshToken = params.get("refresh_token");
+          
+          if (!accessToken) {
+            console.error("[Auth] ❌ No access token found in URL");
+            return;
+          }
+          
+          console.log("[Auth] ✅ Tokens extracted from URL");
+          console.log("[Auth] Access token:", accessToken.substring(0, 20) + "...");
+          console.log("[Auth] Refresh token:", refreshToken ? "present" : "missing");
+          
+          // Manually set the session in Supabase
+          // setSession requires access_token and refresh_token
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || "",
+          });
+          
+          if (sessionError) {
+            console.error("[Auth] ❌ Failed to set session:", sessionError);
+            return;
+          }
+          
+          if (sessionData?.session?.user) {
+            console.log("[Auth] ✅ Session manually set successfully!");
+            console.log("[Auth] User authenticated:", sessionData.session.user.email);
+            
+            // This should trigger the onAuthStateChange listener
+            // and update the app state
+          } else {
+            console.warn("[Auth] ⚠️  Session set but no user data returned");
+          }
+        } catch (err) {
+          console.error("[Auth] ❌ Error processing OAuth callback:", err);
+        }
       }
     };
 
