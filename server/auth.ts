@@ -632,10 +632,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // ✅ GENERATE JWT TOKEN FOR SESSION
-      const accessToken = generateToken({
-        userId: userToReturn.id,
-        email: userToReturn.email,
-      });
+      const accessToken = generateToken(userToReturn.id, userToReturn.email);
 
       console.log("[Auth] ✅ JWT token generated for Google user:", userToReturn.id);
 
