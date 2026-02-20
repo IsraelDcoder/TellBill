@@ -23,10 +23,30 @@ import { authMiddleware } from "./utils/authMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";
 import { applyTax, getDefaultTaxProfile } from "./taxService";
 
-// ✅ HELPER: Parse invoice items JSON string to array
+/**
+ * ✅ CRITICAL: Convert numeric fields from dollars (decimal) to cents (integer)
+ * Database stores financial values as numeric with scale 2 (e.g., 50.00 = fifty dollars)
+ * Frontend expects these as integers in cents (e.g., 5000 = fifty dollars)
+ */
+const convertCentsToDollars = (value: any): number => {
+  if (!value && value !== 0) return 0;
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return 0;
+  return Math.round(num * 100); // Convert dollars to cents
+};
+
+// ✅ HELPER: Parse invoice items JSON string to array AND convert numeric values
 const parseInvoiceItems = (invoice: any) => ({
   ...invoice,
   items: typeof invoice.items === "string" ? JSON.parse(invoice.items || "[]") : (invoice.items || []),
+  // ✅ CRITICAL: Convert all numeric fields from database format (dollars) to app format (cents)
+  total: convertCentsToDollars(invoice.total),
+  subtotal: convertCentsToDollars(invoice.subtotal),
+  taxAmount: convertCentsToDollars(invoice.taxAmount),
+  laborTotal: convertCentsToDollars(invoice.laborTotal),
+  materialsTotal: convertCentsToDollars(invoice.materialsTotal),
+  itemsTotal: convertCentsToDollars(invoice.itemsTotal),
+  laborRate: convertCentsToDollars(invoice.laborRate),
 });
 
 interface SendInvoiceRequest {
