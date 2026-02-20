@@ -78,35 +78,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("[Auth] Supabase auth state changed:", event);
         if (session?.user) {
           console.log("[Auth] User authenticated via Supabase:", session.user.email);
-          // Extract access token from session
-          const accessToken = session.access_token;
-          await saveToken(accessToken);
           
-          // Set user data
-          const newUser: User = {
-            id: session.user.id,
-            email: session.user.email || "",
-            name: session.user.user_metadata?.name as string | undefined,
-            createdAt: session.user.created_at,
-          };
-          
-          setUser(newUser);
-          setSession(session);
-          setCurrentUserId(session.user.id);
-          setCurrentPlan("free");
-          setIsLoading(false); // ✅ Stop loading spinner when user is authenticated
-          
-          // Rehydrate user data
-          setTimeout(() => {
-            loadUserDataFromBackend(session.user.id).catch((err) => {
-              console.error("[Auth] Data rehydration failed:", err);
+          // ✅ NEW: Exchange Supabase token for backend JWT token
+          try {
+            const supabaseAccessToken = session.access_token;
+            console.log("[Auth] 🔄 Exchanging Supabase token for backend JWT...");
+
+            const exchangeResponse = await fetch(getApiUrl("/api/auth/supabase-oauth-callback"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ supabaseToken: supabaseAccessToken }),
             });
-          }, 500);
+
+            if (!exchangeResponse.ok) {
+              throw new Error(`Token exchange failed: ${exchangeResponse.status}`);
+            }
+
+            const exchangeData = await exchangeResponse.json();
+
+            if (!exchangeData.success || !exchangeData.accessToken) {
+              throw new Error("No backend token in response");
+            }
+
+            // ✅ Store the BACKEND JWT token (not Supabase token)
+            const backendJWT = exchangeData.accessToken;
+            await saveToken(backendJWT);
+            console.log("[Auth] ✅ Backend JWT token stored successfully");
+
+            // Set user data
+            const newUser: User = {
+              id: exchangeData.user.id,
+              email: exchangeData.user.email || "",
+              name: exchangeData.user.name as string | undefined,
+              createdAt: exchangeData.user.createdAt,
+            };
+
+            setUser(newUser);
+            setSession(session);
+            setCurrentUserId(exchangeData.user.id);
+            setCurrentPlan("free");
+            setIsLoading(false);
+
+            // Rehydrate user data with backend token
+            setTimeout(() => {
+              loadUserDataFromBackend(exchangeData.user.id).catch((err) => {
+                console.error("[Auth] Data rehydration failed:", err);
+              });
+            }, 500);
+          } catch (tokenExchangeErr) {
+            console.error("[Auth] ❌ Failed to exchange token:", tokenExchangeErr);
+            // Still set the user so they're logged in, but won't have backend data
+            const newUser: User = {
+              id: session.user.id,
+              email: session.user.email || "",
+              name: session.user.user_metadata?.name as string | undefined,
+              createdAt: session.user.created_at,
+            };
+
+            setUser(newUser);
+            setSession(session);
+            setCurrentUserId(session.user.id);
+            setCurrentPlan("free");
+            setIsLoading(false);
+          }
         } else {
           console.log("[Auth] User logged out");
           setUser(null);
           setSession(null);
-          setIsLoading(false); // ✅ Stop loading spinner when user logs out
+          setIsLoading(false);
         }
       }
     );

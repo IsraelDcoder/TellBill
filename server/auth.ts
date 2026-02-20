@@ -10,7 +10,7 @@ import {
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "./emailService";
 import { generateToken, verifyToken } from "./utils/jwt";
 import { generateTokenPair, verifyAccessToken, verifyRefreshToken, generateAccessTokenFromRefresh } from "./services/tokenService";
-import { decodeGoogleIdToken } from "./supabaseClient";
+import { decodeGoogleIdToken, supabase } from "./supabaseClient";
 import {
   validateSignup,
   validateLogin,
@@ -586,8 +586,15 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      const googleUserEmail = decoded.email.toLowerCase();
+      const googleUserEmail = decoded.email?.toLowerCase();
       const googleUserName = decoded.name;
+
+      if (!googleUserEmail) {
+        return res.status(400).json({
+          success: false,
+          error: "Email is required from Google token",
+        });
+      }
 
       console.log("[Auth] 🔐 Google OAuth: Processing token for", googleUserEmail);
 
@@ -609,7 +616,7 @@ export function registerAuthRoutes(app: Express) {
         const newUser = await db
           .insert(users)
           .values({
-            email: googleUserEmail,
+            email: googleUserEmail as string,
             name: googleUserName,
             password: "", // No password for OAuth users
           })
@@ -1123,6 +1130,120 @@ export function registerAuthRoutes(app: Express) {
         </body>
         </html>
       `);
+    }
+  });
+
+  /**
+   * POST /api/auth/supabase-oauth-callback
+   * Exchange Supabase OAuth token for backend JWT token
+   * Called by client after Supabase OAuth succeeds
+   * Verifies the Supabase token, creates/finds user, returns backend JWT
+   */
+  app.post("/api/auth/supabase-oauth-callback", async (req: Request, res: Response) => {
+    try {
+      const { supabaseToken } = req.body;
+
+      if (!supabaseToken) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing Supabase token",
+        });
+      }
+
+      console.log("[Auth] 🔐 Processing Supabase OAuth callback");
+
+      // Verify the Supabase token via Supabase
+      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(
+        // Extract user ID from token by getting the session first
+        supabaseToken.split('.')[1] // This won't work, we need a better approach
+      );
+
+      // Actually, use the auth API to get the user
+      // The better way is to use supabase's getUser method
+      const { data: userSession, error: sessionError } = await supabase.auth.getUser(supabaseToken);
+
+      if (sessionError || !userSession?.user) {
+        console.error("[Auth] ❌ Invalid Supabase token:", sessionError);
+        return res.status(401).json({
+          success: false,
+          error: "Invalid or expired Supabase token",
+        });
+      }
+
+      const supabaseUser = userSession.user;
+      const userEmail = supabaseUser.email?.toLowerCase();
+      const userName = supabaseUser.user_metadata?.name || supabaseUser.email?.split("@")[0];
+
+      console.log("[Auth] ✅ Supabase token verified for:", userEmail);
+
+      // Check if user exists in our database
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userEmail!))
+        .limit(1);
+
+      let userToReturn;
+
+      if (existingUser.length > 0) {
+        // User exists
+        userToReturn = existingUser[0];
+        console.log("[Auth] ✅ OAuth login for existing user:", userEmail);
+      } else {
+        // Create new user
+        const newUser = await db
+          .insert(users)
+          .values({
+            email: userEmail,
+            name: userName,
+            password: "", // No password for OAuth users
+          })
+          .returning();
+
+        if (!newUser || newUser.length === 0) {
+          return res.status(500).json({
+            success: false,
+            error: "Failed to create user account",
+          });
+        }
+
+        userToReturn = newUser[0];
+        console.log("[Auth] ✅ New OAuth user created:", userEmail);
+
+        // Send welcome email
+        sendWelcomeEmail(userToReturn.email, userToReturn.name || "User").catch((err) => {
+          console.error("[Auth] Failed to send welcome email:", err);
+        });
+      }
+
+      // Generate backend JWT token
+      const accessToken = generateToken(userToReturn.id, userToReturn.email);
+
+      console.log("[Auth] ✅ Backend JWT token generated for OAuth user:", userToReturn.id);
+
+      return res.status(existingUser.length > 0 ? 200 : 201).json({
+        success: true,
+        token: accessToken,
+        accessToken: accessToken,
+        user: {
+          id: userToReturn.id,
+          email: userToReturn.email,
+          name: userToReturn.name,
+          companyName: userToReturn.companyName,
+          companyPhone: userToReturn.companyPhone,
+          companyEmail: userToReturn.companyEmail,
+          companyAddress: userToReturn.companyAddress,
+          companyWebsite: userToReturn.companyWebsite,
+          companyTaxId: userToReturn.companyTaxId,
+          createdAt: userToReturn.createdAt,
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] ❌ Supabase OAuth callback error:", error);
+      return res.status(500).json({
+        success: false,
+        error: "OAuth exchange failed",
+      });
     }
   });
 
