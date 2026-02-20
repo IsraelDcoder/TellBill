@@ -574,7 +574,7 @@ export function registerAuthRoutes(app: Express) {
           companyTaxId: user.companyTaxId,
           // Preferences (from prefs if available)
           preferredCurrency: prefs?.currency || "USD",
-          defaultTaxRate: prefs?.taxRate || 0.08,
+          defaultTaxRate: 0.08, // Default tax rate (stored per-taxProfile, not in preferences)
           invoiceTemplate: prefs?.invoiceTemplate || "professional",
           defaultPaymentTerms: prefs?.defaultPaymentTerms || "Net 30",
           // ✅ Payment info
@@ -587,9 +587,11 @@ export function registerAuthRoutes(app: Express) {
           createdAt: user.createdAt,
         },
         preferences: prefs ? {
-          taxRate: prefs.taxRate,
+          currency: prefs.currency,
+          language: prefs.language,
+          theme: prefs.theme,
           invoiceTemplate: prefs.invoiceTemplate,
-          paymentTerms: prefs.defaultPaymentTerms,
+          defaultPaymentTerms: prefs.defaultPaymentTerms,
         } : null,
       });
     } catch (error) {
@@ -1322,9 +1324,11 @@ export function registerAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[Auth] ❌ Supabase OAuth callback error:", error);
       console.error("[Auth] Error details:", error instanceof Error ? error.message : String(error));
+      console.error("[Auth] Stack trace:", error instanceof Error ? error.stack : "No stack trace");
       return res.status(500).json({
         success: false,
         error: "OAuth exchange failed",
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   });
