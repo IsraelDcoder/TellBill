@@ -557,4 +557,54 @@ export const moneyAlertEvents = pgTable("money_alert_events", {
 });
 
 export type MoneyAlertEvent = typeof moneyAlertEvents.$inferSelect;
+
+/**
+ * ✅ Custom Invoice Templates - Professional user template customization
+ * Allows users to customize invoice templates per client or as default
+ */
+export const customInvoiceTemplates = pgTable("custom_invoice_templates", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  clientId: text("client_id"), // NULL = default template, filled = per-client
+  clientEmail: text("client_email"),
+  name: text("name").notNull(), // e.g., "Blue Minimalist"
+  baseTemplate: text("base_template").notNull(), // professional, modern, minimal, formal
+  
+  // Color customization
+  primaryColor: text("primary_color").default("#667eea"),
+  accentColor: text("accent_color").default("#764ba2"),
+  backgroundColor: text("background_color").default("#ffffff"),
+  textColor: text("text_color").default("#333333"),
+  
+  // Branding
+  logoUrl: text("logo_url"),
+  companyHeaderText: text("company_header_text"),
+  footerText: text("footer_text"),
+  
+  // Custom fields
+  showProjectName: boolean("show_project_name").default(false),
+  showPoNumber: boolean("show_po_number").default(false),
+  showWorkOrderNumber: boolean("show_work_order_number").default(false),
+  customField1Name: text("custom_field_1_name"),
+  customField1Value: text("custom_field_1_value"),
+  customField2Name: text("custom_field_2_name"),
+  customField2Value: text("custom_field_2_value"),
+  
+  // Font
+  fontFamily: text("font_family").default("system"),
+  
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type CustomInvoiceTemplate = typeof customInvoiceTemplates.$inferSelect;
+export type InsertCustomInvoiceTemplate = typeof customInvoiceTemplates.$inferInsert;
 export type InsertMoneyAlertEvent = typeof moneyAlertEvents.$inferInsert;

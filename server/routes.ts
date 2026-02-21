@@ -12,6 +12,7 @@ import { registerScopeProofRoutes } from "./scopeProof";
 import { registerTaxRoutes } from "./tax";
 import { registerMaterialCostRoutes } from "./materialCosts";
 import { registerMoneyAlertRoutes } from "./moneyAlerts";
+import { registerTemplateRoutes } from "./templates";
 import { registerBillingRoutes } from "./billing/iapVerification";
 import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
 import { authMiddleware } from "./utils/authMiddleware";
@@ -455,6 +456,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ✅ Register money alert routes (unbilled materials tracking)
   registerMoneyAlertRoutes(app);
+
+  // ✅ Register custom invoice template routes (professional user feature)
+  registerTemplateRoutes(app);
 
   // ✅ STATIC APPROVAL PAGE (No auth required - token-based access)
   app.get("/approve/:token", (req, res) => {
