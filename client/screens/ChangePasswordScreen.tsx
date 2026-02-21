@@ -25,6 +25,59 @@ interface PasswordRequirement {
   isMet: boolean;
 }
 
+interface PasswordInputProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  showPassword: boolean;
+  onToggleShow: () => void;
+  theme: any;
+  isDark: boolean;
+}
+
+// ✅ Move PasswordInput outside component to prevent recreating on each render
+const PasswordInput = ({
+  label,
+  value,
+  onChangeText,
+  showPassword,
+  onToggleShow,
+  theme,
+  isDark,
+}: PasswordInputProps) => {
+  const inputStyle = {
+    backgroundColor: isDark ? theme.backgroundSecondary : theme.backgroundDefault,
+    color: theme.text,
+    borderColor: theme.border,
+  };
+
+  return (
+    <View style={styles.formGroup}>
+      <ThemedText type="small" style={styles.label}>
+        {label} *
+      </ThemedText>
+      <View style={[styles.inputContainer, inputStyle]}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder={label}
+          placeholderTextColor={theme.textSecondary}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!showPassword}
+          multiline={false}
+        />
+        <Pressable onPress={onToggleShow} style={styles.toggleButton}>
+          <Feather
+            name={showPassword ? "eye-off" : "eye"}
+            size={18}
+            color={theme.textSecondary}
+          />
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 export default function ChangePasswordScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
@@ -147,49 +200,6 @@ export default function ChangePasswordScreen() {
     }
   };
 
-  const inputStyle = (isDark: boolean) => ({
-    backgroundColor: isDark ? theme.backgroundSecondary : theme.backgroundDefault,
-    color: theme.text,
-    borderColor: theme.border,
-  });
-
-  const PasswordInput = ({
-    label,
-    value,
-    onChangeText,
-    showPassword,
-    onToggleShow,
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    showPassword: boolean;
-    onToggleShow: () => void;
-  }) => (
-    <View style={styles.formGroup}>
-      <ThemedText type="small" style={styles.label}>
-        {label} *
-      </ThemedText>
-      <View style={[styles.inputContainer, inputStyle(isDark)]}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder={label}
-          placeholderTextColor={theme.textSecondary}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={!showPassword}
-        />
-        <Pressable onPress={onToggleShow} style={styles.toggleButton}>
-          <Feather
-            name={showPassword ? "eye-off" : "eye"}
-            size={18}
-            color={theme.textSecondary}
-          />
-        </Pressable>
-      </View>
-    </View>
-  );
-
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.backgroundRoot }]}
@@ -199,6 +209,7 @@ export default function ChangePasswordScreen() {
         paddingHorizontal: Spacing.lg,
       }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       <GlassCard>
         <View style={styles.warningBox}>
@@ -219,6 +230,8 @@ export default function ChangePasswordScreen() {
           onChangeText={setCurrentPassword}
           showPassword={showCurrentPassword}
           onToggleShow={() => setShowCurrentPassword(!showCurrentPassword)}
+          theme={theme}
+          isDark={isDark}
         />
 
         <PasswordInput
@@ -227,6 +240,8 @@ export default function ChangePasswordScreen() {
           onChangeText={setNewPassword}
           showPassword={showNewPassword}
           onToggleShow={() => setShowNewPassword(!showNewPassword)}
+          theme={theme}
+          isDark={isDark}
         />
 
         {newPassword.length > 0 && (
@@ -266,6 +281,8 @@ export default function ChangePasswordScreen() {
           onChangeText={setConfirmPassword}
           showPassword={showConfirmPassword}
           onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
+          theme={theme}
+          isDark={isDark}
         />
 
         {confirmPassword.length > 0 && !passwordsMatch && (
