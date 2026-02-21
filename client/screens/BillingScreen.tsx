@@ -211,7 +211,7 @@ export default function BillingScreen() {
       name: "Solo",
       description: "For individuals",
       features: [
-        "✓ 3 invoices/month",
+        "✓ Unlimited invoices",
         "✓ Voice recording",
         "✓ PDF export",
         "✓ Email support",
@@ -228,7 +228,9 @@ export default function BillingScreen() {
       description: "For growing teams",
       features: [
         "✓ Unlimited invoices",
+        "✓ Voice recording",
         "✓ Scope proof & client approval",
+        "✓ Custom invoice templates",
         "✓ Advanced money alerts",
         "✓ Dispute-ready work logs",
         "✓ Priority processing",

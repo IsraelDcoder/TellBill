@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { formatCents } from "@/lib/money";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -41,12 +42,14 @@ interface MenuItemProps {
   badgeText?: string;
 }
 
-function PreferencesSection({ theme, authToken, navigation }: { theme: any; authToken: string | null; navigation: NavigationProp }): React.ReactElement {
+function PreferencesSection({ theme, authToken, navigation, currentPlan }: { theme: any; authToken: string | null; navigation: NavigationProp; currentPlan: string }): React.ReactElement {
   const prefs = usePreferencesStore();
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const currencies = ["USD", "EUR", "GBP", "CAD", "AUD"];
   const templates = ["default", "minimal", "detailed"];
+  
+  const isProfessional = currentPlan === "professional";
 
   const handleCurrencyChange = async (curr: string) => {
     prefs.setCurrency(curr);
@@ -102,15 +105,31 @@ function PreferencesSection({ theme, authToken, navigation }: { theme: any; auth
         </View>
       )}
       <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-      <Pressable onPress={() => navigation.navigate("TemplateBuilder")} style={styles.preferenceItem}>
+      <Pressable 
+        onPress={() => {
+          if (!isProfessional) {
+            navigation.navigate("Billing");
+          } else {
+            navigation.navigate("TemplateBuilder");
+          }
+        }} 
+        style={[styles.preferenceItem, !isProfessional && { opacity: 0.7 }]}>
         <View style={styles.preferenceLeft}>
-          <Feather name="edit-3" size={18} color={BrandColors.constructionGold} />
+          <Feather name="edit-3" size={18} color={isProfessional ? BrandColors.constructionGold : theme.textSecondary} />
           <View style={styles.preferenceText}>
-            <ThemedText type="body">Customize Templates</ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>Colors & Branding</ThemedText>
+            <ThemedText type="body" style={!isProfessional ? { color: theme.textSecondary } : {}}>
+              Customize Templates
+            </ThemedText>
+            <ThemedText type="small" style={{ color: isProfessional ? theme.textSecondary : theme.textTertiary }}>
+              {isProfessional ? "Colors & Branding" : "Professional plan"}
+            </ThemedText>
           </View>
         </View>
-        <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+        <Feather 
+          name={isProfessional ? "chevron-right" : "lock"} 
+          size={16} 
+          color={isProfessional ? theme.textSecondary : theme.error} 
+        />
       </Pressable>
       <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
       <Pressable onPress={() => {}} style={styles.preferenceItem}>
@@ -186,6 +205,7 @@ export default function ProfileScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { currentPlan } = useSubscriptionStore();
   // ✅ Use proper Zustand selector to subscribe to getStats
   const getStats = useInvoiceStore((state) => state.getStats);
   const { userProfile, companyInfo } = useProfileStore();
@@ -434,7 +454,7 @@ export default function ProfileScreen() {
       <Section>
         <SectionTitle title="Preferences" />
         <ScreenGroup bordered>
-          <PreferencesSection theme={theme} authToken={authToken} navigation={navigation} />
+          <PreferencesSection theme={theme} authToken={authToken} navigation={navigation} currentPlan={currentPlan} />
         </ScreenGroup>
       </Section>
 
