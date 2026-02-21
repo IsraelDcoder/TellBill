@@ -410,12 +410,12 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
         type: ["image/*"],
       });
 
-      if (result.type === "success") {
+      if (result.canceled === false && result.assets && result.assets.length > 0) {
         // In production, upload to cloud storage and get URL
         // For now, just store the file path
         setCurrentTemplate({
           ...currentTemplate,
-          logoUrl: result.uri,
+          logoUrl: result.assets[0].uri,
         });
       }
     } catch (error) {
@@ -727,7 +727,7 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
               </View>
 
               <View
-                style={[styles.previewSection, { borderTopWidth: 1, paddingTopColor: "#eee" }]}
+                style={[styles.previewSection, { borderTopWidth: 1, borderTopColor: "#eee" }]}
               >
                 <Text style={styles.previewSectionLabel}>Amount</Text>
                 <Text
@@ -741,7 +741,7 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
               </View>
 
               {currentTemplate.footerText && (
-                <View style={[styles.previewSection, { marginTop: 24, paddingTopWidth: 1 }]}>
+              <View style={[styles.previewSection, { marginTop: 24 }]}>
                   <Text style={[styles.previewText, { fontStyle: "italic" }]}>
                     {currentTemplate.footerText}
                   </Text>

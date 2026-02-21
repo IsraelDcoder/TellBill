@@ -56,8 +56,8 @@ export function startInvoiceRemindersJob() {
  * Stop all reminder jobs
  */
 export function stopInvoiceRemindersJob(jobs: {
-  sendRemindersJob: cron.ScheduledTask;
-  overdueRemindersJob: cron.ScheduledTask;
+  sendRemindersJob: any;
+  overdueRemindersJob: any;
 }) {
   console.log("[Jobs] ⏹️  Stopping invoice reminders jobs...");
   jobs.sendRemindersJob.stop();

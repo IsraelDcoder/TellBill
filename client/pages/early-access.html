@@ -102,7 +102,7 @@
 
         /* ===== HERO SECTION ===== */
         .hero {
-            padding: var(--spacing-3xl) 0;
+            padding: 80px 0 60px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -116,6 +116,7 @@
             margin-bottom: var(--spacing-md);
             color: var(--color-text);
             max-width: 800px;
+            letter-spacing: -0.5px;
         }
 
         .hero .subheading {
@@ -160,8 +161,8 @@
         /* ===== PROBLEM SECTION ===== */
         .problem {
             background-color: var(--color-bg-light);
-            padding: var(--spacing-3xl) 0;
-            margin-top: var(--spacing-3xl);
+            padding: 60px 0;
+            margin-top: 60px;
         }
 
         .problem-content {
@@ -199,15 +200,16 @@
 
         /* ===== FEATURES GRID ===== */
         .features {
-            padding: var(--spacing-3xl) 0;
+            padding: 60px 0;
         }
 
         .features h2 {
             font-size: 28px;
             font-weight: 700;
             text-align: center;
-            margin-bottom: var(--spacing-2xl);
+            margin-bottom: 40px;
             color: var(--color-text);
+            letter-spacing: -0.3px;
         }
 
         .features-grid {
@@ -217,7 +219,7 @@
         }
 
         .feature-card {
-            padding: var(--spacing-2xl);
+            padding: 32px;
             border: 1px solid var(--color-border);
             border-radius: var(--border-radius);
             text-align: center;
@@ -227,7 +229,8 @@
 
         .feature-card:hover {
             border-color: var(--color-primary);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
         }
 
         .feature-icon {
@@ -253,15 +256,15 @@
             background-color: var(--color-bg-light);
             border: 2px solid var(--color-primary);
             border-radius: var(--border-radius);
-            padding: var(--spacing-2xl);
-            margin: var(--spacing-3xl) 0;
+            padding: 40px;
+            margin: 60px 0;
             text-align: center;
         }
 
         .offer h3 {
             font-size: 20px;
             font-weight: 700;
-            margin-bottom: var(--spacing-lg);
+            margin-bottom: 16px;
             color: var(--color-text);
         }
 
@@ -288,7 +291,7 @@
 
         /* ===== EMAIL CAPTURE FORM ===== */
         .signup {
-            padding: var(--spacing-3xl) 0;
+            padding: 60px 0;
             max-width: 600px;
             margin: 0 auto;
         }
@@ -297,8 +300,9 @@
             font-size: 28px;
             font-weight: 700;
             text-align: center;
-            margin-bottom: var(--spacing-2xl);
+            margin-bottom: 40px;
             color: var(--color-text);
+            letter-spacing: -0.3px;
         }
 
         .form-group {
@@ -369,18 +373,30 @@
 
         .success-state {
             text-align: center;
-            padding: var(--spacing-2xl);
+            padding: 40px;
             background-color: #f0fdf4;
             border: 1px solid #86efac;
             border-radius: var(--border-radius);
             display: none;
+            animation: slideInFade 0.4s ease-out;
+        }
+
+        @keyframes slideInFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .success-state h3 {
             font-size: 20px;
             font-weight: 700;
             color: #166534;
-            margin-bottom: var(--spacing-md);
+            margin-bottom: 12px;
         }
 
         .success-state p {
@@ -406,13 +422,14 @@
 
         .error-state {
             background-color: #fef2f2;
-            border: 1px solid #feca5e;
-            padding: var(--spacing-md);
+            border: 1px solid #fecaca;
+            padding: 16px;
             border-radius: var(--border-radius);
             color: #991b1b;
             font-size: 14px;
-            margin-bottom: var(--spacing-lg);
+            margin-bottom: 24px;
             display: none;
+            animation: slideInFade 0.3s ease-out;
         }
 
         /* ===== LOADING ===== */
@@ -624,11 +641,36 @@
     </footer>
 
     <script>
+        // Determine backend URL
+        function getBackendUrl() {
+            // Production environment variable (highest priority)
+            if (window.__BACKEND_URL__) {
+                console.log('[Early Access] Using explicit backend URL:', window.__BACKEND_URL__);
+                return window.__BACKEND_URL__;
+            }
+
+            // Try localStorage for testing/development override
+            const localStorageUrl = localStorage.getItem('backendUrl');
+            if (localStorageUrl) {
+                console.log('[Early Access] Using localStorage backend URL:', localStorageUrl);
+                return localStorageUrl;
+            }
+
+            // For development: detect if we're on 127.0.0.1 or localhost, use localhost:3000
+            const currentHost = window.location.hostname;
+            const defaultUrl = 'http://localhost:3000';
+            
+            console.log('[Early Access] Current host:', currentHost);
+            console.log('[Early Access] Using default backend URL:', defaultUrl);
+            return defaultUrl;
+        }
+
         const form = document.getElementById('earlyAccessForm');
         const submitBtn = document.getElementById('submitBtn');
         const loading = document.getElementById('loading');
         const successState = document.getElementById('successState');
         const errorState = document.getElementById('errorState');
+        const BACKEND_URL = getBackendUrl();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -660,7 +702,13 @@
             loading.style.display = 'block';
 
             try {
-                const response = await fetch('/api/early-access', {
+                const apiUrl = BACKEND_URL + '/api/early-access';
+                console.log('[Early Access] Form submitted');
+                console.log('[Early Access] Backend URL:', BACKEND_URL);
+                console.log('[Early Access] Full API URL:', apiUrl);
+                console.log('[Early Access] Payload:', { name, email, trade });
+
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -672,23 +720,32 @@
                     }),
                 });
 
+                console.log('[Early Access] Response status:', response.status);
+
                 const data = await response.json();
 
                 if (!response.ok) {
-                    errorState.textContent = data.error || 'Something went wrong. Please try again.';
+                    const errorMsg = data.error || data.message || 'Something went wrong. Please try again.';
+                    errorState.textContent = errorMsg;
                     errorState.style.display = 'block';
                     submitBtn.disabled = false;
                     loading.style.display = 'none';
+                    console.error('[Early Access] Error response:', errorMsg);
                     return;
                 }
 
-                // Success
+                // Success - hide form and show success state
                 form.style.display = 'none';
                 successState.style.display = 'block';
+                console.log('[Early Access] Success!');
 
             } catch (error) {
-                console.error('Error:', error);
-                errorState.textContent = 'Network error. Please try again.';
+                console.error('[Early Access] Network error:', error);
+                let errorMsg = 'Network error. Please check your connection and try again.';
+                if (error.message.includes('fetch')) {
+                    errorMsg = 'Cannot reach the server. Make sure you\'re connected to the internet and the backend is running.';
+                }
+                errorState.textContent = errorMsg;
                 errorState.style.display = 'block';
                 submitBtn.disabled = false;
                 loading.style.display = 'none';

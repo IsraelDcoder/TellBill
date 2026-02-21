@@ -46,7 +46,7 @@ export function registerTemplateRoutes(app: Express) {
   app.get("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
-      const templateId = req.params.id;
+      const templateId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
       const template = await db
         .select()
@@ -54,7 +54,7 @@ export function registerTemplateRoutes(app: Express) {
         .where(
           and(
             eq(customInvoiceTemplates.id, templateId),
-            eq(customInvoiceTemplates.userId, userId)
+            eq(customInvoiceTemplates.userId, userId || '')
           )
         )
         .limit(1);
@@ -163,7 +163,7 @@ export function registerTemplateRoutes(app: Express) {
   app.patch("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
-      const templateId = req.params.id;
+      const templateId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
       // Verify ownership
       const template = await db
@@ -172,7 +172,7 @@ export function registerTemplateRoutes(app: Express) {
         .where(
           and(
             eq(customInvoiceTemplates.id, templateId),
-            eq(customInvoiceTemplates.userId, userId)
+            eq(customInvoiceTemplates.userId, userId || '')
           )
         )
         .limit(1);
@@ -215,7 +215,7 @@ export function registerTemplateRoutes(app: Express) {
   app.delete("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
-      const templateId = req.params.id;
+      const templateId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
       // Verify ownership
       const template = await db
@@ -224,7 +224,7 @@ export function registerTemplateRoutes(app: Express) {
         .where(
           and(
             eq(customInvoiceTemplates.id, templateId),
-            eq(customInvoiceTemplates.userId, userId)
+            eq(customInvoiceTemplates.userId, userId || '')
           )
         )
         .limit(1);
@@ -263,7 +263,9 @@ export function registerTemplateRoutes(app: Express) {
     async (req: Request, res: Response) => {
       try {
         const userId = (req as any).user?.id;
-        const clientEmail = req.params.clientEmail.toLowerCase();
+        const clientEmail = Array.isArray(req.params.clientEmail) 
+          ? req.params.clientEmail[0].toLowerCase() 
+          : req.params.clientEmail.toLowerCase();
 
         // Try to find client-specific template
         const clientSpecificTemplate = await db

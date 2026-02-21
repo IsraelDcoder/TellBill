@@ -3,7 +3,7 @@ import { db } from "./db";
 import { earlyAccess } from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { authMiddleware } from "./utils/authMiddleware";
-import { emailService } from "./emailService";
+import { sendEmail } from "./emailService";
 
 /**
  * Early Access Waitlist API
@@ -69,7 +69,7 @@ export function registerEarlyAccessRoutes(app: Express) {
 
       // ✅ Send confirmation email
       try {
-        await emailService.sendEmail({
+        await sendEmail({
           to: normalizedEmail,
           subject: "You're on the TellBill Early Access List 🎉",
           html: `
@@ -114,7 +114,7 @@ export function registerEarlyAccessRoutes(app: Express) {
     try {
       // ✅ Restrict to founder only (hardcode for now, can be made dynamic)
       const founderId = process.env.FOUNDER_USER_ID;
-      if (!founderId || req.user?.id !== founderId) {
+      if (!founderId || req.user?.userId !== founderId) {
         return res.status(403).json({
           error: "Unauthorized. Founder access only.",
         });
@@ -158,7 +158,7 @@ export function registerEarlyAccessRoutes(app: Express) {
     try {
       // ✅ Restrict to founder only
       const founderId = process.env.FOUNDER_USER_ID;
-      if (!founderId || req.user?.id !== founderId) {
+      if (!founderId || req.user?.userId !== founderId) {
         return res.status(403).json({
           error: "Unauthorized. Founder access only.",
         });

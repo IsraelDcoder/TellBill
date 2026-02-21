@@ -172,7 +172,7 @@ export function registerAuthRoutes(app: Express) {
         .values({
           email: normalizedEmail,
           password: hashedPassword,
-          name: sanitizedName,
+          name: sanitizedName || null,
         })
         .returning();
 
@@ -1310,7 +1310,6 @@ export function registerAuthRoutes(app: Express) {
               theme: "light",
               invoiceTemplate: "professional",
               defaultPaymentTerms: "Net 30",
-              taxRate: 0.08,
             });
           console.log("[Auth] ✅ Default preferences created");
         } catch (prefError) {

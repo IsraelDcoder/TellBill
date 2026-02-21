@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

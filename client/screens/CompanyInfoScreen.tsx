@@ -45,12 +45,12 @@ export default function CompanyInfoScreen() {
   
   // ✅ Payment info state
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfoFormData>({
-    paymentMethodType: user?.paymentMethodType || "custom",
-    paymentAccountNumber: user?.paymentAccountNumber,
-    paymentBankName: user?.paymentBankName,
-    paymentAccountName: user?.paymentAccountName,
-    paymentLink: user?.paymentLink,
-    paymentInstructions: user?.paymentInstructions,
+    paymentMethodType: (user as any)?.paymentMethodType || "custom",
+    paymentAccountNumber: (user as any)?.paymentAccountNumber,
+    paymentBankName: (user as any)?.paymentBankName,
+    paymentAccountName: (user as any)?.paymentAccountName,
+    paymentLink: (user as any)?.paymentLink,
+    paymentInstructions: (user as any)?.paymentInstructions,
   });
 
   const handleSaveCompanyInfo = async () => {

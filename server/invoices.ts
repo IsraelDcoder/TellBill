@@ -218,7 +218,7 @@ export function registerInvoiceRoutes(app: Express) {
         const invoiceResult = await db
           .select()
           .from(schema.invoices)
-          .where(eq(schema.invoices.id, invoiceId))
+          .where(eq(schema.invoices.id, Array.isArray(invoiceId) ? invoiceId[0] : invoiceId))
           .limit(1);
 
         if (!invoiceResult || invoiceResult.length === 0) {
@@ -237,7 +237,7 @@ export function registerInvoiceRoutes(app: Express) {
         const invoiceUserResult = await db
           .select()
           .from(schema.users)
-          .where(eq(schema.users.id, dbInvoice.userId))
+          .where(eq(schema.users.id, dbInvoice.userId || ''))
           .limit(1);
 
         if (!invoiceUserResult || invoiceUserResult.length === 0) {
@@ -929,10 +929,11 @@ export function registerInvoiceRoutes(app: Express) {
       }
 
       // ✅ VERIFY OWNERSHIP: Make sure user owns this invoice
+      const normalizedId = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
       const existingInvoice = await db
         .select()
         .from(schema.invoices)
-        .where(eq(schema.invoices.id, invoiceId))
+        .where(eq(schema.invoices.id, normalizedId))
         .limit(1);
 
       if (!existingInvoice || existingInvoice.length === 0) {
@@ -988,10 +989,11 @@ export function registerInvoiceRoutes(app: Express) {
       console.log("[Invoice] Update data:", updateData);
 
       // ✅ UPDATE: Only update fields that were provided
+      const normalizedUpdateId = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
       const updatedInvoice = await db
         .update(schema.invoices)
         .set(updateData)
-        .where(eq(schema.invoices.id, invoiceId))
+        .where(eq(schema.invoices.id, normalizedUpdateId))
         .returning();
 
       console.log("[Invoice] ✅ Invoice updated successfully");
@@ -1033,7 +1035,8 @@ export function registerInvoiceRoutes(app: Express) {
       }
 
       // Validate invoiceId format
-      if (!validateUUID(invoiceId)) {
+      const normalizedDeleteId = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
+      if (!validateUUID(normalizedDeleteId)) {
         return res.status(400).json({
           success: false,
           error: "Invalid invoice ID format",
@@ -1045,7 +1048,7 @@ export function registerInvoiceRoutes(app: Express) {
       const existingInvoice = await db
         .select()
         .from(schema.invoices)
-        .where(eq(schema.invoices.id, invoiceId))
+        .where(eq(schema.invoices.id, normalizedDeleteId))
         .limit(1);
 
       if (!existingInvoice || existingInvoice.length === 0) {
@@ -1068,7 +1071,7 @@ export function registerInvoiceRoutes(app: Express) {
       const invoiceNumber = existingInvoice[0].invoiceNumber;
       await db
         .delete(schema.invoices)
-        .where(eq(schema.invoices.id, invoiceId));
+        .where(eq(schema.invoices.id, normalizedDeleteId));
 
       console.log(`[Invoice] ✅ Invoice ${invoiceNumber} (${invoiceId}) deleted permanently`);
 
@@ -1117,10 +1120,11 @@ export function registerInvoiceRoutes(app: Express) {
       }
 
       // ✅ FETCH INVOICE
+      const normalizedPaymentId = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
       const invoiceResult = await db
         .select()
         .from(schema.invoices)
-        .where(eq(schema.invoices.id, invoiceId))
+        .where(eq(schema.invoices.id, normalizedPaymentId))
         .limit(1);
 
       if (!invoiceResult || invoiceResult.length === 0) {
@@ -1196,7 +1200,7 @@ export function registerInvoiceRoutes(app: Express) {
           paymentLinkUrl,
           stripeCheckoutSessionId,
         })
-        .where(eq(schema.invoices.id, invoiceId));
+        .where(eq(schema.invoices.id, normalizedPaymentId));
 
       console.log(`[Invoice] ✅ Generated payment link for invoice ${invoiceId}`);
       console.log(`[Invoice] Payment URL: ${paymentLinkUrl}`);
@@ -1224,7 +1228,7 @@ export function registerInvoiceRoutes(app: Express) {
    */
   app.get("/api/invoices/:id", async (req: Request, res: Response) => {
     try {
-      const invoiceId = req.params.id;
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
       const invoice = await db
         .select()
@@ -1237,10 +1241,11 @@ export function registerInvoiceRoutes(app: Express) {
       }
 
       // ✅ Fetch user for payment info
+      const userId = invoice[0].userId || "";
       const user = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.id, invoice[0].userId))
+        .where(eq(schema.users.id, userId))
         .limit(1);
 
       if (!user || user.length === 0) {
@@ -1270,7 +1275,7 @@ export function registerInvoiceRoutes(app: Express) {
    */
   app.patch("/api/invoices/:id", async (req: Request, res: Response) => {
     try {
-      const invoiceId = req.params.id;
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
       const {
         paymentMethodTypeOverride,
         paymentAccountNumberOverride,
@@ -1305,10 +1310,11 @@ export function registerInvoiceRoutes(app: Express) {
         .returning();
 
       // Fetch user for payment resolution
+      const paymentUserId = updated[0].userId || "";
       const user = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.id, updated[0].userId))
+        .where(eq(schema.users.id, paymentUserId))
         .limit(1);
 
       if (!user || user.length === 0) {

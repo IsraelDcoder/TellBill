@@ -278,11 +278,11 @@ export function PaymentInfoSection({
 
       {/* Error Messages */}
       {errors.length > 0 && (
-        <View style={[styles.errorBox, { backgroundColor: `${BrandColors.errorRed}20` }]}>
+        <View style={[styles.errorBox, { backgroundColor: `${BrandColors.error}20` }]}>
           {errors.map((error, index) => (
             <View key={index} style={{ flexDirection: "row", gap: Spacing.sm }}>
-              <Feather name="alert-circle" size={16} color={BrandColors.errorRed} />
-              <ThemedText type="small" style={{ color: BrandColors.errorRed }}>
+              <Feather name="alert-circle" size={16} color={BrandColors.error} />
+              <ThemedText type="small" style={{ color: BrandColors.error }}>
                 {error}
               </ThemedText>
             </View>
@@ -293,7 +293,7 @@ export function PaymentInfoSection({
       {/* Save Button */}
       <Button
         onPress={handleSave}
-        isLoading={isLoading}
+        loading={isLoading}
       >
         Save Payment Information
       </Button>

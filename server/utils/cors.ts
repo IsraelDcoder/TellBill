@@ -66,39 +66,22 @@ export function getCorsConfig(): CorsConfig {
  * Check if origin is allowed
  */
 export function isOriginAllowed(origin: string, config: CorsConfig): boolean {
-  if (!origin) return false;
-
-  // Development: Allow localhost and local network IPs
-  if (config.environment === "development") {
-    // Localhost (any port)
-    if (
-      origin.startsWith("http://localhost:") ||
-      origin.startsWith("http://127.0.0.1:") ||
-      origin.startsWith("https://localhost:") ||
-      origin.startsWith("https://127.0.0.1:")
-    ) {
-      return true;
-    }
-
-    // Local network IPs (for React Native/Expo development)
-    if (
-      origin.startsWith("http://10.") ||
-      origin.startsWith("http://172.") ||
-      origin.startsWith("http://192.")
-    ) {
-      return true;
-    }
-
-    // HTTPS localhost for development
-    if (
-      origin.startsWith("https://localhost:") ||
-      origin.startsWith("https://127.0.0.1:")
-    ) {
-      return true;
-    }
-
+  if (!origin) {
+    console.log("[CORS] No origin provided");
     return false;
   }
+
+  console.log(`[CORS] Checking origin: ${origin}`);
+  console.log(`[CORS] Environment: ${config.environment}`);
+  console.log(`[CORS] Is development: ${config.environment === "development"}`);
+
+  // In DEVELOPMENT mode, allow everything from localhost/127.0.0.1
+  if (String(config.environment).toLowerCase() === "development") {
+    console.log(`[CORS] IN DEVELOPMENT MODE - AUTO-ALLOWING ALL LOCAL ORIGINS`);
+    return true;
+  }
+
+  console.log(`[CORS] NOT in development mode, checking production rules`);
 
   // Production: Only allow whitelisted domains
   if (config.environment === "production") {
@@ -140,6 +123,40 @@ export function corsMiddleware(
   const config = getCorsConfig();
   const origin = req.header("origin");
 
+  console.log(`[CORS] corsMiddleware called for ${req.method} ${req.path}`);
+  console.log(`[CORS] Origin received: ${origin}`);
+  console.log(`[CORS] Config environment: ${config.environment}`);
+
+  // ⭐ IN DEVELOPMENT MODE: Allow everything immediately
+  if (config.environment === "development") {
+    console.log(`[CORS] 🚀 DEVELOPMENT MODE: Auto-allowing all origins`);
+    if (origin) {
+      res.header("Access-Control-Allow-Origin", origin);
+      res.header(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+      );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      );
+      res.header("Access-Control-Expose-Headers", "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Content-Length, X-Content-Type-Options");
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Max-Age", "3600");
+      console.log(`[CORS] ✅ Headers set for: ${origin}`);
+    }
+
+    if (req.method === "OPTIONS") {
+      console.log(`[CORS] ✅ Preflight OK for: ${origin}`);
+      return res.sendStatus(200);
+    }
+
+    return next();
+  }
+
+  // ⭐ IN PRODUCTION MODE: Check allowed origins
+  console.log(`[CORS] Production mode - checking allowed domains`);
+
   // Check if origin is allowed
   const allowed = origin && isOriginAllowed(origin, config);
 
@@ -161,10 +178,8 @@ export function corsMiddleware(
     res.header("Access-Control-Allow-Credentials", String(config.credentials));
     res.header("Access-Control-Max-Age", String(config.maxAge));
 
-    // Log allowed CORS request (development only)
-    if (config.environment === "development") {
-      console.log(`[CORS] ✅ Allowed: ${req.method} ${req.path} from ${origin}`);
-    }
+    // Log allowed CORS request
+    console.log(`[CORS] ✅ Allowed: ${req.method} ${req.path} from ${origin}`);
   } else if (origin) {
     // Log rejected CORS request
     console.warn(
