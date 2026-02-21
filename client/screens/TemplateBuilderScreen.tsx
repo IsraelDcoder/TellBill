@@ -61,14 +61,14 @@ const defaultTemplate: CustomTemplate = {
 };
 
 const PREDEFINED_COLORS = [
-  "#667eea",
-  "#764ba2",
   "#667eea", // Purple
+  "#764ba2", // Dark Purple
   "#FF6B6B", // Red
   "#4ECDC4", // Teal
   "#45B7D1", // Blue
   "#FFA07A", // Salmon
   "#98D8C8", // Mint
+  "#F7DC6F", // Gold
 ];
 
 /**
