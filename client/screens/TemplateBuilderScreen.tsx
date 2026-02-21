@@ -16,8 +16,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import { useAuthStore } from "@client/stores/authStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
+import { getApiUrl } from "@/lib/backendUrl";
 
 interface ColorPickerProps {
   label: string;
@@ -77,7 +78,7 @@ const PREDEFINED_COLORS = [
 export default function TemplateBuilderScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const { authToken } = useAuthStore();
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const [templates, setTemplates] = useState<CustomTemplate[]>([]);
   const [currentTemplate, setCurrentTemplate] = useState<CustomTemplate>(defaultTemplate);
@@ -88,6 +89,15 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
     "colors"
   );
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
+
+  // Initialize authToken from AsyncStorage
+  useEffect(() => {
+    const getToken = async () => {
+      const token = await AsyncStorage.getItem("authToken");
+      setAuthToken(token);
+    };
+    getToken();
+  }, []);
 
   const styles = StyleSheet.create({
     container: {
@@ -307,7 +317,7 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
     if (!authToken) return;
     try {
       setLoading(true);
-      const response = await fetch("https://tellbill.app/api/templates", {
+      const response = await fetch(getApiUrl("/api/templates"), {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -337,7 +347,7 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
       setLoading(true);
       const payload = { ...currentTemplate, name: templateName };
       const response = await fetch(
-        currentTemplate.id ? `https://tellbill.app/api/templates/${currentTemplate.id}` : "https://tellbill.app/api/templates",
+        currentTemplate.id ? getApiUrl(`/api/templates/${currentTemplate.id}`) : getApiUrl("/api/templates"),
         {
           method: currentTemplate.id ? "PATCH" : "POST",
           headers: {
