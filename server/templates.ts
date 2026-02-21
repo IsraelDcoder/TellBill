@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import { customInvoiceTemplates } from "@shared/schema";
-import { authenticateToken } from "./middleware/auth";
+import { authMiddleware } from "./utils/authMiddleware";
 
 /**
  * Register custom invoice template routes
@@ -13,7 +13,7 @@ export function registerTemplateRoutes(app: Express) {
    * GET /api/templates
    * Fetch user's custom templates (defaults + per-client)
    */
-  app.get("/api/templates", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/templates", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
 
@@ -43,7 +43,7 @@ export function registerTemplateRoutes(app: Express) {
    * GET /api/templates/:id
    * Fetch a specific template
    */
-  app.get("/api/templates/:id", authenticateToken, async (req: Request, res: Response) => {
+  app.get("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const templateId = req.params.id;
@@ -83,7 +83,7 @@ export function registerTemplateRoutes(app: Express) {
    * POST /api/templates
    * Create a new custom template
    */
-  app.post("/api/templates", authenticateToken, async (req: Request, res: Response) => {
+  app.post("/api/templates", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const {
@@ -160,7 +160,7 @@ export function registerTemplateRoutes(app: Express) {
    * PATCH /api/templates/:id
    * Update a custom template
    */
-  app.patch("/api/templates/:id", authenticateToken, async (req: Request, res: Response) => {
+  app.patch("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const templateId = req.params.id;
@@ -212,7 +212,7 @@ export function registerTemplateRoutes(app: Express) {
    * DELETE /api/templates/:id
    * Delete a custom template
    */
-  app.delete("/api/templates/:id", authenticateToken, async (req: Request, res: Response) => {
+  app.delete("/api/templates/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const templateId = req.params.id;
@@ -259,7 +259,7 @@ export function registerTemplateRoutes(app: Express) {
    */
   app.get(
     "/api/templates/client/:clientEmail",
-    authenticateToken,
+    authMiddleware,
     async (req: Request, res: Response) => {
       try {
         const userId = (req as any).user?.id;
