@@ -16,7 +16,7 @@
    - Import: resolvePaymentInfo from "@/lib/paymentResolver"
    - Update GET /api/invoices/:id - add payment resolution
    - ADD PATCH /api/invoices/:id - for payment overrides
-   → Full code in COMPLETE_REMAINING_CODE.md
+   → Full code in COMPLETE_REMAINING_CODE.md`
 
 2. UPDATE client/utils/pdfGenerator.ts
    - Add imports: formatPaymentInfo, getPaymentQRData, QRCode

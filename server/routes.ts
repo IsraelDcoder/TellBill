@@ -15,6 +15,7 @@ import { registerMoneyAlertRoutes } from "./moneyAlerts";
 import { registerTemplateRoutes } from "./templates";
 import { registerBillingRoutes } from "./billing/iapVerification";
 import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
+import { registerEarlyAccessRoutes } from "./early-access";
 import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
@@ -390,6 +391,21 @@ function registerPublicPages(app: Express) {
     `;
     res.status(200).setHeader("Content-Type", "text/html; charset=utf-8").send(html);
   });
+
+  // ✅ EARLY ACCESS LANDING PAGE
+  app.get("/early", (_req, res) => {
+    const fs = require("fs");
+    const path = require("path");
+    const filePath = path.resolve(process.cwd(), "client", "pages", "early-access.html");
+    
+    try {
+      const html = fs.readFileSync(filePath, "utf-8");
+      res.status(200).setHeader("Content-Type", "text/html; charset=utf-8").send(html);
+    } catch (err) {
+      console.error("Failed to read early-access.html:", err);
+      res.status(500).send("Early access page not available");
+    }
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -422,6 +438,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhook (no auth) + protected verification routes
   registerRevenueCatWebhook(app);
   registerBillingRoutes(app);
+
+  // ✅ EARLY ACCESS WAITLIST (Public signup + founder admin dashboard)
+  registerEarlyAccessRoutes(app);
 
   // ✅ PROTECTED ROUTES (Auth + Subscription required)
   // Apply auth middleware first, then subscription middleware

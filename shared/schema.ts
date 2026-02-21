@@ -605,6 +605,25 @@ export const customInvoiceTemplates = pgTable("custom_invoice_templates", {
     .defaultNow(),
 });
 
+/**
+ * ✅ Early Access Waitlist - Limited early access program (50 contractors)
+ * Captures emails from prospective users before public launch
+ */
+export const earlyAccess = pgTable("early_access", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  trade: text("trade"), // Type of contracting work (plumbing, electrical, etc)
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type EarlyAccess = typeof earlyAccess.$inferSelect;
+export type InsertEarlyAccess = typeof earlyAccess.$inferInsert;
+
 export type CustomInvoiceTemplate = typeof customInvoiceTemplates.$inferSelect;
 export type InsertCustomInvoiceTemplate = typeof customInvoiceTemplates.$inferInsert;
 export type InsertMoneyAlertEvent = typeof moneyAlertEvents.$inferInsert;
