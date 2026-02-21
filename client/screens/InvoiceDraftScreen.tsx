@@ -264,6 +264,39 @@ export default function InvoiceDraftScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ✅ TEMPLATE SELECTOR - Let users choose or customize invoice template */}
+        <View style={{ marginTop: Spacing.md, marginBottom: Spacing.lg }}>
+          <ThemedText type="small" style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}>
+            Invoice Template
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("TemplateBuilder")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: Spacing.md,
+              paddingVertical: Spacing.sm,
+              backgroundColor: theme.backgroundSecondary,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+          >
+            <Feather
+              name="edit-3"
+              size={16}
+              color={theme.text}
+              style={{ marginRight: Spacing.sm }}
+            />
+            <ThemedText type="body">Professional Template</ThemedText>
+            <Feather
+              name="chevron-right"
+              size={16}
+              color={theme.textSecondary}
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+        </View>
       <GlassCard style={styles.headerCard}>
         <View style={styles.headerRow}>
           <View>

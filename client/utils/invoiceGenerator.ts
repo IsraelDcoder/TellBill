@@ -22,6 +22,28 @@ export interface PaymentInfo {
   instructions?: string;
 }
 
+// ✅ Custom Template Interface for professional feature
+export interface CustomTemplate {
+  id?: string;
+  name?: string;
+  baseTemplate?: "professional" | "modern" | "minimal" | "formal";
+  primaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  logoUrl?: string;
+  companyHeaderText?: string;
+  footerText?: string;
+  showProjectName?: boolean;
+  showPoNumber?: boolean;
+  showWorkOrderNumber?: boolean;
+  customField1Name?: string;
+  customField1Value?: string;
+  customField2Name?: string;
+  customField2Value?: string;
+  fontFamily?: "system" | "serif" | "sans-serif" | "monospace";
+}
+
 export interface InvoiceData {
   invoiceNumber: string;
   clientName: string;
@@ -46,6 +68,7 @@ export interface InvoiceData {
   safetyNotes?: string;
   paymentLinkUrl?: string;
   paymentInfo?: PaymentInfo;
+  customTemplate?: CustomTemplate; // ✅ Optional custom template
 }
 
 export interface InvoiceItem {
@@ -819,21 +842,76 @@ const generateFormalTemplate = (invoice: InvoiceData): string => {
 // 🎯 PUBLIC EXPORT
 // ============================================
 
+/**
+ * Apply custom template styles to generated HTML
+ * Replaces default colors and text with custom template values
+ */
+function applyCustomTemplate(html: string, customTemplate: CustomTemplate): string {
+  if (!customTemplate) return html;
+
+  let result = html;
+  
+  // Apply custom colors
+  if (customTemplate.primaryColor) {
+    result = result.replace(/#667eea/g, customTemplate.primaryColor);
+  }
+  if (customTemplate.accentColor) {
+    result = result.replace(/#764ba2/g, customTemplate.accentColor);
+  }
+  if (customTemplate.textColor) {
+    result = result.replace(/#333333/g, customTemplate.textColor);
+  }
+  if (customTemplate.backgroundColor) {
+    result = result.replace(/#ffffff/g, customTemplate.backgroundColor);
+  }
+
+  // Apply custom header text
+  if (customTemplate.companyHeaderText) {
+    result = result.replace(
+      /<div[^>]*class="company-header[^"]*"[^>]*>[^<]*<\/div>/,
+      `<div class="company-header">${customTemplate.companyHeaderText}</div>`
+    );
+  }
+
+  // Apply custom footer text
+  if (customTemplate.footerText) {
+    result = result.replace(
+      /<div[^>]*class="invoice-footer[^"]*"[^>]*>[\s\S]*?<\/div>/,
+      `<div class="invoice-footer">${customTemplate.footerText}</div>`
+    );
+  }
+
+  return result;
+}
+
 export function generateInvoiceHTML(
   invoice: InvoiceData,
-  template: TemplateType = "professional"
+  template: TemplateType = "professional",
+  customTemplate?: CustomTemplate
 ): string {
+  let html: string;
+  
   switch (template) {
     case "minimal":
-      return generateMinimalTemplate(invoice);
+      html = generateMinimalTemplate(invoice);
+      break;
     case "modern":
-      return generateModernTemplate(invoice);
+      html = generateModernTemplate(invoice);
+      break;
     case "formal":
-      return generateFormalTemplate(invoice);
+      html = generateFormalTemplate(invoice);
+      break;
     case "professional":
     default:
-      return generateProfessionalTemplate(invoice);
+      html = generateProfessionalTemplate(invoice);
   }
+
+  // ✅ Apply custom template styles if provided
+  if (customTemplate) {
+    html = applyCustomTemplate(html, customTemplate);
+  }
+
+  return html;
 }
 
 export function generateInvoiceFilename(invoiceNumber: string): string {
