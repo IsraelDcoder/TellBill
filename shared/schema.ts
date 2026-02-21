@@ -241,6 +241,7 @@ export const invoices = pgTable("invoices", {
     .defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
+  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }), // ✅ Track when payment reminder was sent
   
   // ✅ Payment info override (company-level default can be overridden per invoice)
   paymentMethodTypeOverride: text("payment_method_type_override"),

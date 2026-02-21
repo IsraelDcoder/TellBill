@@ -12,6 +12,7 @@ import {
 import { initializeBackupSystem } from "./utils/backup";
 import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
 import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
+import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob";
 import { securityHeaders } from "./utils/sanitize";
 import { setupCorsSecurely } from "./utils/cors";
 import { logger, attachRequestLogging } from "./utils/logger";
@@ -19,6 +20,9 @@ import { createRateLimiter } from "./utils/rateLimiter";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
+
+// ✅ Store reminder jobs for graceful shutdown
+let invoiceRemindersJobs: ReturnType<typeof startInvoiceRemindersJob> | null = null;
 
 // ✅ Initialize structured logging first
 logger.info(`[Server] Starting TellBill backend (${process.env.NODE_ENV || "development"})`);
@@ -202,6 +206,10 @@ function setupErrorHandler(app: express.Application) {
     startMoneyAlertsJobs();
     logger.info("✅ Money Alerts jobs initialized");
 
+    // ✅ Initialize Invoice Reminders scheduled job (sends payment reminders daily)
+    invoiceRemindersJobs = startInvoiceRemindersJob();
+    logger.info("✅ Invoice Reminders job initialized");
+
     setupCors(app);
     setupBodyParsing(app);
     setupRequestLogging(app);
@@ -251,12 +259,18 @@ function setupErrorHandler(app: express.Application) {
     process.on("SIGTERM", () => {
       logger.info("SIGTERM received, shutting down gracefully...");
       stopMoneyAlertsJobs();
+      if (invoiceRemindersJobs) {
+        stopInvoiceRemindersJob(invoiceRemindersJobs);
+      }
       process.exit(0);
     });
 
     process.on("SIGINT", () => {
       logger.info("SIGINT received, shutting down gracefully...");
       stopMoneyAlertsJobs();
+      if (invoiceRemindersJobs) {
+        stopInvoiceRemindersJob(invoiceRemindersJobs);
+      }
       process.exit(0);
     });
   } catch (error) {

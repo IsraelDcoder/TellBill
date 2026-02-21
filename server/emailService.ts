@@ -1002,3 +1002,91 @@ export async function sendPasswordResetEmail(
   }
 }
 
+/**
+ * ✅ Send payment reminder email
+ * Called by invoice reminders service to remind users about upcoming due dates
+ */
+export async function sendReminderEmail(
+  to: string,
+  data: {
+    invoiceNumber: string;
+    clientName: string;
+    amount: string;
+    dueDate: string;
+  }
+): Promise<void> {
+  try {
+    const dueDate = new Date(data.dueDate);
+    const dueDateFormatted = dueDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const reminderHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', without-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0; color: white;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">💳 Invoice Due Soon</h1>
+        </div>
+        
+        <div style="background: white; padding: 40px; border: 1px solid #eee; border-top: none;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+            Hi there,
+          </p>
+          
+          <p style="font-size: 14px; color: #666; margin: 0 0 30px 0;">
+            This is a friendly reminder that your invoice <strong>#${data.invoiceNumber}</strong> from <strong>${data.clientName}</strong> is due on <strong>${dueDateFormatted}</strong>.
+          </p>
+
+          <div style="background: #f8f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 20px 0;">
+            <p style="margin: 0; color: #333; font-weight: bold;">Invoice Amount</p>
+            <p style="margin: 5px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;">$${parseFloat(data.amount).toFixed(2)}</p>
+          </div>
+
+          <p style="font-size: 14px; color: #666; margin: 30px 0 0 0;">
+            Please ensure your client pays by the due date. You can review and track this invoice in your TellBill dashboard.
+          </p>
+
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${process.env.FRONTEND_URL}/invoices" style="
+              background: #667eea;
+              color: white;
+              padding: 12px 30px;
+              border-radius: 6px;
+              text-decoration: none;
+              font-weight: bold;
+              display: inline-block;
+            ">
+              View Invoice
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #999; margin: 30px 0 0 0;">
+            This is an automated reminder from TellBill. Your payment instructions were shared with your client when the invoice was sent.
+          </p>
+        </div>
+        
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+          <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to,
+      subject: `Payment Reminder: Invoice #${data.invoiceNumber} Due on ${dueDateFormatted}`,
+      html: reminderHtml,
+    });
+
+    console.log(`[EmailService] ✅ Payment reminder sent to ${to} for invoice #${data.invoiceNumber}`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending payment reminder to ${to}:`,
+      errorMessage
+    );
+    throw error;
+  }
+}
+
