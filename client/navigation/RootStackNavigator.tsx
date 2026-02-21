@@ -25,6 +25,7 @@ import PricingScreen from "@/screens/PricingScreen";
 import CurrencyScreen from "@/screens/CurrencyScreen";
 import TaxRateScreen from "@/screens/TaxRateScreen";
 import InvoiceTemplateScreen from "@/screens/InvoiceTemplateScreen";
+import TemplateBuilderScreen from "@/screens/TemplateBuilderScreen";
 import TermsOfServiceScreen from "@/screens/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "@/screens/PrivacyPolicyScreen";
 import PaymentSuccessScreen from "@/screens/PaymentSuccessScreen";
@@ -53,6 +54,7 @@ export type RootStackParamList = {
   Currency: undefined;
   TaxRate: undefined;
   InvoiceTemplate: undefined;
+  TemplateBuilder: undefined;
   TermsOfService: undefined;
   PrivacyPolicy: undefined;
   PaymentSuccess: { planId?: "solo" | "professional" };
@@ -216,6 +218,13 @@ export default function RootStackNavigator() {
             component={InvoiceTemplateScreen}
             options={{
               headerTitle: "Invoice Template",
+            }}
+          />
+          <Stack.Screen
+            name="TemplateBuilder"
+            component={TemplateBuilderScreen}
+            options={{
+              headerTitle: "Customize Invoice Template",
             }}
           />
           <Stack.Screen

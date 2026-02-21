@@ -41,7 +41,7 @@ interface MenuItemProps {
   badgeText?: string;
 }
 
-function PreferencesSection({ theme, authToken }: { theme: any; authToken: string | null }): React.ReactElement {
+function PreferencesSection({ theme, authToken, navigation }: { theme: any; authToken: string | null; navigation: NavigationProp }): React.ReactElement {
   const prefs = usePreferencesStore();
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
@@ -101,6 +101,17 @@ function PreferencesSection({ theme, authToken }: { theme: any; authToken: strin
           ))}
         </View>
       )}
+      <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+      <Pressable onPress={() => navigation.navigate("TemplateBuilder")} style={styles.preferenceItem}>
+        <View style={styles.preferenceLeft}>
+          <Feather name="edit-3" size={18} color={BrandColors.constructionGold} />
+          <View style={styles.preferenceText}>
+            <ThemedText type="body">Customize Templates</ThemedText>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>Colors & Branding</ThemedText>
+          </View>
+        </View>
+        <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+      </Pressable>
       <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
       <Pressable onPress={() => {}} style={styles.preferenceItem}>
         <View style={styles.preferenceLeft}>
@@ -423,7 +434,7 @@ export default function ProfileScreen() {
       <Section>
         <SectionTitle title="Preferences" />
         <ScreenGroup bordered>
-          <PreferencesSection theme={theme} authToken={authToken} />
+          <PreferencesSection theme={theme} authToken={authToken} navigation={navigation} />
         </ScreenGroup>
       </Section>
 

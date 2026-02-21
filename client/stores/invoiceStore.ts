@@ -126,9 +126,12 @@ export const useInvoiceStore = create<InvoiceStore>()(
           let invoiceTotal = typeof total === 'number' ? total : 0;
           
           // Sanity check: if total > 100,000,000 cents ($1,000,000+) it's suspicious
-          // Most invoices should be under $100,000
-          if (invoiceTotal > 10000000) {
-            console.warn(`[⚠️  SUSPICIOUSLY LARGE] Invoice total: ${invoiceTotal} cents (${(invoiceTotal/100).toFixed(2)} dollars)`);
+          // Most invoices should be under $500,000
+          if (invoiceTotal > 50000000) {
+            console.warn(`[⚠️  SUSPICIOUSLY LARGE] Invoice total: ${invoiceTotal} cents (${(invoiceTotal/100).toFixed(2)} dollars) - exceeds $500k limit`);
+            console.warn(`[🔧 FIX] Capping to max reasonable invoice amount - please verify invoice for ${inv.clientName}`);
+            // Cap at $500,000 to prevent data corruption impact on revenue stats
+            invoiceTotal = 50000000;
           }
           
           // If total < 100 and not zero, assume it's in dollars (100 cents = $1 minimum)
