@@ -18,7 +18,9 @@ import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
+import { useNavigation } from "@react-navigation/native";
 import { getApiUrl } from "@/lib/backendUrl";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
 
 interface ColorPickerProps {
   label: string;
@@ -78,6 +80,8 @@ const PREDEFINED_COLORS = [
 export default function TemplateBuilderScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const navRef = useNavigation();
+  const { currentPlan } = useSubscriptionStore();
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   const [templates, setTemplates] = useState<CustomTemplate[]>([]);
@@ -98,6 +102,32 @@ export default function TemplateBuilderScreen({ route, navigation }: any) {
     };
     getToken();
   }, []);
+
+  // Check if user is professional - if not, redirect to billing
+  useEffect(() => {
+    if (currentPlan !== "professional") {
+      Alert.alert(
+        "Professional Plan Required",
+        "Custom invoice templates are available only for Professional plan subscribers.",
+        [
+          {
+            text: "View Plans",
+            onPress: () => {
+              // Navigate to billing from root navigator
+              navRef.navigate("Billing" as never);
+            },
+          },
+          {
+            text: "Cancel",
+            onPress: () => {
+              navRef.goBack();
+            },
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  }, [currentPlan, navRef]);
 
   const styles = StyleSheet.create({
     container: {
