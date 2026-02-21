@@ -125,10 +125,14 @@ export function corsMiddleware(
 
   console.log(`[CORS] corsMiddleware called for ${req.method} ${req.path}`);
   console.log(`[CORS] Origin received: ${origin}`);
-  console.log(`[CORS] Config environment: ${config.environment}`);
+  console.log(`[CORS] NODE_ENV: ${process.env.NODE_ENV}`);
+
+  // Check NODE_ENV directly - this is more reliable than config.environment
+  const isDevelopment = !process.env.NODE_ENV || process.env.NODE_ENV.includes("development");
+  console.log(`[CORS] Is development: ${isDevelopment}`);
 
   // ⭐ IN DEVELOPMENT MODE: Allow everything immediately
-  if (config.environment === "development") {
+  if (isDevelopment) {
     console.log(`[CORS] 🚀 DEVELOPMENT MODE: Auto-allowing all origins`);
     if (origin) {
       res.header("Access-Control-Allow-Origin", origin);
