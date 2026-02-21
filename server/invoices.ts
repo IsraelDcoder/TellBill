@@ -234,21 +234,21 @@ export function registerInvoiceRoutes(app: Express) {
         const dbInvoice = invoiceResult[0];
         
         // ✅ FETCH USER FOR PAYMENT INFO RESOLUTION
-        const userResult = await db
+        const invoiceUserResult = await db
           .select()
           .from(schema.users)
           .where(eq(schema.users.id, dbInvoice.userId))
           .limit(1);
 
-        if (!userResult || userResult.length === 0) {
+        if (!invoiceUserResult || invoiceUserResult.length === 0) {
           return res.status(404).json({
             success: false,
             error: "User not found",
           });
         }
 
-        const user = userResult[0];
-        const paymentInfo = resolvePaymentInfo(dbInvoice, user);
+        const invoiceUser = invoiceUserResult[0];
+        const paymentInfo = resolvePaymentInfo(dbInvoice, invoiceUser);
         
         // ✅ Parse items JSON and build complete invoiceData object
         let items: any[] = [];
