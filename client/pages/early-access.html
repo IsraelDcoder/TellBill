@@ -656,13 +656,18 @@
                 return localStorageUrl;
             }
 
-            // For development: detect if we're on 127.0.0.1 or localhost, use localhost:3000
+            // Check if we're on localhost (development) or production
             const currentHost = window.location.hostname;
-            const defaultUrl = 'http://localhost:3000';
+            let backendUrl = 'https://api.tellbill.app'; // Production URL
+
+            // If on localhost/127.0.0.1, use local backend for development
+            if (currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '0.0.0.0') {
+                backendUrl = 'http://localhost:3000';
+            }
             
             console.log('[Early Access] Current host:', currentHost);
-            console.log('[Early Access] Using default backend URL:', defaultUrl);
-            return defaultUrl;
+            console.log('[Early Access] Using backend URL:', backendUrl);
+            return backendUrl;
         }
 
         const form = document.getElementById('earlyAccessForm');
