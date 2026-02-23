@@ -56,18 +56,47 @@ export default function ReferralScreen() {
       setLoading(true);
       const token = await AsyncStorage.getItem("authToken");
 
+      console.log("[ReferralScreen] Token retrieved:", token ? `${token.substring(0, 20)}...` : "NULL");
+
+      if (!token) {
+        console.warn("[ReferralScreen] No auth token found in AsyncStorage");
+        Alert.alert("Error", "Not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      const apiUrl = `${getBackendUrl()}/api/referral/my-code`;
+      console.log("[ReferralScreen] Fetching from:", apiUrl);
+      console.log("[ReferralScreen] Authorization Header:", `Bearer ${token.substring(0, 20)}...`);
+
       // Fetch referral code
-      const response = await fetch(`${getBackendUrl()}/api/referral/my-code`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      if (!response.ok) throw new Error("Failed to fetch referral code");
+      console.log("[ReferralScreen] Response status:", response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("[ReferralScreen] API error:", response.status, errorData);
+        throw new Error(`API error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log("[ReferralScreen] Referral data received:", data);
       setReferralData(data);
 
       // Fetch stats
       const statsResponse = await fetch(`${getBackendUrl()}/api/referral/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (statsResponse.ok) {
