@@ -40,9 +40,10 @@ const { width, height } = Dimensions.get("window");
 interface AuthScreenProps {
   onSuccess: () => void;
   initialResetToken?: string | null;
+  initialReferralCode?: string | null;
 }
 
-export default function AuthenticationScreen({ onSuccess, initialResetToken }: AuthScreenProps) {
+export default function AuthenticationScreen({ onSuccess, initialResetToken, initialReferralCode }: AuthScreenProps) {
   const { theme } = useTheme();
   const { signIn, signUp, signInWithGoogle } = useAuth();
 
@@ -52,6 +53,7 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [passwordResetMode, setPasswordResetMode] = useState<"none" | "forgot" | "reset">("none");
   const [resetToken, setResetToken] = useState<string | null>(initialResetToken || null);
+  const [referralCode] = useState<string | null>(initialReferralCode || null);
 
   // Handle initial reset token from deep link
   useEffect(() => {
@@ -195,8 +197,8 @@ export default function AuthenticationScreen({ onSuccess, initialResetToken }: A
     setErrors({});
 
     try {
-      // Call signup and wait for completion
-      await signUp(signupEmail, password, fullName);
+      // Call signup with optional referral code (captured from deep link)
+      await signUp(signupEmail, password, fullName, referralCode);
 
       // Only trigger success animation if signup succeeded
       // (auth context will throw if signup fails)

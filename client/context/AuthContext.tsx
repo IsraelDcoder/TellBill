@@ -38,7 +38,7 @@ export interface AuthContextType {
   session: any | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<void>;
+  signUp: (email: string, password: string, name?: string, referralCode?: string | null) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithApple: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -455,7 +455,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, referralCode?: string | null) => {
     try {
       setError(null);
       setIsLoading(true);
@@ -464,7 +464,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch(getApiUrl("/api/auth/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, referralCode: referralCode || undefined }),
       });
 
       const data = await response.json();
@@ -513,6 +513,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 🎯 Reset onboarding for new user
       const onboardingStore = useOnboardingStore.getState();
       onboardingStore.resetOnboarding();
+
+      // 🎯 Track referral signup if referral code was provided
+      if (referralCode) {
+        try {
+          const storedToken = await getStoredToken();
+          if (!storedToken) {
+            console.warn("[Auth] No token available for referral tracking");
+            return;
+          }
+          const referralResponse = await fetch(getApiUrl("/api/referral/signup-with-code"), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${storedToken}`,
+            },
+            body: JSON.stringify({ referralCode }),
+          });
+
+          if (referralResponse.ok) {
+            const referralData = await referralResponse.json();
+            console.log("[Auth] ✅ Referral signup recorded:", referralCode, referralData);
+          } else {
+            console.warn("[Auth] Failed to record referral signup:", referralCode);
+          }
+        } catch (err) {
+          console.warn("[Auth] Error recording referral during signup:", err);
+          // Don't fail signup if referral recording fails
+        }
+      }
 
       console.log("[Auth] Sign up successful:", email);
     } catch (err) {

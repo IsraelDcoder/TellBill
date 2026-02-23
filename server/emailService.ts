@@ -223,19 +223,19 @@ async function generateInvoicePDF(
           .fontSize(11)
           .font("Helvetica-Bold")
           .fillColor("#2563eb")
-          .text("PAYMENT", 50, yPosition + 100);
+          .text("PAYMENT LINK", 50, yPosition + 100);
 
         doc
           .fontSize(9)
           .font("Helvetica")
           .fillColor("#000000")
-          .text("Pay this invoice directly using the link below:", 50, yPosition + 120)
+          .text("Pay this invoice securely using the link below:", 50, yPosition + 120)
           .fontSize(10)
           .fillColor("#2563eb")
           .text(paymentLinkUrl, 50, yPosition + 140, { link: paymentLinkUrl })
           .fontSize(9)
           .fillColor("#666666")
-          .text("(Secure Stripe payment - click the link or copy and paste into your browser)", 50, yPosition + 160);
+          .text("(Click the link above to complete payment)", 50, yPosition + 160);
       }
 
       // Footer

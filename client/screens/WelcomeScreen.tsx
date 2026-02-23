@@ -10,25 +10,35 @@ import AuthenticationScreen from "@/screens/AuthenticationScreen";
 export default function WelcomeScreen() {
   const [stage, setStage] = useState<"splash" | "onboarding" | "auth">("splash");
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
 
-  // Handle deep links for password reset
+  // Handle deep links for password reset and referral codes
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
       const url = event.url;
       
-      // Parse reset-password?token=xxxx
-      if (url.includes("reset-password")) {
-        try {
-          const urlObj = new URL(url);
+      try {
+        const urlObj = new URL(url);
+        
+        // Parse reset-password?token=xxxx
+        if (url.includes("reset-password")) {
           const token = urlObj.searchParams.get("token");
-          
           if (token) {
             setResetToken(token);
           }
-        } catch (error) {
-          console.error("[WelcomeScreen] Failed to parse deep link:", error);
         }
+        
+        // Parse signup?ref=xxxx (referral code)
+        if (url.includes("signup") || url.includes("ref=")) {
+          const ref = urlObj.searchParams.get("ref");
+          if (ref) {
+            setReferralCode(ref);
+            console.log("[WelcomeScreen] Referral code captured:", ref);
+          }
+        }
+      } catch (error) {
+        console.error("[WelcomeScreen] Failed to parse deep link:", error);
       }
     };
 
@@ -94,7 +104,7 @@ export default function WelcomeScreen() {
       )}
 
       {stage === "auth" && (
-        <AuthenticationScreen onSuccess={handleAuthSuccess} initialResetToken={resetToken} />
+        <AuthenticationScreen onSuccess={handleAuthSuccess} initialResetToken={resetToken} initialReferralCode={referralCode} />
       )}
     </View>
   );

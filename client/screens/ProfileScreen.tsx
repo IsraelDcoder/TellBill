@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,9 +24,13 @@ import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
 import { formatCents } from "@/lib/money";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
+import { ProfileStackParamList } from "@/navigation/ProfileStackNavigator";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<ProfileStackParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 interface ProfileStats {
   invoicesCreated: number;
@@ -437,6 +441,14 @@ export default function ProfileScreen() {
           />
           <MenuDivider />
           <MenuItem
+            icon="share-2"
+            label="Referral Program"
+            onPress={() => navigation.navigate("ReferralScreen")}
+            showBadge
+            badgeText="Earn Free"
+          />
+          <MenuDivider />
+          <MenuItem
             icon="settings"
             label="Settings"
             onPress={() => navigation.navigate("Settings")}
@@ -454,6 +466,14 @@ export default function ProfileScreen() {
       <Section>
         <SectionTitle title="Preferences" />
         <ScreenGroup bordered>
+          <MenuItem
+            icon="layout"
+            label="Invoice Templates"
+            onPress={() => navigation.navigate("TemplatePickerScreen")}
+            showBadge
+            badgeText="Pro"
+          />
+          <MenuDivider />
           <PreferencesSection theme={theme} authToken={authToken} navigation={navigation} currentPlan={currentPlan} />
         </ScreenGroup>
       </Section>

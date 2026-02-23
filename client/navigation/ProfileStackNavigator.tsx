@@ -2,10 +2,14 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import ProfileScreen from "@/screens/ProfileScreen";
+import ReferralScreen from "@/screens/ReferralScreen";
+import TemplatePickerScreen from "@/screens/TemplatePickerScreen";
 import { useScreenOptions } from "@/hooks/useScreenOptions";
 
 export type ProfileStackParamList = {
   Profile: undefined;
+  ReferralScreen: undefined;
+  TemplatePickerScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -20,6 +24,20 @@ export default function ProfileStackNavigator() {
         component={ProfileScreen}
         options={{
           headerTitle: "Profile",
+        }}
+      />
+      <Stack.Screen
+        name="ReferralScreen"
+        component={ReferralScreen}
+        options={{
+          headerTitle: "Referral Program",
+        }}
+      />
+      <Stack.Screen
+        name="TemplatePickerScreen"
+        component={TemplatePickerScreen}
+        options={{
+          headerTitle: "Invoice Templates",
         }}
       />
     </Stack.Navigator>

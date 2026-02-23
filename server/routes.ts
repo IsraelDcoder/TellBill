@@ -3,8 +3,7 @@ import { createServer, type Server } from "node:http";
 import { registerTranscriptionRoutes } from "./transcription";
 import { registerAuthRoutes } from "./auth";
 import { registerRevenueCatRoutes } from "./revenuecat";
-import { registerStripeRoutes } from "./payments/stripe";
-import { registerStripeWebhookRoutes } from "./payments/stripeWebhook";
+
 import { registerInvoiceRoutes } from "./invoices";
 import { registerDataLoadingRoutes } from "./dataLoading";
 import { registerActivityLogRoutes } from "./activityLog";
@@ -16,6 +15,8 @@ import { registerTemplateRoutes } from "./templates";
 import { registerBillingRoutes } from "./billing/iapVerification";
 import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
 import { registerEarlyAccessRoutes } from "./early-access";
+import { registerReferralRoutes } from "./referral";
+import { registerIntercomRoutes } from "./intercom";
 import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
@@ -429,11 +430,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhook route (no auth) + protected routes (auth required)
   registerRevenueCatRoutes(app);
 
-  // ✅ STRIPE PAYMENT ROUTES
-  // Webhook (no auth) + protected checkout/portal routes
-  registerStripeWebhookRoutes(app);
-  registerStripeRoutes(app);
-
   // ✅ MOBILE BILLING ROUTES (IAP via RevenueCat)
   // Webhook (no auth) + protected verification routes
   registerRevenueCatWebhook(app);
@@ -478,6 +474,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ✅ Register custom invoice template routes (professional user feature)
   registerTemplateRoutes(app);
+
+  // ✅ Register referral system routes (viral growth - critical for $0 ad budget)
+  registerReferralRoutes(app);
+
+  // ✅ Register Intercom routes (in-app chat for trust & support)
+  registerIntercomRoutes(app);
 
   // ✅ STATIC APPROVAL PAGE (No auth required - token-based access)
   app.get("/approve/:token", (req, res) => {

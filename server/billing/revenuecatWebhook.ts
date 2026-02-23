@@ -13,8 +13,8 @@
 import { Router, Request, Response, Express } from "express";
 import crypto from "crypto";
 import { db } from "../db";
-import { users } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { users, referralConversions } from "../../shared/schema";
+import { eq, and } from "drizzle-orm";
 import { logger } from "../utils/logger";
 
 interface RevenueCatWebhookEvent {
@@ -127,10 +127,60 @@ export function registerRevenueCatWebhook(app: Express) {
 
       switch (type) {
         case "INITIAL_PURCHASE":
+          logger.info(
+            { userId: app_user_id, plan },
+            "Subscription initial purchase"
+          );
+
+          // Update user subscription
+          await db
+            .update(users)
+            .set({
+              currentPlan: plan,
+              subscriptionStatus: plan === "free" ? "inactive" : "active",
+              subscriptionTier: plan,
+              subscriptionUpdatedAt: new Date(),
+              subscriptionExpiryDate: new Date(expiresAt),
+            })
+            .where(eq(users.id, app_user_id));
+
+          // 🎯 Mark referral as converted if user was referred
+          try {
+            const pendingReferral = await db.query.referralConversions.findFirst({
+              where: and(
+                eq(referralConversions.referredUserId, app_user_id),
+                eq(referralConversions.status, "pending")
+              ),
+            });
+
+            if (pendingReferral) {
+              await db
+                .update(referralConversions)
+                .set({
+                  status: "converted",
+                  convertedAt: new Date(),
+                })
+                .where(eq(referralConversions.id, pendingReferral.id));
+
+              logger.info(
+                { userId: app_user_id, referralId: pendingReferral.id },
+                "Referral marked as converted on initial purchase"
+              );
+            }
+          } catch (err) {
+            logger.error(
+              { error: err, userId: app_user_id },
+              "Failed to mark referral as converted"
+            );
+            // Don't fail the webhook if referral update fails
+          }
+
+          break;
+
         case "RENEWAL":
           logger.info(
             { userId: app_user_id, plan },
-            "Subscription purchase/renewal"
+            "Subscription renewal"
           );
 
           await db

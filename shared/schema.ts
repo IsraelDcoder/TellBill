@@ -621,6 +621,72 @@ export const earlyAccess = pgTable("early_access", {
     .defaultNow(),
 });
 
+// ✅ REFERRAL SYSTEM - Viral growth mechanism
+// MVP: User gets unique code, refer 3 paying users → 1 month free
+
+export const referralCodes = pgTable("referral_codes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  code: text("code").notNull().unique(), // e.g., "ABC1D2E3" (8 chars)
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const referralConversions = pgTable("referral_conversions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  referrerId: text("referrer_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  referredUserId: text("referred_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  referralCode: text("referral_code").notNull(),
+  status: text("status").default("pending"), // pending, converted, claimed
+  convertedAt: timestamp("converted_at", { withTimezone: true }),
+  bonusClaimedAt: timestamp("bonus_claimed_at", { withTimezone: true }),
+  bonusExpiresAt: timestamp("bonus_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const referralBonuses = pgTable("referral_bonuses", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  successfulReferrals: integer("successful_referrals").default(0), // Count of conversions
+  bonusEarnedAt: timestamp("bonus_earned_at", { withTimezone: true }),
+  bonusRedeemedAt: timestamp("bonus_redeemed_at", { withTimezone: true }),
+  bonusExpiresAt: timestamp("bonus_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ReferralCode = typeof referralCodes.$inferSelect;
+export type InsertReferralCode = typeof referralCodes.$inferInsert;
+
+export type ReferralConversion = typeof referralConversions.$inferSelect;
+export type InsertReferralConversion = typeof referralConversions.$inferInsert;
+
+export type ReferralBonus = typeof referralBonuses.$inferSelect;
+export type InsertReferralBonus = typeof referralBonuses.$inferInsert;
+
 export type EarlyAccess = typeof earlyAccess.$inferSelect;
 export type InsertEarlyAccess = typeof earlyAccess.$inferInsert;
 

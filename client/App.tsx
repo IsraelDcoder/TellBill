@@ -14,6 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthRootGuard } from "@/components/AuthRootGuard";
 import { useRevenueCatInitialization, useRevenueCatListener, useEntitlementRefresh } from "@/hooks/useRevenueCat";
+import { useIntercomInitialization } from "@/hooks/useIntercom";
 
 function AppContent() {
   // Initialize RevenueCat SDK on app start
@@ -24,6 +25,9 @@ function AppContent() {
 
   // Refresh entitlements when user authenticates (app startup + login)
   useEntitlementRefresh();
+
+  // Initialize Intercom on app start
+  useIntercomInitialization();
 
   return (
     <NavigationContainer>

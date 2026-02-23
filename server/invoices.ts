@@ -3,7 +3,7 @@ import { db } from "./db";
 import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { stripe } from "./payments/stripeClient";
+
 import { resolvePaymentInfo } from "./lib/paymentResolver";
 import {
   sendInvoiceEmail,
@@ -288,58 +288,9 @@ export function registerInvoiceRoutes(app: Express) {
           total: completeInvoiceData.total,
         });
 
-        // ✅ GENERATE PAYMENT LINK (for email/WhatsApp)
-        let paymentLinkUrl: string | null | undefined = dbInvoice.paymentLinkUrl;
-        if (!paymentLinkUrl) {
-          try {
-            console.log(`[Invoice] 💳 Generating payment link for invoice ${invoiceId}...`);
-            const totalInCents = Math.round(completeInvoiceData.total * 100);
-            if (totalInCents > 0) {
-              const checkoutSession = await stripe.checkout.sessions.create({
-                payment_method_types: ["card"],
-                mode: "payment",
-                client_reference_id: invoiceId,
-                customer_email: dbInvoice.clientEmail || undefined,
-                line_items: [
-                  {
-                    price_data: {
-                      currency: "usd",
-                      product_data: {
-                        name: `Invoice ${dbInvoice.invoiceNumber || invoiceId}`,
-                        description: `Payment for invoice from ${dbInvoice.clientName || "Client"}`,
-                      },
-                      unit_amount: totalInCents,
-                    },
-                    quantity: 1,
-                  },
-                ],
-                success_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}`,
-                cancel_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-cancelled?invoice_id=${invoiceId}`,
-                metadata: {
-                  invoiceId,
-                  userId: dbInvoice.userId,
-                  invoiceNumber: dbInvoice.invoiceNumber || "",
-                },
-              });
-              
-              paymentLinkUrl = checkoutSession.url || null;
-              
-              // Save to DB for future use
-              await db
-                .update(schema.invoices)
-                .set({
-                  paymentLinkUrl,
-                  stripeCheckoutSessionId: checkoutSession.id,
-                })
-                .where(eq(schema.invoices.id, invoiceId));
-              
-              console.log(`[Invoice] ✅ Payment link created: ${paymentLinkUrl}`);
-            }
-          } catch (paymentError) {
-            console.warn(`[Invoice] ⚠️  Failed to generate payment link:`, paymentError);
-            // Continue without payment link - email will still be sent
-          }
-        }
+        // ✅ PAYMENT: Using Google IAP (RevenueCat) via mobile app only
+        // Web/email invoices don't include payment links - subscriptions managed via app
+        const paymentLinkUrl: string | null = null;
 
         // Route to appropriate service based on method
         try {
@@ -1154,53 +1105,11 @@ export function registerInvoiceRoutes(app: Express) {
         });
       }
 
-      // ✅ CREATE STRIPE CHECKOUT SESSION
-      const totalInCents = Math.round(parseFloat(invoice.total || "0") * 100);
-      if (totalInCents <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: "Invoice total must be greater than $0",
-        });
-      }
-
-      const checkoutSession = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        mode: "payment",
-        client_reference_id: invoiceId,
-        customer_email: invoice.clientEmail || undefined,
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: `Invoice ${invoice.invoiceNumber || invoiceId}`,
-                description: `Payment for invoice from ${invoice.clientName || "Client"}`,
-              },
-              unit_amount: totalInCents,
-            },
-            quantity: 1,
-          },
-        ],
-        success_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoiceId}`,
-        cancel_url: `${process.env.FRONTEND_URL || "https://tellbill.app"}/payment-cancelled?invoice_id=${invoiceId}`,
-        metadata: {
-          invoiceId,
-          userId,
-          invoiceNumber: invoice.invoiceNumber || "",
-        },
-      });
-
-      // ✅ SAVE PAYMENT LINK AND SESSION ID TO DATABASE
-      const paymentLinkUrl = checkoutSession.url;
-      const stripeCheckoutSessionId = checkoutSession.id;
-
-      await db
-        .update(schema.invoices)
-        .set({
-          paymentLinkUrl,
-          stripeCheckoutSessionId,
-        })
-        .where(eq(schema.invoices.id, normalizedPaymentId));
+      // ✅ PAYMENT: Using Google IAP only
+      // Contractors manage subscriptions via mobile app (iOS / Android)
+      // Not using payment links for web invoices
+      const paymentLinkUrl = null;
+      const stripeCheckoutSessionId = null;
 
       console.log(`[Invoice] ✅ Generated payment link for invoice ${invoiceId}`);
       console.log(`[Invoice] Payment URL: ${paymentLinkUrl}`);

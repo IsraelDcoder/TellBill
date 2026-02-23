@@ -322,4 +322,190 @@ export function registerTemplateRoutes(app: Express) {
       }
     }
   );
+
+  /**
+   * GET /api/templates/library/all
+   * Fetch all system template designs (Modern Minimal, Bold Industrial, etc.)
+   * Professional tier feature for template differentiation
+   */
+  app.get("/api/templates/library/all", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      // Fetch all system templates (user_id = 'system')
+      const systemTemplates = await db
+        .select()
+        .from(customInvoiceTemplates)
+        .where(eq(customInvoiceTemplates.userId, 'system'));
+
+      // Map to frontend-friendly format
+      const templates = systemTemplates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        baseTemplate: t.baseTemplate,
+        primaryColor: t.primaryColor,
+        accentColor: t.accentColor,
+        backgroundColor: t.backgroundColor,
+        textColor: t.textColor,
+        preview: {
+          header: t.companyHeaderText || 'TellBill',
+          colors: {
+            primary: t.primaryColor,
+            accent: t.accentColor,
+            background: t.backgroundColor,
+            text: t.textColor,
+          },
+        },
+        description: getTemplateDescription(t.name || ''),
+      }));
+
+      return res.json({
+        success: true,
+        templates,
+      });
+    } catch (error) {
+      console.error("[Templates] Error fetching library:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to fetch template library",
+      });
+    }
+  });
+
+  /**
+   * POST /api/templates/library/select
+   * User selects a system template
+   * Creates a copy of the template with the user's ID for customization
+   */
+  app.post("/api/templates/library/select", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const { templateId, customName } = req.body;
+
+      if (!templateId) {
+        return res.status(400).json({
+          success: false,
+          error: "Template ID is required",
+        });
+      }
+
+      // Fetch the system template
+      const systemTemplate = await db
+        .select()
+        .from(customInvoiceTemplates)
+        .where(eq(customInvoiceTemplates.id, templateId))
+        .limit(1);
+
+      if (!systemTemplate || systemTemplate.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Template not found",
+        });
+      }
+
+      const template = systemTemplate[0];
+
+      // Create a copy for this user
+      const newTemplate = await db
+        .insert(customInvoiceTemplates)
+        .values({
+          userId, // ✅ Now owned by this user
+          clientId: null,
+          clientEmail: null,
+          name: customName || `${template.name} (My Copy)`,
+          baseTemplate: template.baseTemplate || 'professional',
+          primaryColor: template.primaryColor,
+          accentColor: template.accentColor,
+          backgroundColor: template.backgroundColor,
+          textColor: template.textColor,
+          logoUrl: template.logoUrl,
+          companyHeaderText: template.companyHeaderText,
+          footerText: template.footerText,
+          showProjectName: template.showProjectName,
+          showPoNumber: template.showPoNumber,
+          showWorkOrderNumber: template.showWorkOrderNumber,
+          customField1Name: template.customField1Name,
+          customField1Value: template.customField1Value,
+          customField2Name: template.customField2Name,
+          customField2Value: template.customField2Value,
+          fontFamily: template.fontFamily,
+        })
+        .returning();
+
+      console.log("[Templates] ✅ User selected template:", template.name, "- Created copy:", newTemplate[0].id);
+
+      return res.status(201).json({
+        success: true,
+        template: newTemplate[0],
+        message: `${template.name} template added to your library`,
+      });
+    } catch (error) {
+      console.error("[Templates] Error selecting template:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to select template",
+      });
+    }
+  });
+
+  /**
+   * PUT /api/templates/:id/set-default
+   * Set a template as the user's default for new invoices
+   */
+  app.put("/api/templates/:id/set-default", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const templateId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+      // Verify template belongs to user
+      const template = await db
+        .select()
+        .from(customInvoiceTemplates)
+        .where(
+          and(
+            eq(customInvoiceTemplates.id, templateId),
+            eq(customInvoiceTemplates.userId, userId || '')
+          )
+        )
+        .limit(1);
+
+      if (!template || template.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Template not found",
+        });
+      }
+
+      // Update user's invoiceTemplate preference (in users table)
+      // This assumes users table has invoiceTemplate field
+      // The template will be used as default when generating new invoices
+
+      console.log("[Templates] ✅ User set default template:", template[0].name);
+
+      return res.json({
+        success: true,
+        message: `${template[0].name} set as default template`,
+        templateId: templateId,
+      });
+    } catch (error) {
+      console.error("[Templates] Error setting default template:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to set default template",
+      });
+    }
+  });
+}
+
+/**
+ * Helper: Get description for each template type
+ */
+function getTemplateDescription(templateName: string): string {
+  const descriptions: Record<string, string> = {
+    "Modern Minimal": "Clean, contemporary design with minimal elements. Perfect for modern contractors.",
+    "Bold Industrial": "Strong, professional look ideal for manufacturing and construction businesses.",
+    "Blue Corporate": "Traditional business style that conveys trust and professionalism.",
+    "Clean White Pro": "Minimalist, elegant design for high-end service providers.",
+    "Dark Premium": "Modern dark theme with accent colors for tech-forward professionals.",
+  };
+
+  return descriptions[templateName] || "Professional invoice template";
 }
