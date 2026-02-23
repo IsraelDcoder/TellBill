@@ -209,36 +209,31 @@ export default function BillingScreen() {
   const tiers: PricingTier[] = [
     {
       name: "Solo",
-      description: "For individuals",
+      description: "For solo contractors & freelancers",
       features: [
-        "✓ Unlimited invoices",
-        "✓ Voice recording",
-        "✓ PDF export",
-        "✓ Email support",
+        "Unlimited voice-to-invoice recording",
+        "Unlimited invoices",
+        "Basic invoicing",
+        "Payment tracking",
       ],
       package: offerings?.availablePackages.find(
         (p) =>
-          p.identifier.includes("solo") ||
-          p.identifier.includes("month") ||
-          p.identifier.includes("annual")
+          p.identifier.includes("solo") &&
+          !p.identifier.includes("professional")
       ),
     },
     {
       name: "Professional",
-      description: "For growing teams",
+      description: "Money protection for growing contractors",
       features: [
-        "✓ Unlimited invoices",
-        "✓ Voice recording",
-        "✓ Scope proof & client approval",
-        "✓ Custom invoice templates",
-        "✓ Advanced money alerts",
-        "✓ Dispute-ready work logs",
-        "✓ Priority processing",
+        "Protect against unpaid work",
+        "Prevent scope creep disputes",
+        "Prove extra work was approved",
+        "Automatic payment reminders",
+        "Priority email support",
       ],
       package: offerings?.availablePackages.find(
-        (p) =>
-          p.identifier.includes("professional") ||
-          p.identifier.includes("pro")
+        (p) => p.identifier.includes("professional")
       ),
       isPopular: true,
     },
@@ -280,19 +275,19 @@ export default function BillingScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="h2" style={{ marginBottom: Spacing.sm }}>
-            Choose Your Plan
+          <ThemedText type="h1" style={{ marginBottom: Spacing.sm, fontWeight: "700" }}>
+            Stop Losing Money to Late Payments
           </ThemedText>
           <ThemedText
             type="body"
-            style={{ color: theme.textSecondary }}
+            style={{ color: theme.textSecondary, fontSize: 16, fontWeight: "500" }}
           >
-            Unlock features and grow your business
+            Professional invoicing built for contractors
           </ThemedText>
         </View>
 
         {/* Annual/Monthly Toggle */}
-        <View style={[styles.toggleContainer, { gap: Spacing.md }]}>
+        <View style={styles.toggleContainer}>
           <Pressable
             onPress={() => setIsAnnual(false)}
             style={[
@@ -300,14 +295,15 @@ export default function BillingScreen() {
               {
                 backgroundColor: !isAnnual
                   ? BrandColors.constructionGold
-                  : theme.backgroundDefault,
+                  : "transparent",
               },
             ]}
           >
             <ThemedText
               style={{
-                fontWeight: "bold",
+                fontWeight: "600",
                 color: !isAnnual ? BrandColors.white : theme.text,
+                fontSize: 16,
               }}
             >
               Monthly
@@ -320,14 +316,15 @@ export default function BillingScreen() {
               {
                 backgroundColor: isAnnual
                   ? BrandColors.constructionGold
-                  : theme.backgroundDefault,
+                  : "transparent",
               },
             ]}
           >
             <ThemedText
               style={{
-                fontWeight: "bold",
+                fontWeight: "600",
                 color: isAnnual ? BrandColors.white : theme.text,
+                fontSize: 16,
               }}
             >
               Annual (Save 17%)
@@ -335,144 +332,322 @@ export default function BillingScreen() {
           </Pressable>
         </View>
 
-        {/* Pricing Tiers */}
+        {/* Pricing Tiers - Two Column Layout */}
         <View style={styles.tiersContainer}>
-          {tiers.map((tier) => (
-            <GlassCard
-              key={tier.name}
-              style={StyleSheet.flatten([
-                styles.tierCard,
-                {
-                  borderColor: tier.isPopular
-                    ? BrandColors.constructionGold
-                    : theme.border,
-                  borderWidth: tier.isPopular ? 2 : 1,
-                  transform: tier.isPopular ? [{ scale: 1.02 }] : [],
-                },
-              ])}
+          {/* Solo Card */}
+          <View
+            style={[
+              styles.tierCard,
+              {
+                borderColor: theme.border,
+                borderWidth: 1,
+                backgroundColor: theme.backgroundDefault,
+              },
+            ]}
+          >
+            <ThemedText
+              type="h2"
+              style={[styles.tierName, { fontSize: 24, fontWeight: "600" }]}
             >
-              {tier.isPopular && (
-                <View
-                  style={[
-                    styles.popularBadge,
-                    {
-                      backgroundColor: BrandColors.constructionGold,
-                    },
-                  ]}
+              Solo Plan
+            </ThemedText>
+
+            <ThemedText
+              type="body"
+              style={{
+                color: theme.textSecondary,
+                marginBottom: Spacing.lg,
+                fontSize: 14,
+              }}
+            >
+              For solo contractors & freelancers
+            </ThemedText>
+
+            {/* Price */}
+            <View style={{ marginBottom: Spacing.lg }}>
+              <View style={styles.priceRow}>
+                <ThemedText
+                  style={{
+                    fontSize: 32,
+                    fontWeight: "700",
+                    color: BrandColors.constructionGold,
+                  }}
                 >
-                  <ThemedText
-                    type="small"
-                    style={{
-                      color: BrandColors.white,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    MOST POPULAR
-                  </ThemedText>
-                </View>
-              )}
-
-              <ThemedText type="h2" style={styles.tierName}>
-                {tier.name}
-              </ThemedText>
-
+                  $9
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    fontSize: 16,
+                    color: theme.textSecondary,
+                    paddingLeft: Spacing.sm,
+                  }}
+                >
+                  / month
+                </ThemedText>
+              </View>
               <ThemedText
-                type="small"
                 style={{
+                  fontSize: 12,
                   color: theme.textSecondary,
-                  marginBottom: Spacing.lg,
+                  marginTop: Spacing.xs,
                 }}
               >
-                {tier.description}
+                $90 / year ($18 / year savings)
               </ThemedText>
+            </View>
 
-              {/* Price */}
-              <View style={styles.priceContainer}>
-                <ThemedText
-                  type="h1"
-                  style={{ color: BrandColors.constructionGold }}
-                >
-                  {tier.package
-                    ? tier.package.product.priceString
-                    : "Contact us"}
-                </ThemedText>
-                {tier.package?.product.subscriptionPeriod && (
-                  <ThemedText
-                    type="small"
-                    style={{ color: theme.textSecondary }}
-                  >
-                    /{tier.package.product.subscriptionPeriod}
-                  </ThemedText>
-                )}
-              </View>
-
-              {/* CTA Button */}
-              <Button
-                variant="primary"
-                onPress={() => handlePurchase(tier)}
-                disabled={purchasing !== null}
-                style={styles.ctaButton}
-              >
-                {purchasing === tier.package?.identifier ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={BrandColors.white}
+            {/* Features List */}
+            <View style={styles.featuresList}>
+              {[
+                "Unlimited voice-to-invoice recording",
+                "Unlimited invoices",
+                "Basic invoicing",
+                "Payment tracking",
+              ].map((feature) => (
+                <View key={feature} style={styles.featureItem}>
+                  <Feather
+                    name="check"
+                    size={18}
+                    color={BrandColors.constructionGold}
+                    style={{ marginRight: Spacing.md }}
                   />
-                ) : (
-                  <>
-                    <Feather
-                      name="credit-card"
-                      size={16}
-                      color={BrandColors.white}
-                      style={{ marginRight: Spacing.sm }}
-                    />
-                    <ThemedText
-                      style={{
-                        color: BrandColors.white,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {userEntitlement === tier.name.toLowerCase()
-                        ? "Your Plan"
-                        : "Upgrade Now"}
-                    </ThemedText>
-                  </>
-                )}
-              </Button>
+                  <ThemedText
+                    type="body"
+                    style={{ color: theme.text, fontSize: 14 }}
+                  >
+                    {feature}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
 
-              {/* Features List */}
-              <View style={styles.featuresList}>
-                {tier.features.map((feature) => (
-                  <View key={feature} style={styles.featureItem}>
-                    <Feather
-                      name="check-circle"
-                      size={14}
-                      color={BrandColors.constructionGold}
-                      style={{ marginRight: Spacing.sm }}
-                    />
-                    <ThemedText type="small">{feature}</ThemedText>
-                  </View>
-                ))}
+            {/* CTA Button */}
+            <Pressable
+              onPress={() => handlePurchase(tiers[0])}
+              disabled={purchasing !== null}
+              style={[
+                styles.ctaButton,
+                {
+                  backgroundColor: BrandColors.constructionGold,
+                  marginTop: Spacing.xl,
+                },
+              ]}
+            >
+              {purchasing === tiers[0].package?.identifier ? (
+                <ActivityIndicator
+                  size="small"
+                  color={BrandColors.white}
+                />
+              ) : (
+                <ThemedText
+                  style={{
+                    color: BrandColors.white,
+                    fontWeight: "700",
+                    fontSize: 16,
+                  }}
+                >
+                  Upgrade Now
+                </ThemedText>
+              )}
+            </Pressable>
+
+            <ThemedText
+              style={{
+                fontSize: 12,
+                color: theme.textSecondary,
+                textAlign: "center",
+                marginTop: Spacing.sm,
+              }}
+            >
+              $9 / month
+            </ThemedText>
+          </View>
+
+          {/* Professional Card */}
+          <View
+            style={[
+              styles.tierCard,
+              {
+                borderColor: BrandColors.constructionGold,
+                borderWidth: 2,
+                backgroundColor: theme.backgroundDefault,
+              },
+            ]}
+          >
+            {/* Most Popular Badge */}
+            <View
+              style={[
+                styles.popularBadge,
+                {
+                  backgroundColor: BrandColors.constructionGold,
+                },
+              ]}
+            >
+              <ThemedText
+                style={{
+                  color: BrandColors.white,
+                  fontWeight: "700",
+                  fontSize: 11,
+                  letterSpacing: 1,
+                }}
+              >
+                MOST POPULAR
+              </ThemedText>
+            </View>
+
+            <ThemedText
+              type="h2"
+              style={[styles.tierName, { fontSize: 24, fontWeight: "600" }]}
+            >
+              Professional Plan
+            </ThemedText>
+
+            <ThemedText
+              type="body"
+              style={{
+                color: theme.textSecondary,
+                marginBottom: Spacing.lg,
+                fontSize: 14,
+              }}
+            >
+              Money protection for growing contractors
+            </ThemedText>
+
+            {/* Price */}
+            <View style={{ marginBottom: Spacing.lg }}>
+              <View style={styles.priceRow}>
+                <ThemedText
+                  style={{
+                    fontSize: 32,
+                    fontWeight: "700",
+                    color: BrandColors.constructionGold,
+                  }}
+                >
+                  $24
+                </ThemedText>
+                <ThemedText
+                  style={{
+                    fontSize: 16,
+                    color: theme.textSecondary,
+                    paddingLeft: Spacing.sm,
+                  }}
+                >
+                  / month
+                </ThemedText>
               </View>
-            </GlassCard>
-          ))}
+              <ThemedText
+                style={{
+                  fontSize: 12,
+                  color: theme.textSecondary,
+                  marginTop: Spacing.xs,
+                }}
+              >
+                $240 / year ($48 / year savings)
+              </ThemedText>
+            </View>
+
+            {/* Features List */}
+            <View style={styles.featuresList}>
+              <ThemedText
+                type="body"
+                style={{
+                  color: theme.text,
+                  fontWeight: "600",
+                  marginBottom: Spacing.md,
+                  fontSize: 14,
+                }}
+              >
+                Everything in Solo, plus:
+              </ThemedText>
+              {[
+                "Protect against unpaid work",
+                "Prevent scope creep disputes",
+                "Prove extra work was approved",
+                "Automatic payment reminders",
+                "Priority email support",
+              ].map((feature) => (
+                <View key={feature} style={styles.featureItem}>
+                  <Feather
+                    name="check"
+                    size={18}
+                    color={BrandColors.constructionGold}
+                    style={{ marginRight: Spacing.md }}
+                  />
+                  <ThemedText
+                    type="body"
+                    style={{ color: theme.text, fontSize: 14 }}
+                  >
+                    {feature}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+
+            {/* CTA Button */}
+            <Pressable
+              onPress={() => handlePurchase(tiers[1])}
+              disabled={purchasing !== null}
+              style={[
+                styles.ctaButton,
+                {
+                  backgroundColor: BrandColors.constructionGold,
+                  marginTop: Spacing.xl,
+                },
+              ]}
+            >
+              {purchasing === tiers[1].package?.identifier ? (
+                <ActivityIndicator
+                  size="small"
+                  color={BrandColors.white}
+                />
+              ) : (
+                <ThemedText
+                  style={{
+                    color: BrandColors.white,
+                    fontWeight: "700",
+                    fontSize: 16,
+                  }}
+                >
+                  Start Free Trial
+                </ThemedText>
+              )}
+            </Pressable>
+
+            <ThemedText
+              style={{
+                fontSize: 12,
+                color: theme.textSecondary,
+                textAlign: "center",
+                marginTop: Spacing.sm,
+              }}
+            >
+              7-day free trial. Cancel anytime.
+            </ThemedText>
+          </View>
         </View>
 
         {/* Restore Purchases */}
-        <Button
-          variant="outline"
+        <Pressable
           onPress={handleRestorePurchases}
           disabled={purchasing !== null}
           style={styles.restoreButton}
         >
           <Feather
             name="refresh-cw"
-            size={16}
-            color={theme.text}
+            size={18}
+            color={BrandColors.constructionGold}
             style={{ marginRight: Spacing.sm }}
           />
-          <ThemedText>Restore Purchases</ThemedText>
-        </Button>
+          <ThemedText
+            style={{
+              color: BrandColors.constructionGold,
+              fontWeight: "600",
+              fontSize: 14,
+            }}
+          >
+            Restore Purchases
+          </ThemedText>
+        </Pressable>
 
         {/* Legal Text */}
         <View style={styles.legalText}>
@@ -481,14 +656,11 @@ export default function BillingScreen() {
             style={{
               color: theme.textSecondary,
               textAlign: "center",
+              fontSize: 12,
+              lineHeight: 18,
             }}
           >
-            Subscriptions renew automatically. Cancel anytime in your device
-            settings.
-            {"\n\n"}
-            iOS: Settings → [Your Name] → Subscriptions
-            {"\n"}
-            Android: Google Play → Account → Subscriptions
+            Subscriptions renew automatically. Cancel anytime in your Google Play settings.
           </ThemedText>
         </View>
 
@@ -499,6 +671,7 @@ export default function BillingScreen() {
             style={{
               color: theme.textSecondary,
               textAlign: "center",
+              fontSize: 14,
             }}
           >
             Need enterprise tools?{" "}
@@ -506,7 +679,7 @@ export default function BillingScreen() {
               type="small"
               style={{
                 color: BrandColors.constructionGold,
-                fontWeight: "bold",
+                fontWeight: "700",
               }}
               onPress={() =>
                 Alert.alert(
@@ -538,17 +711,22 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: "row",
     marginBottom: Spacing["3xl"],
+    gap: Spacing.md,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
+    borderRadius: 24,
     alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   tiersContainer: {
     gap: Spacing.lg,
     marginBottom: Spacing["3xl"],
+    flexDirection: "column",
   },
   tierCard: {
     padding: Spacing.lg,
@@ -557,12 +735,16 @@ const styles = StyleSheet.create({
   popularBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
+    borderRadius: 16,
     alignSelf: "flex-start",
     marginBottom: Spacing.md,
   },
   tierName: {
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
   },
   priceContainer: {
     flexDirection: "row",
@@ -570,26 +752,29 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   ctaButton: {
-    marginVertical: Spacing.lg,
-    flexDirection: "row",
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: "center",
     justifyContent: "center",
   },
   featuresList: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
     marginTop: Spacing.lg,
   },
   featureItem: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
   restoreButton: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
     flexDirection: "row",
     justifyContent: "center",
+    paddingVertical: Spacing.md,
   },
   legalText: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   enterpriseContact: {
     paddingHorizontal: Spacing.md,
