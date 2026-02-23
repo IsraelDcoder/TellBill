@@ -26,7 +26,7 @@ export function registerReferralRoutes(app: Express) {
    */
   app.get("/api/referral/my-code", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
 
       if (!userId) {
         return res.status(401).json({ success: false, error: "Not authenticated" });
@@ -121,7 +121,7 @@ export function registerReferralRoutes(app: Express) {
    */
   app.post("/api/referral/signup-with-code", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
       const { referralCode } = req.body;
 
       if (!userId || !referralCode) {
@@ -287,7 +287,7 @@ export function registerReferralRoutes(app: Express) {
    */
   app.get("/api/referral/stats", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
 
       if (!userId) {
         return res.status(401).json({ success: false, error: "Not authenticated" });
@@ -355,7 +355,7 @@ export function registerReferralRoutes(app: Express) {
    */
   app.post("/api/referral/redeem-bonus", authMiddleware, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req as any).user?.userId;
 
       if (!userId) {
         return res.status(401).json({ success: false, error: "Not authenticated" });
