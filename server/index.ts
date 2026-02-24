@@ -11,6 +11,7 @@ import {
 } from "./utils/sentry";
 import { initializeBackupSystem } from "./utils/backup";
 import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
+import { initLatePaymentScheduler } from "./utils/latePaymentScheduler";
 import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
 import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob";
 import { securityHeaders } from "./utils/sanitize";
@@ -199,6 +200,10 @@ function setupErrorHandler(app: express.Application) {
     // Initialize scope proof scheduler (handles reminders and expiry)
     initScopeProofScheduler();
     logger.info("✅ Scope proof scheduler initialized");
+
+    // Initialize late payment scheduler (sends automated reminders on Day 2 and Day 6)
+    initLatePaymentScheduler();
+    logger.info("✅ Late payment scheduler initialized");
 
     // Initialize Money Alerts scheduled jobs (detects unbilled work every 6 hours)
     startMoneyAlertsJobs();

@@ -165,6 +165,7 @@ export const preferences = pgTable("preferences", {
   defaultTaxProfileId: text("default_tax_profile_id"), // Link to user's default tax profile
   invoiceTemplate: text("invoice_template").default("default"), // default, minimal, detailed
   defaultPaymentTerms: text("default_payment_terms").default("Due upon receipt"),
+  latePaymentReminders: boolean("late_payment_reminders").default(true), // ✅ Enable/disable auto late payment reminders (Pro feature)
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -241,7 +242,8 @@ export const invoices = pgTable("invoices", {
     .defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
-  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }), // ✅ Track when payment reminder was sent
+  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }), // ✅ Track when Day 2 payment reminder was sent
+  day6ReminderSentAt: timestamp("day6_reminder_sent_at", { withTimezone: true }), // ✅ Track when Day 6 late payment reminder was sent
   
   // ✅ Payment info override (company-level default can be overridden per invoice)
   paymentMethodTypeOverride: text("payment_method_type_override"),

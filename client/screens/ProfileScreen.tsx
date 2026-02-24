@@ -92,6 +92,27 @@ function PreferencesSection({ theme, authToken, navigation, currentPlan }: { the
           </View>
         </View>
       </Pressable>
+      {isProfessional && (
+        <>
+          <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
+          <Pressable 
+            onPress={() => prefs.toggleLatePaymentReminders()} 
+            style={styles.preferenceItem}>
+            <View style={styles.preferenceLeft}>
+              <Feather name="bell" size={18} color={BrandColors.constructionGold} />
+              <View style={styles.preferenceText}>
+                <ThemedText type="body">Late Payment Reminders</ThemedText>
+                <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  {prefs.latePaymentReminders ? "Enabled" : "Disabled"}
+                </ThemedText>
+              </View>
+            </View>
+            <View style={[styles.toggle, { backgroundColor: prefs.latePaymentReminders ? BrandColors.constructionGold : theme.border }]}>
+              <View style={[styles.toggleCircle, { transform: [{ translateX: prefs.latePaymentReminders ? 20 : 2 }] }]} />
+            </View>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 }
@@ -579,5 +600,18 @@ const styles = StyleSheet.create({
   },
   dropdownItemActive: {
     backgroundColor: `${BrandColors.constructionGold}10`,
+  },
+  toggle: {
+    width: 44,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
   },
 });

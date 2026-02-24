@@ -17,6 +17,7 @@ import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
 import { registerEarlyAccessRoutes } from "./early-access";
 import { registerReferralRoutes } from "./referral";
 import { registerIntercomRoutes } from "./intercom";
+import { registerAdminRoutes } from "./admin";
 import { authMiddleware } from "./utils/authMiddleware";
 import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
@@ -480,6 +481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ✅ Register Intercom routes (in-app chat for trust & support)
   registerIntercomRoutes(app);
+
+  // ✅ Register admin routes (manual testing and monitoring)
+  registerAdminRoutes(app);
 
   // ✅ STATIC APPROVAL PAGE (No auth required - token-based access)
   app.get("/approve/:token", (req, res) => {

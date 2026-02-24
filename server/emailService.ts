@@ -1,6 +1,9 @@
 import { Resend } from "resend";
 import PDFDocument from "pdfkit";
 import { PassThrough } from "stream";
+import { db } from "./db";
+import { invoices, preferences, users } from "../shared/schema";
+import { and, eq, isNull, lte, isNotNull } from "drizzle-orm";
 
 // Initialize Resend with API key
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -1090,3 +1093,310 @@ export async function sendReminderEmail(
   }
 }
 
+/**
+ * ✅ Send late payment reminder email (Day 2 or Day 6)
+ * Day 2: Friendly reminder - invoice is becoming overdue
+ * Day 6: Firm reminder - invoice is now severely overdue
+ */
+export async function sendLatePaymentReminder(
+  invoice: any,
+  reminderType: "day2" | "day6"
+): Promise<void> {
+  try {
+    if (!invoice.userId) {
+      throw new Error("Invoice must have userId");
+    }
+
+    // Get user info from database
+    const userResult = await db.query.users.findFirst({
+      where: eq(users.id, invoice.userId),
+    });
+
+    if (!userResult) {
+      throw new Error(`User not found: ${invoice.userId}`);
+    }
+
+    const userEmail = userResult.email || "";
+    const userName = userResult.name || "Business Owner";
+    
+    const invoiceNumber = invoice.id;
+    const amount = (invoice.total || 0).toFixed(2);
+    const dueDate = new Date(invoice.dueDate);
+    const dueDateFormatted = dueDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    // Calculate days overdue
+    const now = new Date();
+    const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    let emailHtml: string;
+    let subject: string;
+
+    if (reminderType === "day2") {
+      // ✅ DAY 2: Friendly reminder
+      subject = `⏰ Friendly Reminder: Invoice #${invoiceNumber} is Due`;
+      
+      emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', without-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0; color: white;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">⏰ Payment Reminder</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.95;">Your invoice is due soon</p>
+          </div>
+          
+          <div style="background: white; padding: 40px; border: 1px solid #eee; border-top: none;">
+            <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+              Hi ${userName},
+            </p>
+            
+            <p style="font-size: 15px; color: #666; line-height: 1.6; margin: 0 0 20px 0;">
+              We wanted to reach out as a friendly reminder that your invoice <strong>#${invoiceNumber}</strong> is now due. To keep your cash flow smooth, we recommend following up with your client to ensure this invoice gets paid promptly.
+            </p>
+
+            <div style="background: #FFF8E7; padding: 20px; border-radius: 8px; border-left: 4px solid #FFA500; margin: 20px 0;">
+              <p style="margin: 0; color: #333; font-size: 14px;">Invoice Amount Due</p>
+              <p style="margin: 8px 0 0 0; font-size: 26px; color: #FF8C00; font-weight: bold;">$${amount}</p>
+              <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">Due Date: <strong>${dueDateFormatted}</strong></p>
+            </div>
+
+            <p style="font-size: 14px; color: #666; margin: 25px 0 0 0;">
+              Most clients pay within a few days when reminded. Check your TellBill dashboard to send a follow-up message or view payment details.
+            </p>
+
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${process.env.FRONTEND_URL}/invoices" style="
+                background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+                color: white;
+                padding: 13px 32px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: bold;
+                display: inline-block;
+                font-size: 15px;
+              ">
+                View & Follow Up
+              </a>
+            </div>
+
+            <p style="font-size: 13px; color: #999; margin: 30px 0 0 0; border-top: 1px solid #eee; padding-top: 20px;">
+              💡 <strong>Pro Tip:</strong> Send a quick message to your client right now - it often speeds up payment. Most invoices are paid within 2-3 days of a friendly reminder.
+            </p>
+          </div>
+          
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+            <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+          </div>
+        </div>
+      `;
+    } else {
+      // ✅ DAY 6: Firm reminder
+      subject = `⚠️ URGENT: Invoice #${invoiceNumber} is NOW OVERDUE`;
+      
+      emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', without-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #DC143C 0%, #B22222 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0; color: white;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold;">⚠️ OVERDUE PAYMENT</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.95;">Immediate action required</p>
+          </div>
+          
+          <div style="background: white; padding: 40px; border: 1px solid #eee; border-top: none;">
+            <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+              Hi ${userName},
+            </p>
+            
+            <p style="font-size: 15px; color: #B22222; line-height: 1.6; margin: 0 0 20px 0; font-weight: 500;">
+              <strong>⚠️ This invoice is now ${daysOverdue} days overdue and requires immediate payment.</strong>
+            </p>
+
+            <div style="background: #FFE5E5; padding: 20px; border-radius: 8px; border-left: 4px solid #DC143C; margin: 20px 0;">
+              <p style="margin: 0; color: #333; font-size: 14px;">
+                <strong>Invoice Status</strong>
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 26px; color: #DC143C; font-weight: bold;">$${amount}</p>
+              <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">
+                <strong>Status:</strong> OVERDUE (${daysOverdue} days) | <strong>Due:</strong> ${dueDateFormatted}
+              </p>
+            </div>
+
+            <p style="font-size: 14px; color: #B22222; line-height: 1.6; margin: 25px 0;">
+              <strong>This invoice is now significantly overdue.</strong> We recommend contacting your client immediately to:
+            </p>
+
+            <ul style="font-size: 14px; color: #666; margin: 15px 0; padding-left: 20px;">
+              <li style="margin-bottom: 8px;">Request immediate payment</li>
+              <li style="margin-bottom: 8px;">Verify they received the invoice and payment instructions</li>
+              <li style="margin-bottom: 8px;">Ask about any issues preventing payment</li>
+              <li>Confirm new payment deadline if needed</li>
+            </ul>
+
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${process.env.FRONTEND_URL}/invoices" style="
+                background: linear-gradient(135deg, #DC143C 0%, #B22222 100%);
+                color: white;
+                padding: 13px 32px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: bold;
+                display: inline-block;
+                font-size: 15px;
+              ">
+                Contact Client Now
+              </a>
+            </div>
+
+            <div style="background: #FFF8E7; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #FF8C00;">
+              <p style="color: #856404; margin: 0; font-size: 13px;">
+                <strong>Need Help?</strong> If you're having trouble collecting payment, our support team can help. Reply to this email or visit your dashboard for contact options.
+              </p>
+            </div>
+
+            <p style="font-size: 12px; color: #999; margin: 20px 0 0 0; border-top: 1px solid #eee; padding-top: 15px;">
+              Overdue payments can significantly impact your cash flow. Act now to recover this outstanding amount.
+            </p>
+          </div>
+          
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+            <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    await sendEmail({
+      to: userEmail,
+      subject: subject,
+      html: emailHtml,
+    });
+
+    console.log(`[EmailService] ✅ ${reminderType.toUpperCase()} late payment reminder sent to ${userEmail} for invoice #${invoiceNumber}`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending late payment reminder:`,
+      errorMessage
+    );
+    throw error;
+  }
+}
+
+/**
+ * Batch function to send all Day 2 friendly reminders
+ * Used by the admin endpoint and scheduler
+ */
+export async function sendLatePaymentDay2Reminders(): Promise<{ sent: number; skipped: number }> {
+  let sent = 0;
+  let skipped = 0;
+
+  try {
+    console.log("[EmailService] 🔔 Processing Day 2 late payment reminders...");
+    
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    
+    // Get invoices 2+ days overdue with no reminders sent
+    const candidates = await db.query.invoices.findMany({
+      where: and(
+        eq(invoices.status, "sent"),
+        isNull(invoices.paidAt),
+        lte(invoices.dueDate, twoDaysAgo),
+        isNull(invoices.reminderSentAt)
+      ),
+    });
+
+    for (const invoice of candidates) {
+      try {
+        // Check if user preferences have reminders enabled
+        const prefs = await db.query.preferences.findFirst({
+          where: eq(preferences.userId, invoice.userId),
+        });
+
+        if (!prefs?.latePaymentReminders) {
+          skipped++;
+          continue;
+        }
+
+        // Send reminder
+        await sendLatePaymentReminder(invoice, "day2");
+        
+        // Mark as sent
+        await db
+          .update(invoices)
+          .set({ reminderSentAt: new Date() })
+          .where(eq(invoices.id, invoice.id));
+        
+        sent++;
+      } catch (error) {
+        console.error(`[EmailService] Error sending Day 2 reminder for invoice ${invoice.id}:`, error);
+        skipped++;
+      }
+    }
+
+    console.log(`[EmailService] ✅ Day 2 reminders: ${sent} sent, ${skipped} skipped`);
+    return { sent, skipped };
+  } catch (error) {
+    console.error("[EmailService] Error in Day 2 reminder batch:", error);
+    return { sent, skipped };
+  }
+}
+
+/**
+ * Batch function to send all Day 6 firm reminders
+ * Used by the admin endpoint and scheduler
+ */
+export async function sendLatePaymentDay6Reminders(): Promise<{ sent: number; skipped: number }> {
+  let sent = 0;
+  let skipped = 0;
+
+  try {
+    console.log("[EmailService] 🔔 Processing Day 6 late payment reminders...");
+    
+    const sixDaysAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+    
+    // Get invoices 6+ days overdue with day 2 reminder sent but no day 6 reminder
+    const candidates = await db.query.invoices.findMany({
+      where: and(
+        eq(invoices.status, "sent"),
+        isNull(invoices.paidAt),
+        lte(invoices.dueDate, sixDaysAgo),
+        isNotNull(invoices.reminderSentAt),
+        isNull(invoices.day6ReminderSentAt)
+      ),
+    });
+
+    for (const invoice of candidates) {
+      try {
+        // Check if user preferences have reminders enabled
+        const prefs = await db.query.preferences.findFirst({
+          where: eq(preferences.userId, invoice.userId),
+        });
+
+        if (!prefs?.latePaymentReminders) {
+          skipped++;
+          continue;
+        }
+
+        // Send reminder
+        await sendLatePaymentReminder(invoice, "day6");
+        
+        // Mark as sent
+        await db
+          .update(invoices)
+          .set({ day6ReminderSentAt: new Date() })
+          .where(eq(invoices.id, invoice.id));
+        
+        sent++;
+      } catch (error) {
+        console.error(`[EmailService] Error sending Day 6 reminder for invoice ${invoice.id}:`, error);
+        skipped++;
+      }
+    }
+
+    console.log(`[EmailService] ✅ Day 6 reminders: ${sent} sent, ${skipped} skipped`);
+    return { sent, skipped };
+  } catch (error) {
+    console.error("[EmailService] Error in Day 6 reminder batch:", error);
+    return { sent, skipped };
+  }
+}

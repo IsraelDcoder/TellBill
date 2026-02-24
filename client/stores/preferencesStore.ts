@@ -10,6 +10,7 @@ export interface PreferencesState {
   taxRate: number;
   invoiceTemplate: string;
   defaultPaymentTerms: string;
+  latePaymentReminders: boolean;
   
   // Actions
   setCurrency: (currency: string) => void;
@@ -18,6 +19,7 @@ export interface PreferencesState {
   setTaxRate: (rate: number) => void;
   setInvoiceTemplate: (template: string) => void;
   setDefaultPaymentTerms: (terms: string) => void;
+  toggleLatePaymentReminders: () => void;
   resetPreferences: () => void;
   // Backend sync
   loadPreferences: (userId: string, authToken: string) => Promise<void>;
@@ -31,6 +33,7 @@ const initialState = {
   taxRate: 8.00,
   invoiceTemplate: "Professional",
   defaultPaymentTerms: "Due upon receipt",
+  latePaymentReminders: true,
 };
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -44,6 +47,10 @@ export const usePreferencesStore = create<PreferencesState>()(
       setTaxRate: (taxRate: number) => set({ taxRate }),
       setInvoiceTemplate: (invoiceTemplate: string) => set({ invoiceTemplate }),
       setDefaultPaymentTerms: (defaultPaymentTerms: string) => set({ defaultPaymentTerms }),
+      toggleLatePaymentReminders: () => {
+        const currentState = get();
+        set({ latePaymentReminders: !currentState.latePaymentReminders });
+      },
       resetPreferences: () => set(initialState),
       
       /**
@@ -75,6 +82,7 @@ export const usePreferencesStore = create<PreferencesState>()(
               theme: userPrefs.theme || initialState.theme,
               invoiceTemplate: userPrefs.invoiceTemplate || initialState.invoiceTemplate,
               defaultPaymentTerms: userPrefs.defaultPaymentTerms || initialState.defaultPaymentTerms,
+              latePaymentReminders: userPrefs.latePaymentReminders !== undefined ? userPrefs.latePaymentReminders : initialState.latePaymentReminders,
             });
             console.log("[Preferences] ✅ Preferences loaded successfully");
           }
@@ -103,6 +111,7 @@ export const usePreferencesStore = create<PreferencesState>()(
               theme: state.theme,
               invoiceTemplate: state.invoiceTemplate,
               defaultPaymentTerms: state.defaultPaymentTerms,
+              latePaymentReminders: state.latePaymentReminders,
             }),
           });
 
