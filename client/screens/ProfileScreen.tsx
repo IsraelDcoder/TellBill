@@ -49,21 +49,13 @@ interface MenuItemProps {
 function PreferencesSection({ theme, authToken, navigation, currentPlan }: { theme: any; authToken: string | null; navigation: NavigationProp; currentPlan: string }): React.ReactElement {
   const prefs = usePreferencesStore();
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
-  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const currencies = ["USD", "EUR", "GBP", "CAD", "AUD"];
-  const templates = ["default", "minimal", "detailed"];
   
   const isProfessional = currentPlan === "professional";
 
   const handleCurrencyChange = async (curr: string) => {
     prefs.setCurrency(curr);
     setShowCurrencyMenu(false);
-    if (authToken) await prefs.savePreferencesToBackend(authToken);
-  };
-
-  const handleTemplateChange = async (tmpl: string) => {
-    prefs.setInvoiceTemplate(tmpl);
-    setShowTemplateMenu(false);
     if (authToken) await prefs.savePreferencesToBackend(authToken);
   };
 
@@ -89,54 +81,9 @@ function PreferencesSection({ theme, authToken, navigation, currentPlan }: { the
         </View>
       )}
       <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-      <Pressable onPress={() => setShowTemplateMenu(!showTemplateMenu)} style={styles.preferenceItem}>
-        <View style={styles.preferenceLeft}>
-          <Feather name="layout" size={18} color={BrandColors.constructionGold} />
-          <View style={styles.preferenceText}>
-            <ThemedText type="body">Invoice Template</ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>{prefs.invoiceTemplate}</ThemedText>
-          </View>
-        </View>
-        <Feather name={showTemplateMenu ? "chevron-up" : "chevron-down"} size={16} color={theme.textSecondary} />
-      </Pressable>
-      {showTemplateMenu && (
-        <View style={[styles.menuDropdown, { backgroundColor: theme.backgroundSecondary }]}>
-          {templates.map((tmpl) => (
-            <Pressable key={tmpl} onPress={() => handleTemplateChange(tmpl)} style={[styles.dropdownItem, prefs.invoiceTemplate === tmpl && styles.dropdownItemActive]}>
-              <ThemedText type="body" style={prefs.invoiceTemplate === tmpl ? { color: BrandColors.constructionGold } : {}}>{tmpl.charAt(0).toUpperCase() + tmpl.slice(1)}</ThemedText>
-            </Pressable>
-          ))}
-        </View>
-      )}
-      <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
       <Pressable 
-        onPress={() => {
-          if (!isProfessional) {
-            navigation.navigate("Billing");
-          } else {
-            navigation.navigate("TemplateBuilder");
-          }
-        }} 
-        style={[styles.preferenceItem, !isProfessional && { opacity: 0.7 }]}>
-        <View style={styles.preferenceLeft}>
-          <Feather name="edit-3" size={18} color={isProfessional ? BrandColors.constructionGold : theme.textSecondary} />
-          <View style={styles.preferenceText}>
-            <ThemedText type="body" style={!isProfessional ? { color: theme.textSecondary } : {}}>
-              Customize Templates
-            </ThemedText>
-            <ThemedText type="small" style={{ color: isProfessional ? theme.textSecondary : theme.textTertiary }}>
-              {isProfessional ? "Colors & Branding" : "Professional plan"}
-            </ThemedText>
-          </View>
-        </View>
-        <Feather 
-          name={isProfessional ? "chevron-right" : "lock"} 
-          size={16} 
-          color={isProfessional ? theme.textSecondary : theme.error} 
-        />
-      </Pressable>
-      <View style={[styles.menuDivider, { backgroundColor: theme.border }]} />
-      <Pressable onPress={() => {}} style={styles.preferenceItem}>
+        onPress={() => {}} 
+        style={styles.preferenceItem}>
         <View style={styles.preferenceLeft}>
           <Feather name="percent" size={18} color={BrandColors.constructionGold} />
           <View style={styles.preferenceText}>
@@ -435,7 +382,7 @@ export default function ProfileScreen() {
           <MenuItem
             icon="credit-card"
             label="Billing & Subscription"
-            onPress={() => navigation.navigate("Billing")}
+            onPress={() => (navigation as any).navigate("Billing")}
             showBadge
             badgeText="Solo"
           />
@@ -443,7 +390,7 @@ export default function ProfileScreen() {
           <MenuItem
             icon="share-2"
             label="Referral Program"
-            onPress={() => navigation.navigate("ReferralScreen")}
+            onPress={() => (navigation as any).navigate("ReferralScreen")}
             showBadge
             badgeText="Earn Free"
           />
@@ -451,13 +398,13 @@ export default function ProfileScreen() {
           <MenuItem
             icon="settings"
             label="Settings"
-            onPress={() => navigation.navigate("Settings")}
+            onPress={() => (navigation as any).navigate("Settings")}
           />
           <MenuDivider />
           <MenuItem
             icon="help-circle"
             label="Help & Support"
-            onPress={() => navigation.navigate("HelpSupport")}
+            onPress={() => (navigation as any).navigate("HelpSupport")}
           />
         </ScreenGroup>
       </Section>
@@ -469,7 +416,7 @@ export default function ProfileScreen() {
           <MenuItem
             icon="layout"
             label="Invoice Templates"
-            onPress={() => navigation.navigate("TemplatePickerScreen")}
+            onPress={() => (navigation as any).navigate("TemplatePickerScreen")}
             showBadge
             badgeText="Pro"
           />
@@ -485,13 +432,13 @@ export default function ProfileScreen() {
           <MenuItem
             icon="link"
             label="QuickBooks Integration"
-            onPress={() => navigation.navigate("ComingSoon", { feature: "QuickBooks Integration" })}
+            onPress={() => (navigation as any).navigate("ComingSoon", { feature: "QuickBooks Integration" })}
           />
           <MenuDivider />
           <MenuItem
             icon="map-pin"
             label="GPS Verification Audit"
-            onPress={() => navigation.navigate("ComingSoon", { feature: "GPS Verification Audit" })}
+            onPress={() => (navigation as any).navigate("ComingSoon", { feature: "GPS Verification Audit" })}
           />
         </ScreenGroup>
       </Section>

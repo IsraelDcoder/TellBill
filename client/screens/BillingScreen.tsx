@@ -12,7 +12,7 @@
  * 6. Features unlock instantly
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -30,6 +30,7 @@ import Purchases, {
   PurchasesOffering,
   CustomerInfo,
 } from "react-native-purchases";
+import { Dimensions } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -58,6 +59,15 @@ export default function BillingScreen() {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const [activePlan, setActivePlan] = useState(0); // 0 = Solo, 1 = Professional
+  const screenWidth = Dimensions.get("window").width;
+
+  // Pricing values
+  const soloMonthly = "$9";
+  const soloAnnual = "$90";
+  const professionalMonthly = "$24";
+  const professionalAnnual = "$240";
 
   /**
    * Get auth token from storage
@@ -273,17 +283,43 @@ export default function BillingScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="h1" style={{ marginBottom: Spacing.sm, fontWeight: "700" }}>
-            Stop Losing Money to Late Payments
+        {/* Premium Header Section */}
+        <View style={{ alignItems: "center", marginBottom: Spacing["3xl"] }}>
+          <ThemedText
+            type="h1"
+            style={{
+              fontSize: 34,
+              fontWeight: "900",
+              marginBottom: Spacing.md,
+              letterSpacing: 0.5,
+              color: BrandColors.constructionGold,
+              textAlign: "center",
+            }}
+          >
+            Unlock Your Business Potential
           </ThemedText>
           <ThemedText
-            type="body"
-            style={{ color: theme.textSecondary, fontSize: 16, fontWeight: "500" }}
+            style={{
+              fontSize: 18,
+              color: theme.textSecondary,
+              lineHeight: 26,
+              marginBottom: Spacing.xl,
+              textAlign: "center",
+              maxWidth: 340,
+            }}
           >
-            Professional invoicing built for contractors
+            Choose a plan trusted by top contractors. Enjoy priority support, enterprise-grade security, and features that scale with your ambition.
           </ThemedText>
+          <View style={{ flexDirection: "row", gap: Spacing.lg, marginBottom: Spacing.xl }}>
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: BrandColors.constructionGold + '22', borderRadius: 16, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs }}>
+              <Feather name="award" size={16} color={BrandColors.constructionGold} />
+              <ThemedText style={{ color: BrandColors.constructionGold, fontWeight: "700", marginLeft: Spacing.xs, fontSize: 13 }}>Top Rated Support</ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: BrandColors.constructionGold + '22', borderRadius: 16, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs }}>
+              <Feather name="shield" size={16} color={BrandColors.constructionGold} />
+              <ThemedText style={{ color: BrandColors.constructionGold, fontWeight: "700", marginLeft: Spacing.xs, fontSize: 13 }}>Enterprise Security</ThemedText>
+            </View>
+          </View>
         </View>
 
         {/* Annual/Monthly Toggle */}
@@ -332,23 +368,39 @@ export default function BillingScreen() {
           </Pressable>
         </View>
 
-        {/* Pricing Tiers - Two Column Layout */}
-        <View style={styles.tiersContainer}>
+        {/* Scrollable Plans */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={screenWidth * 0.85}
+          decelerationRate="fast"
+          contentContainerStyle={{ alignItems: "center", paddingVertical: Spacing.lg }}
+          onMomentumScrollEnd={e => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / (screenWidth * 0.85));
+            setActivePlan(idx);
+          }}
+          style={{ marginBottom: Spacing["2xl"] }}
+        >
           {/* Solo Card */}
           <View
             style={[
               styles.tierCard,
               {
-                borderColor: theme.border,
-                borderWidth: 1,
+                borderColor: activePlan === 0 ? BrandColors.constructionGold : theme.border,
+                borderWidth: activePlan === 0 ? 2 : 1,
                 backgroundColor: theme.backgroundDefault,
+                width: screenWidth * 0.8,
+                marginRight: Spacing.lg,
+                opacity: activePlan === 0 ? 1 : 0.85,
+                transform: [{ scale: activePlan === 0 ? 1.04 : 1 }],
               },
             ]}
           >
             <ThemedText
               type="h2"
-              style={[styles.tierName, { fontSize: 24, fontWeight: "600" }]}
-            >
+              style={[styles.tierName, { fontSize: 24, fontWeight: "600", color: activePlan === 0 ? BrandColors.constructionGold : theme.text }]}>
               Solo Plan
             </ThemedText>
 
@@ -373,7 +425,7 @@ export default function BillingScreen() {
                     color: BrandColors.constructionGold,
                   }}
                 >
-                  $9
+                  {isAnnual ? soloAnnual : soloMonthly}
                 </ThemedText>
                 <ThemedText
                   style={{
@@ -382,18 +434,14 @@ export default function BillingScreen() {
                     paddingLeft: Spacing.sm,
                   }}
                 >
-                  / month
+                  {isAnnual ? "/ year" : "/ month"}
                 </ThemedText>
               </View>
-              <ThemedText
-                style={{
-                  fontSize: 12,
-                  color: theme.textSecondary,
-                  marginTop: Spacing.xs,
-                }}
-              >
-                $90 / year ($18 / year savings)
-              </ThemedText>
+              {isAnnual && (
+                <ThemedText style={{ fontSize: 12, color: theme.textSecondary, marginTop: Spacing.xs }}>
+                  Save 17%
+                </ThemedText>
+              )}
             </View>
 
             {/* Features List */}
@@ -428,7 +476,7 @@ export default function BillingScreen() {
               style={[
                 styles.ctaButton,
                 {
-                  backgroundColor: BrandColors.constructionGold,
+                  backgroundColor: activePlan === 0 ? BrandColors.constructionGold : theme.border,
                   marginTop: Spacing.xl,
                 },
               ]}
@@ -446,7 +494,7 @@ export default function BillingScreen() {
                     fontSize: 16,
                   }}
                 >
-                  Upgrade Now
+                  {activePlan === 0 ? "Selected" : "Select Solo"}
                 </ThemedText>
               )}
             </Pressable>
@@ -463,42 +511,28 @@ export default function BillingScreen() {
             </ThemedText>
           </View>
 
-          {/* Professional Card */}
+          {/* Professional Card - Featured */}
           <View
             style={[
               styles.tierCard,
               {
-                borderColor: BrandColors.constructionGold,
-                borderWidth: 2,
+                borderColor: activePlan === 1 ? BrandColors.constructionGold : theme.border,
+                borderWidth: activePlan === 1 ? 2 : 1,
                 backgroundColor: theme.backgroundDefault,
+                width: screenWidth * 0.8,
+                opacity: activePlan === 1 ? 1 : 0.85,
+                transform: [{ scale: activePlan === 1 ? 1.04 : 1 }],
               },
             ]}
           >
-            {/* Most Popular Badge */}
-            <View
-              style={[
-                styles.popularBadge,
-                {
-                  backgroundColor: BrandColors.constructionGold,
-                },
-              ]}
-            >
-              <ThemedText
-                style={{
-                  color: BrandColors.white,
-                  fontWeight: "700",
-                  fontSize: 11,
-                  letterSpacing: 1,
-                }}
-              >
-                MOST POPULAR
-              </ThemedText>
+            <View style={{ alignItems: "center", marginBottom: Spacing.md }}>
+              <Feather name="star" size={18} color={BrandColors.constructionGold} />
+              <ThemedText style={{ color: BrandColors.constructionGold, fontWeight: "800", fontSize: 13, letterSpacing: 1, marginTop: Spacing.xs }}>MOST POPULAR</ThemedText>
             </View>
 
             <ThemedText
               type="h2"
-              style={[styles.tierName, { fontSize: 24, fontWeight: "600" }]}
-            >
+              style={[styles.tierName, { fontSize: 24, fontWeight: "600", color: activePlan === 1 ? BrandColors.constructionGold : theme.text }]}>
               Professional Plan
             </ThemedText>
 
@@ -523,7 +557,7 @@ export default function BillingScreen() {
                     color: BrandColors.constructionGold,
                   }}
                 >
-                  $24
+                  {isAnnual ? professionalAnnual : professionalMonthly}
                 </ThemedText>
                 <ThemedText
                   style={{
@@ -532,18 +566,14 @@ export default function BillingScreen() {
                     paddingLeft: Spacing.sm,
                   }}
                 >
-                  / month
+                  {isAnnual ? "/ year" : "/ month"}
                 </ThemedText>
               </View>
-              <ThemedText
-                style={{
-                  fontSize: 12,
-                  color: theme.textSecondary,
-                  marginTop: Spacing.xs,
-                }}
-              >
-                $240 / year ($48 / year savings)
-              </ThemedText>
+              {isAnnual && (
+                <ThemedText style={{ fontSize: 12, color: theme.textSecondary, marginTop: Spacing.xs }}>
+                  Save 17%
+                </ThemedText>
+              )}
             </View>
 
             {/* Features List */}
@@ -590,7 +620,7 @@ export default function BillingScreen() {
               style={[
                 styles.ctaButton,
                 {
-                  backgroundColor: BrandColors.constructionGold,
+                  backgroundColor: activePlan === 1 ? BrandColors.constructionGold : theme.border,
                   marginTop: Spacing.xl,
                 },
               ]}
@@ -608,7 +638,7 @@ export default function BillingScreen() {
                     fontSize: 16,
                   }}
                 >
-                  Start Free Trial
+                  {activePlan === 1 ? "Selected" : "Select Professional"}
                 </ThemedText>
               )}
             </Pressable>
@@ -624,6 +654,22 @@ export default function BillingScreen() {
               7-day free trial. Cancel anytime.
             </ThemedText>
           </View>
+        </ScrollView>
+
+        {/* Plan indicator dots */}
+        <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: Spacing.xl }}>
+          {[0, 1].map(idx => (
+            <View
+              key={idx}
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                marginHorizontal: 6,
+                backgroundColor: activePlan === idx ? BrandColors.constructionGold : theme.border,
+              }}
+            />
+          ))}
         </View>
 
         {/* Restore Purchases */}
