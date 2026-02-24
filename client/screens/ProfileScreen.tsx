@@ -413,14 +413,6 @@ export default function ProfileScreen() {
       <Section>
         <SectionTitle title="Preferences" />
         <ScreenGroup bordered>
-          <MenuItem
-            icon="layout"
-            label="Invoice Templates"
-            onPress={() => (navigation as any).navigate("TemplatePickerScreen")}
-            showBadge
-            badgeText="Pro"
-          />
-          <MenuDivider />
           <PreferencesSection theme={theme} authToken={authToken} navigation={navigation} currentPlan={currentPlan} />
         </ScreenGroup>
       </Section>
@@ -433,6 +425,12 @@ export default function ProfileScreen() {
             icon="link"
             label="QuickBooks Integration"
             onPress={() => (navigation as any).navigate("ComingSoon", { feature: "QuickBooks Integration" })}
+          />
+          <MenuDivider />
+          <MenuItem
+            icon="layout"
+            label="Invoice Templates"
+            onPress={() => (navigation as any).navigate("ComingSoon", { feature: "Invoice Templates" })}
           />
           <MenuDivider />
           <MenuItem

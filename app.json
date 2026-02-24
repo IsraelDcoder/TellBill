@@ -12,11 +12,14 @@
       "enabled": true,
       "prefixes": [
         "exp://",
-        "tellbill://"
+        "tellbill://",
+        "https://tellbill.app"
       ],
       "config": {
         "screens": {
-          "auth-callback": "auth-callback"
+          "auth-callback": "auth-callback",
+          "SignUp": "signup",
+          "SignUpWithRef": "signup?ref=:ref"
         }
       }
     },
