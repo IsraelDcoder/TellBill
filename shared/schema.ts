@@ -166,6 +166,7 @@ export const preferences = pgTable("preferences", {
   invoiceTemplate: text("invoice_template").default("default"), // default, minimal, detailed
   defaultPaymentTerms: text("default_payment_terms").default("Due upon receipt"),
   latePaymentReminders: boolean("late_payment_reminders").default(true), // ✅ Enable/disable auto late payment reminders (Pro feature)
+  autoRemindFrequency: integer("auto_remind_frequency").default(3), // How often to auto-remind (in days, 0=disabled, 1=daily, 3=every 3 days, 7=weekly) - Pro feature
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

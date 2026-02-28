@@ -23,6 +23,8 @@ import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { formatCurrency } from "@/utils/formatCurrency";
+import { isOverdue, getDaysOverdue } from "@/lib/invoiceUtils";
+import { getApiUrl } from "@/lib/backendUrl";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, "InvoiceDetail">;
@@ -191,6 +193,42 @@ export default function InvoiceDetailScreen() {
   const handleEdit = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate("InvoiceEdit", { invoiceId: invoice.id });
+  };
+
+  const handleSendReminder = async () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        Alert.alert("Error", "Authentication required");
+        return;
+      }
+
+      const response = await fetch(getApiUrl(`/api/invoices/${invoice.id}/send-reminder`), {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        Alert.alert("Error", data.error || "Failed to send reminder");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      Alert.alert("Success", "Reminder sent to client!");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error: any) {
+      console.error("[InvoiceDetail] Error sending reminder:", error);
+      Alert.alert("Error", error.message || "Failed to send reminder");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   };
 
   return (
@@ -416,6 +454,15 @@ export default function InvoiceDetailScreen() {
             >
               {invoice.status === "draft" ? "Send Invoice" : "Resend"}
             </Button>
+            {isOverdue({ dueDate: invoice.dueDate, status: invoice.status, paidAt: invoice.paidAt } as any) && (
+              <Button
+                variant="outline"
+                onPress={handleSendReminder}
+                style={[styles.footerButton, { borderColor: "#EF4444", backgroundColor: "#EF444410" }]}
+              >
+                Send Reminder ({getDaysOverdue({ dueDate: invoice.dueDate, status: invoice.status, paidAt: invoice.paidAt } as any)}d overdue)
+              </Button>
+            )}
             <Button onPress={handleMarkPaid} style={styles.footerButton}>
               Mark as Paid
             </Button>

@@ -144,6 +144,8 @@ export default function InvoicesScreen() {
       amount={item.total}
       status={item.status as ActivityStatus}
       date={new Date(item.createdAt).toLocaleDateString()}
+      dueDate={item.dueDate}
+      paidAt={item.paidAt}
       onPress={() =>
         navigation.navigate("InvoiceDetail", { invoiceId: item.id })
       }

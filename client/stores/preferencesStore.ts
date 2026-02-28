@@ -11,6 +11,7 @@ export interface PreferencesState {
   invoiceTemplate: string;
   defaultPaymentTerms: string;
   latePaymentReminders: boolean;
+  autoRemindFrequency: number;
   
   // Actions
   setCurrency: (currency: string) => void;
@@ -20,6 +21,7 @@ export interface PreferencesState {
   setInvoiceTemplate: (template: string) => void;
   setDefaultPaymentTerms: (terms: string) => void;
   toggleLatePaymentReminders: () => void;
+  setAutoRemindFrequency: (frequency: number) => void;
   resetPreferences: () => void;
   // Backend sync
   loadPreferences: (userId: string, authToken: string) => Promise<void>;
@@ -34,6 +36,7 @@ const initialState = {
   invoiceTemplate: "Professional",
   defaultPaymentTerms: "Due upon receipt",
   latePaymentReminders: true,
+  autoRemindFrequency: 3,
 };
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -51,6 +54,7 @@ export const usePreferencesStore = create<PreferencesState>()(
         const currentState = get();
         set({ latePaymentReminders: !currentState.latePaymentReminders });
       },
+      setAutoRemindFrequency: (frequency: number) => set({ autoRemindFrequency: frequency }),
       resetPreferences: () => set(initialState),
       
       /**
@@ -83,6 +87,7 @@ export const usePreferencesStore = create<PreferencesState>()(
               invoiceTemplate: userPrefs.invoiceTemplate || initialState.invoiceTemplate,
               defaultPaymentTerms: userPrefs.defaultPaymentTerms || initialState.defaultPaymentTerms,
               latePaymentReminders: userPrefs.latePaymentReminders !== undefined ? userPrefs.latePaymentReminders : initialState.latePaymentReminders,
+              autoRemindFrequency: userPrefs.autoRemindFrequency || initialState.autoRemindFrequency,
             });
             console.log("[Preferences] ✅ Preferences loaded successfully");
           }
@@ -112,6 +117,7 @@ export const usePreferencesStore = create<PreferencesState>()(
               invoiceTemplate: state.invoiceTemplate,
               defaultPaymentTerms: state.defaultPaymentTerms,
               latePaymentReminders: state.latePaymentReminders,
+              autoRemindFrequency: state.autoRemindFrequency,
             }),
           });
 

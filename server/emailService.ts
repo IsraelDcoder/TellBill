@@ -1308,6 +1308,11 @@ export async function sendLatePaymentDay2Reminders(): Promise<{ sent: number; sk
     for (const invoice of candidates) {
       try {
         // Check if user preferences have reminders enabled
+        if (!invoice.userId) {
+          skipped++;
+          continue;
+        }
+
         const prefs = await db.query.preferences.findFirst({
           where: eq(preferences.userId, invoice.userId),
         });
@@ -1368,6 +1373,11 @@ export async function sendLatePaymentDay6Reminders(): Promise<{ sent: number; sk
     for (const invoice of candidates) {
       try {
         // Check if user preferences have reminders enabled
+        if (!invoice.userId) {
+          skipped++;
+          continue;
+        }
+
         const prefs = await db.query.preferences.findFirst({
           where: eq(preferences.userId, invoice.userId),
         });
@@ -1397,6 +1407,171 @@ export async function sendLatePaymentDay6Reminders(): Promise<{ sent: number; sk
     return { sent, skipped };
   } catch (error) {
     console.error("[EmailService] Error in Day 6 reminder batch:", error);
+    return { sent, skipped };
+  }
+}
+
+/**
+ * Send Day 1 Overdue notification to user (not to client)
+ * Alerts the contractor that an invoice is now overdue
+ * This unlocks the "Send Reminder" button in UI
+ */
+export async function sendDay1OverdueNotification(
+  invoice: any
+): Promise<void> {
+  try {
+    if (!invoice.userId) {
+      throw new Error("Invoice must have userId");
+    }
+
+    // Get user info from database
+    const userResult = await db.query.users.findFirst({
+      where: eq(users.id, invoice.userId),
+    });
+
+    if (!userResult) {
+      throw new Error(`User not found: ${invoice.userId}`);
+    }
+
+    const userEmail = userResult.email || "";
+    const userName = userResult.name || "Business Owner";
+    
+    const invoiceNumber = invoice.id;
+    const amount = (invoice.total || 0).toFixed(2);
+    const dueDate = new Date(invoice.dueDate);
+    const dueDateFormatted = dueDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const notificationHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', without-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0; color: white;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🚨 Invoice is NOW OVERDUE</h1>
+          <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.95;">Take action now</p>
+        </div>
+        
+        <div style="background: white; padding: 40px; border: 1px solid #eee; border-top: none;">
+          <p style="font-size: 16px; color: #333; margin: 0 0 20px 0;">
+            Hi ${userName},
+          </p>
+          
+          <p style="font-size: 15px; color: #666; line-height: 1.6; margin: 0 0 20px 0;">
+            <strong>Invoice #${invoiceNumber}</strong> passed its due date and hasn't been paid yet.
+          </p>
+
+          <div style="background: #FFE5E5; padding: 20px; border-radius: 8px; border-left: 4px solid #FF6B6B; margin: 20px 0;">
+            <p style="margin: 0; color: #333; font-size: 14px;">
+              <strong>Invoice Amount</strong>
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 26px; color: #FF6B6B; font-weight: bold;">$${amount}</p>
+            <p style="margin: 8px 0 0 0; color: #666; font-size: 13px;">
+              Was due on <strong>${dueDateFormatted}</strong>
+            </p>
+          </div>
+
+          <p style="font-size: 14px; color: #666; margin: 25px 0;">
+            Most payment delays are just forgotten reminders. Send a quick follow-up message to your client to prompt payment.
+          </p>
+
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${process.env.FRONTEND_URL}/invoices" style="
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%);
+              color: white;
+              padding: 13px 32px;
+              border-radius: 6px;
+              text-decoration: none;
+              font-weight: bold;
+              display: inline-block;
+              font-size: 15px;
+            ">
+              Send Reminder Now
+            </a>
+          </div>
+
+          <div style="background: #F0F4FF; padding: 15px; border-radius: 6px; margin: 25px 0; border-left: 4px solid #667eea;">
+            <p style="color: #333; margin: 0; font-size: 13px;">
+              💡 <strong>Quick Tip:</strong> A friendly reminder often gets paid within 24-48 hours. Time is money.
+            </p>
+          </div>
+
+          <p style="font-size: 12px; color: #999; margin: 20px 0 0 0; border-top: 1px solid #eee; padding-top: 15px;">
+            This is an automated notification from TellBill. Overdue invoices impact your cash flow - act now.
+          </p>
+        </div>
+        
+        <div style="background: #f5f5f5; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; color: #999; font-size: 12px;">
+          <p style="margin: 0;">© ${new Date().getFullYear()} TellBill. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: userEmail,
+      subject: `🚨 Invoice #${invoiceNumber} is NOW OVERDUE - Take Action`,
+      html: notificationHtml,
+    });
+
+    console.log(`[EmailService] ✅ Day 1 overdue notification sent to ${userEmail} for invoice #${invoiceNumber}`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error(
+      `[EmailService] ❌ Error sending Day 1 overdue notification:`,
+      errorMessage
+    );
+    throw error;
+  }
+}
+
+/**
+ * Batch function to send Day 1 overdue notifications
+ * Called by scheduler to notify users about newly overdue invoices
+ */
+export async function sendDay1OverdueNotifications(): Promise<{ sent: number; skipped: number }> {
+  let sent = 0;
+  let skipped = 0;
+
+  try {
+    console.log("[EmailService] 🔔 Processing Day 1 overdue notifications...");
+    
+    const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    
+    // Get invoices that became overdue in the last 24 hours
+    // (status = "sent" AND paidAt = null AND dueDate is today or yesterday)
+    const candidates = await db.query.invoices.findMany({
+      where: and(
+        eq(invoices.status, "sent"),
+        isNull(invoices.paidAt),
+        lte(invoices.dueDate, now), // overdue
+        // Don't have a "notifiedOnDay1" field, but we can check if reminderSentAt is null
+        // This means no Day 2 reminder yet (so this is early in overdue cycle)
+        isNull(invoices.reminderSentAt) // Haven't sent Day 2 reminder yet
+      ),
+    });
+
+    for (const invoice of candidates) {
+      try {
+        if (!invoice.userId) {
+          skipped++;
+          continue;
+        }
+
+        // Send notification
+        await sendDay1OverdueNotification(invoice);
+        sent++;
+      } catch (error) {
+        console.error(`[EmailService] Error sending Day 1 notification for invoice ${invoice.id}:`, error);
+        skipped++;
+      }
+    }
+
+    console.log(`[EmailService] ✅ Day 1 overdue notifications: ${sent} sent, ${skipped} skipped`);
+    return { sent, skipped };
+  } catch (error) {
+    console.error("[EmailService] Error in Day 1 overdue notification batch:", error);
     return { sent, skipped };
   }
 }

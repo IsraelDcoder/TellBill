@@ -1047,6 +1047,94 @@ export function registerInvoiceRoutes(app: Express) {
    * Generate a Stripe checkout link for an invoice
    * Client can pay directly from this link
    */
+  app.post("/api/invoices/:id/send-reminder", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      console.log("[Invoice] POST /api/invoices/:id/send-reminder");
+      console.log("[Invoice] invoiceId:", invoiceId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
+      // Validate invoiceId format
+      if (!validateUUID(invoiceId)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid invoice ID format",
+        });
+      }
+
+      // ✅ FETCH INVOICE
+      const normalizedReminderId = Array.isArray(invoiceId) ? invoiceId[0] : invoiceId;
+      const invoiceResult = await db
+        .select()
+        .from(schema.invoices)
+        .where(eq(schema.invoices.id, normalizedReminderId))
+        .limit(1);
+
+      if (!invoiceResult || invoiceResult.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Invoice not found",
+        });
+      }
+
+      const invoice = invoiceResult[0];
+
+      // ✅ VERIFY OWNERSHIP
+      if (invoice.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: "Unauthorized - you don't own this invoice",
+        });
+      }
+
+      // ✅ CHECK IF INVOICE IS OVERDUE (past due date and not paid)
+      const now = new Date();
+      const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : null;
+      const isPaid = invoice.paidAt !== null;
+      const isOverdue = dueDate && now > dueDate && invoice.status === "sent" && !isPaid;
+
+      if (!isOverdue) {
+        return res.status(400).json({
+          success: false,
+          error: "Invoice is not overdue",
+        });
+      }
+
+      // ✅ SEND REMINDER EMAIL USING EXISTING SEND FUNCTION
+      // Import sendDay1OverdueNotification if available, otherwise send via email
+      const { sendDay1OverdueNotification } = await import("./emailService");
+      
+      await sendDay1OverdueNotification(invoice);
+
+      console.log("[Invoice] ✅ Reminder sent for invoice", invoiceId);
+
+      return res.json({
+        success: true,
+        message: "Reminder sent successfully",
+      });
+    } catch (error: any) {
+      console.error("[Invoice] Error sending reminder:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to send reminder",
+        details: error.message,
+      });
+    }
+  });
+
+  /**
+   * POST /api/invoices/:id/payment-link
+   * Generate a Stripe checkout link for an invoice
+   * Client can pay directly from this link
+   */
   app.post("/api/invoices/:id/payment-link", authMiddleware, async (req: Request, res: Response) => {
     try {
       const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

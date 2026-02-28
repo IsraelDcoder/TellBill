@@ -11,6 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { formatCents } from "../lib/money";
+import { isOverdue, daysOverdue } from "@/lib/invoiceUtils";
 
 export type ActivityStatus = "draft" | "created" | "sent" | "paid" | "pending" | "overdue";
 
@@ -22,6 +23,8 @@ interface ActivityItemProps {
   date: string;
   onPress?: () => void;
   onLongPress?: () => void;
+  dueDate?: string;
+  paidAt?: string | null;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -48,6 +51,8 @@ export function ActivityItem({
   date,
   onPress,
   onLongPress,
+  dueDate,
+  paidAt,
 }: ActivityItemProps) {
   const { theme, isDark } = useTheme();
   const scale = useSharedValue(1);
@@ -65,9 +70,10 @@ export function ActivityItem({
     scale.value = withSpring(1, { damping: 15, stiffness: 200 });
   };
 
-  // ✅ FIXED: Use centralized formatCents (divides by 100 and shows 2 decimals)
-  // Previously: local formatCurrency treated input as dollars (100x bug!)
-  // Now: formatCents properly handles cents→dollars conversion
+  // Check if invoice is overdue
+  const invoice = dueDate ? { dueDate, status, paidAt } : null;
+  const showOverdueIndicator = invoice && isOverdue(invoice as any);
+  const daysOverdueCount = showOverdueIndicator ? daysOverdue(invoice as any) : 0;
 
   return (
     <AnimatedPressable
@@ -111,6 +117,13 @@ export function ActivityItem({
             {invoiceNumber}
           </ThemedText>
           <View style={styles.statusRow}>
+            {showOverdueIndicator && (
+              <View style={[styles.statusBadge, { backgroundColor: "#EF444420" }]}>
+                <ThemedText type="small" style={[styles.statusText, { color: "#EF4444" }]}>
+                  {daysOverdueCount} days overdue
+                </ThemedText>
+              </View>
+            )}
             <View
               style={[
                 styles.statusBadge,

@@ -111,6 +111,46 @@ function PreferencesSection({ theme, authToken, navigation, currentPlan }: { the
               <View style={[styles.toggleCircle, { transform: [{ translateX: prefs.latePaymentReminders ? 20 : 2 }] }]} />
             </View>
           </Pressable>
+          {prefs.latePaymentReminders && (
+            <View style={[styles.preferenceItem, { borderTopWidth: 0, paddingLeft: 46 }]}>
+              <View style={styles.preferenceLeft}>
+                <View style={styles.preferenceText}>
+                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                    Reminder Frequency
+                  </ThemedText>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    {[1, 3, 7, 14].map((days) => (
+                      <Pressable
+                        key={days}
+                        onPress={() => prefs.setAutoRemindFrequency(days)}
+                        style={[
+                          styles.frequencyButton,
+                          {
+                            backgroundColor:
+                              prefs.autoRemindFrequency === days
+                                ? BrandColors.constructionGold
+                                : theme.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          type="small"
+                          style={{
+                            color:
+                              prefs.autoRemindFrequency === days
+                                ? "white"
+                                : theme.text,
+                          }}
+                        >
+                          {days}d
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -613,5 +653,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: "#FFFFFF",
+  },
+  frequencyButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    minWidth: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
