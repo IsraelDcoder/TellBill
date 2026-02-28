@@ -4,6 +4,264 @@
    ======================================== */
 
 // ========================================
+// CONFIGURATION
+// ========================================
+
+const CONFIG = {
+    // Google Play Store app link - opens in new tab
+    GOOGLE_PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.tellbill.app',
+    // Demo video URL
+    DEMO_VIDEO_URL: 'https://example.com/demo.mp4',
+    // Enterprise form submission endpoint (can be connected to backend)
+    ENTERPRISE_FORM_ENDPOINT: '/api/enterprise-inquiry'
+};
+
+// ========================================
+// MODAL FUNCTIONS
+// ========================================
+
+/**
+ * Opens a modal dialog
+ * @param {string} modalId - ID of the modal element to open
+ */
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        // Disable body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        
+        // Track modal opening with GA4
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_opened', {
+                modal_name: modalId
+            });
+        }
+        
+        console.log(`Modal opened: ${modalId}`);
+    }
+}
+
+/**
+ * Closes a modal dialog
+ * @param {string} modalId - ID of the modal element to close
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        // Re-enable body scroll
+        document.body.style.overflow = 'auto';
+        
+        // Pause video if demo modal was closed
+        if (modalId === 'demo-modal') {
+            const video = document.getElementById('demo-video');
+            if (video) {
+                video.pause();
+            }
+        }
+        
+        console.log(`Modal closed: ${modalId}`);
+    }
+}
+
+/**
+ * Setup modal event listeners - allow clicking overlay to close modal
+ */
+function setupModalListeners() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                const modal = overlay.parentElement;
+                closeModal(modal.id);
+            }
+        });
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal[style*="display: flex"]');
+            if (openModal) {
+                closeModal(openModal.id);
+            }
+        }
+    });
+}
+
+// ========================================
+// GOOGLE PLAY STORE REDIRECT
+// ========================================
+
+/**
+ * Redirects user to Google Play Store in a new tab
+ * Prevents page reload and tracks the action
+ */
+function handleStoreRedirect() {
+    // Track store redirect with GA4
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'store_redirect_click', {
+            store: 'google_play',
+            url: CONFIG.GOOGLE_PLAY_STORE_URL
+        });
+    }
+    
+    console.log('Redirecting to Google Play Store:', CONFIG.GOOGLE_PLAY_STORE_URL);
+    
+    // Open in new tab without stopping page functionality
+    window.open(CONFIG.GOOGLE_PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
+}
+
+/**
+ * Setup all store redirect buttons
+ */
+function setupStoreRedirects() {
+    const storeButtons = document.querySelectorAll('[data-action="store-redirect"]');
+    
+    storeButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleStoreRedirect();
+        });
+    });
+    
+    console.log(`Setup ${storeButtons.length} store redirect button(s)`);
+}
+
+// ========================================
+// DEMO VIDEO MODAL
+// ========================================
+
+/**
+ * Setup demo video buttons to open modal
+ */
+function setupDemoModal() {
+    const demoButtons = document.querySelectorAll('[data-action="demo-modal"]');
+    
+    demoButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Update video source in case it was changed
+            const video = document.getElementById('demo-video');
+            if (video && video.querySelector('source')) {
+                video.querySelector('source').src = CONFIG.DEMO_VIDEO_URL;
+                video.load();
+            }
+            
+            // Open modal
+            openModal('demo-modal');
+        });
+    });
+    
+    console.log(`Setup demo modal button(s)`);
+}
+
+// ========================================
+// ENTERPRISE CONTACT FORM
+// ========================================
+
+/**
+ * Handle enterprise form submission
+ * @param {Event} event - Form submission event
+ */
+function handleEnterpriseSubmit(event) {
+    event.preventDefault();
+    
+    // Get form data
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    // Track form submission with GA4
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'enterprise_inquiry_submit', {
+            company: data.company,
+            team_size: data.team_size
+        });
+    }
+    
+    console.log('Enterprise inquiry submitted:', data);
+    
+    // Send to backend (optional - can be connected to your backend)
+    // For demo, we'll just show a success message
+    showSuccessMessage(form);
+    
+    // In production, you would send this to your backend:
+    /*
+    fetch(CONFIG.ENTERPRISE_FORM_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            showSuccessMessage(form);
+        } else {
+            showErrorMessage(form);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting form:', error);
+        showErrorMessage(form);
+    });
+    */
+}
+
+/**
+ * Show success message after form submission
+ * @param {HTMLFormElement} form - The form element
+ */
+function showSuccessMessage(form) {
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const originalClass = submitButton.className;
+    
+    // Update button to show success
+    submitButton.textContent = '✓ Thank you! We\'ll be in touch.';
+    submitButton.style.backgroundColor = '#22c55e';
+    submitButton.disabled = true;
+    
+    // Reset form
+    form.reset();
+    
+    // Revert button after 3 seconds, then close modal
+    setTimeout(() => {
+        submitButton.textContent = originalText;
+        submitButton.className = originalClass;
+        submitButton.style.backgroundColor = '';
+        submitButton.disabled = false;
+        
+        // Close modal after delay
+        closeModal('enterprise-modal');
+    }, 3000);
+}
+
+/**
+ * Setup enterprise contact form modal
+ */
+function setupEnterpriseModal() {
+    const enterpriseButtons = document.querySelectorAll('[data-action="enterprise-modal"]');
+    
+    enterpriseButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal('enterprise-modal');
+        });
+    });
+    
+    // Setup form submission
+    const enterpriseForm = document.getElementById('enterprise-form');
+    if (enterpriseForm) {
+        enterpriseForm.addEventListener('submit', handleEnterpriseSubmit);
+    }
+    
+    console.log(`Setup enterprise modal button(s) and form`);
+}
+
+// ========================================
 // FAQ ACCORDION
 // ========================================
 
@@ -159,34 +417,11 @@ function setupLazyLoading() {
 }
 
 // ========================================
-// DEMO BUTTON INTERACTION
-// ========================================
-
-function setupDemoButton() {
-    const demoButton = document.querySelector('button:contains("See Demo")') || 
-                       Array.from(document.querySelectorAll('button')).find(btn => 
-                           btn.textContent.includes('See Demo')
-                       );
-    
-    if (demoButton) {
-        demoButton.addEventListener('click', () => {
-            // Track demo click
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'demo_viewed');
-            }
-            
-            console.log('Demo button clicked');
-            // Could add modal, video player, etc.
-        });
-    }
-}
-
-// ========================================
 // FORM HANDLING (FOR FUTURE USE)
 // ========================================
 
 function setupForms() {
-    const forms = document.querySelectorAll('form');
+    const forms = document.querySelectorAll('form:not(#enterprise-form)');
     forms.forEach(form => {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -207,6 +442,7 @@ function setupForms() {
 // ========================================
 
 function trackEvent(eventName, data = {}) {
+    // Track with GA4 if available
     if (typeof gtag !== 'undefined') {
         gtag('event', eventName, data);
     }
@@ -239,24 +475,36 @@ function init() {
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
+            // Core functionality
             setupFAQ();
             setupSmoothScroll();
             setupCTATracking();
             setupNavbarScroll();
             setupScrollAnimations();
             setupLazyLoading();
-            setupDemoButton();
             setupForms();
+            
+            // NEW: Interactive features with modals and redirects
+            setupModalListeners();      // Handle modal open/close interactions
+            setupStoreRedirects();       // All "Start Free Trial" buttons
+            setupDemoModal();            // Demo video modal
+            setupEnterpriseModal();      // Enterprise contact form modal
         });
     } else {
+        // Core functionality
         setupFAQ();
         setupSmoothScroll();
         setupCTATracking();
         setupNavbarScroll();
         setupScrollAnimations();
         setupLazyLoading();
-        setupDemoButton();
         setupForms();
+        
+        // NEW: Interactive features with modals and redirects
+        setupModalListeners();      // Handle modal open/close interactions
+        setupStoreRedirects();       // All "Start Free Trial" buttons
+        setupDemoModal();            // Demo video modal
+        setupEnterpriseModal();      // Enterprise contact form modal
     }
 }
 
@@ -278,6 +526,9 @@ if ('performance' in window && 'PerformanceObserver' in window) {
         });
         observer.observe({ entryTypes: ['longtask'] });
     } catch (e) {
+        console.log('Performance monitoring not available');
+    }
+}
         // PerformanceObserver not available in all browsers
     }
 }

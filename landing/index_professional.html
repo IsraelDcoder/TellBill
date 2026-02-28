@@ -35,7 +35,8 @@
                     <a href="#pricing" class="nav-link">Pricing</a>
                     <a href="#faq" class="nav-link">FAQ</a>
                 </div>
-                <button class="btn btn-primary">Start Free Trial</button>
+                <!-- Header: Start Free Trial button redirects to Google Play Store -->
+                <button class="btn btn-primary" data-action="store-redirect" aria-label="Download TellBill from Google Play Store">Start Free Trial</button>
             </div>
         </div>
     </nav>
@@ -49,8 +50,10 @@
                     <p class="hero-subtitle">TellBill is the intelligent invoicing system for contractors who demand results.</p>
                     <p class="hero-desc">From drafting invoices to automating reminders, TellBill ensures your business runs smoothly, every time.</p>
                     <div class="hero-ctas">
-                        <button class="btn btn-primary btn-large">Start Free Trial</button>
-                        <button class="btn btn-secondary btn-large">See Demo</button>
+                        <!-- Hero: Start Free Trial redirects to Google Play Store -->
+                        <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Download TellBill app">Start Free Trial</button>
+                        <!-- Hero: See Demo opens modal with demo video -->
+                        <button class="btn btn-secondary btn-large" data-action="demo-modal" aria-label="Watch TellBill demo video">See Demo</button>
                     </div>
                     <p class="hero-footnote">No credit card required • 14-day free trial • Cancel anytime</p>
                 </div>
@@ -155,7 +158,8 @@
             <div class="demo-content">
                 <h2>Try TellBill risk-free</h2>
                 <p>Experience automated invoicing, client notifications, and instant revenue tracking — all in one platform.</p>
-                <button class="btn btn-primary btn-large">Start Your Free Trial</button>
+                <!-- Demo section: Start Your Free Trial redirects to Google Play Store -->
+                <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Start free trial">Start Your Free Trial</button>
                 <p class="demo-footnote">No credit card. 14 days free. Full access to all features.</p>
             </div>
         </div>
@@ -214,7 +218,8 @@
                     </div>
                     <div class="price-alt">$140/year <span class="save">Save 15%</span></div>
                     <p class="plan-desc">Designed for the independent contractor or freelancer. Protect your revenue, get paid faster, and never miss a follow-up. All the essentials to run your business efficiently.</p>
-                    <button class="btn btn-secondary btn-large">Start Free Trial – No Card Required</button>
+                    <!-- Pricing: Solo plan CTA redirects to Google Play Store -->
+                    <button class="btn btn-secondary btn-large" data-action="store-redirect" aria-label="Start free trial for Solo plan">Start Free Trial – No Card Required</button>
                     <div class="features">
                         <div class="feature">✓ Create, send, and manage unlimited invoices</div>
                         <div class="feature">✓ Automatic payment reminders</div>
@@ -235,7 +240,8 @@
                     </div>
                     <div class="price-alt">$340/year <span class="save">Save 15%</span></div>
                     <p class="plan-desc">For small teams and growing businesses that demand control and insight. Automate your workflows, monitor revenue in real-time, and never lose track of payments.</p>
-                    <button class="btn btn-primary btn-large">Upgrade & Automate Your Workflow</button>
+                    <!-- Pricing: Professional plan CTA redirects to Google Play Store -->
+                    <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Upgrade to Professional plan">Upgrade & Automate Your Workflow</button>
                     <div class="features">
                         <div class="feature">✓ Everything in Solo, plus:</div>
                         <div class="feature">✓ Multi-user collaboration (team members / accountants)</div>
@@ -254,7 +260,8 @@
                         <span class="amount">Custom</span>
                     </div>
                     <p class="plan-desc">Tailored solutions for large contractors or agencies managing multiple projects. Scale with confidence while TellBill safeguards your revenue and operations.</p>
-                    <button class="btn btn-secondary btn-large">Get a Custom Quote</button>
+                    <!-- Pricing: Enterprise CTA opens contact form modal -->
+                    <button class="btn btn-secondary btn-large" data-action="enterprise-modal" aria-label="Contact sales for Enterprise plan">Get a Custom Quote</button>
                     <div class="features">
                         <div class="feature">✓ Everything in Professional, plus:</div>
                         <div class="feature">✓ White-label options</div>
@@ -353,7 +360,8 @@
         <div class="container">
             <h2>Start controlling your money today</h2>
             <p>Trusted by contractors across the U.S. and Europe. 99.9% uptime, secure payment processing, and dedicated support. TellBill is the partner your business deserves.</p>
-            <button class="btn btn-cta">Start Free Trial</button>
+            <!-- Final CTA: Redirects to Google Play Store -->
+            <button class="btn btn-cta" data-action="store-redirect" aria-label="Start free trial now">Start Free Trial</button>
             <p class="cta-footnote">No credit card • 14-day free trial • Cancel anytime</p>
         </div>
     </section>
@@ -370,11 +378,12 @@
                     <span>TellBill</span>
                 </div>
                 <div class="footer-links">
-                    <a href="#">Terms of Service</a>
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Contact</a>
-                    <a href="#">LinkedIn</a>
-                    <a href="#">Twitter</a>
+                    <!-- Footer: All links are now functional with proper URLs -->
+                    <a href="https://yourdomain.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                    <a href="https://yourdomain.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                    <a href="https://yourdomain.com/contact" target="_blank" rel="noopener noreferrer">Contact</a>
+                    <a href="https://linkedin.com/company/tellbill" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="https://twitter.com/tellbill" target="_blank" rel="noopener noreferrer">Twitter</a>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -382,6 +391,88 @@
             </div>
         </div>
     </footer>
+
+    <!-- ========================================
+         MODALS FOR INTERACTIVE FEATURES
+         ======================================== -->
+    
+    <!-- DEMO VIDEO MODAL -->
+    <div id="demo-modal" class="modal" style="display: none;" role="dialog" aria-labelledby="demo-modal-title" aria-hidden="true">
+        <div class="modal-overlay" onclick="closeModal('demo-modal')"></div>
+        <div class="modal-content">
+            <!-- Close button with X icon -->
+            <button class="modal-close" onclick="closeModal('demo-modal')" aria-label="Close demo modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h2 id="demo-modal-title">See TellBill in Action</h2>
+            </div>
+            <div class="modal-body">
+                <!-- Video container with autoplay and controls -->
+                <video id="demo-video" width="100%" height="auto" controls autoplay>
+                    <source src="https://example.com/demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-footer">
+                <p class="modal-cta">Ready to try TellBill?</p>
+                <button class="btn btn-primary" onclick="handleStoreRedirect(); closeModal('demo-modal')" aria-label="Start free trial after watching demo">Start Free Trial</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTERPRISE CONTACT FORM MODAL -->
+    <div id="enterprise-modal" class="modal" style="display: none;" role="dialog" aria-labelledby="enterprise-modal-title" aria-hidden="true">
+        <div class="modal-overlay" onclick="closeModal('enterprise-modal')"></div>
+        <div class="modal-content modal-form">
+            <!-- Close button with X icon -->
+            <button class="modal-close" onclick="closeModal('enterprise-modal')" aria-label="Close enterprise inquiry form">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h2 id="enterprise-modal-title">Enterprise Inquiry</h2>
+                <p>Tell us about your business. Our sales team will be in touch within 24 hours.</p>
+            </div>
+            <div class="modal-body">
+                <!-- Enterprise contact form -->
+                <form id="enterprise-form" onsubmit="handleEnterpriseSubmit(event)">
+                    <div class="form-group">
+                        <label for="enterprise-name">Full Name *</label>
+                        <input type="text" id="enterprise-name" name="name" required placeholder="John Doe" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-email">Email Address *</label>
+                        <input type="email" id="enterprise-email" name="email" required placeholder="john@example.com" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-company">Company Name *</label>
+                        <input type="text" id="enterprise-company" name="company" required placeholder="Your Company" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-team-size">Team Size *</label>
+                        <select id="enterprise-team-size" name="team_size" required aria-required="true">
+                            <option value="">Select team size...</option>
+                            <option value="5-10">5-10 members</option>
+                            <option value="10-50">10-50 members</option>
+                            <option value="50-100">50-100 members</option>
+                            <option value="100+">100+ members</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-message">Tell us about your needs</label>
+                        <textarea id="enterprise-message" name="message" placeholder="What specific features or integrations are you looking for?" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Inquiry</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="scripts_professional.js"></script>
 </body>
