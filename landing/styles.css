@@ -400,6 +400,130 @@ p {
 }
 
 /* ========================================
+   TRUST BADGES SECTION
+   ======================================== */
+
+.trust-badges {
+    padding: var(--spacing-xl) 0;
+    background-color: var(--color-gray-light);
+}
+
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.badge-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-align: left;
+}
+
+.badge-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.badge-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-gold);
+    line-height: 1;
+}
+
+.badge-label {
+    font-size: 0.9rem;
+    color: var(--color-gray-medium);
+    margin-top: 0.25rem;
+}
+
+/* ========================================
+   CORE BENEFITS SECTION
+   ======================================== */
+
+.core-benefits {
+    padding: var(--spacing-3xl) 0;
+    background-color: var(--color-white);
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.benefit-card {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.benefit-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    display: block;
+}
+
+.benefit-card h3 {
+    color: var(--color-charcoal);
+    margin-bottom: var(--spacing-sm);
+}
+
+.benefit-card p {
+    font-size: 0.95rem;
+    color: var(--color-gray-medium);
+    margin-bottom: 0;
+}
+
+/* ========================================
+   USE CASES SECTION
+   ======================================== */
+
+.use-cases {
+    padding: var(--spacing-3xl) 0;
+    background-color: var(--color-gray-light);
+}
+
+.use-cases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.use-case-card {
+    background: var(--color-white);
+    padding: var(--spacing-lg);
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    transition: var(--transition);
+}
+
+.use-case-card:hover {
+    border-color: var(--color-gold);
+    box-shadow: 0 8px 16px rgba(255, 215, 0, 0.1);
+}
+
+.use-case-emoji {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+    display: block;
+}
+
+.use-case-card h3 {
+    color: var(--color-charcoal);
+    font-size: 1.25rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.use-case-card p {
+    font-size: 0.9rem;
+    color: var(--color-gray-medium);
+    margin-bottom: 0;
+}
+
+/* ========================================
    FEATURES SECTION
    ======================================== */
 

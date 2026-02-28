@@ -23,7 +23,7 @@ import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { useInvoiceStore } from "@/stores/invoiceStore";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { isOverdue, getDaysOverdue } from "@/lib/invoiceUtils";
+import { isOverdue, daysOverdue } from "@/lib/invoiceUtils";
 import { getApiUrl } from "@/lib/backendUrl";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -460,7 +460,7 @@ export default function InvoiceDetailScreen() {
                 onPress={handleSendReminder}
                 style={[styles.footerButton, { borderColor: "#EF4444", backgroundColor: "#EF444410" }]}
               >
-                Send Reminder ({getDaysOverdue({ dueDate: invoice.dueDate, status: invoice.status, paidAt: invoice.paidAt } as any)}d overdue)
+                Send Reminder ({daysOverdue({ dueDate: invoice.dueDate, status: invoice.status, paidAt: invoice.paidAt } as any)}d overdue)
               </Button>
             )}
             <Button onPress={handleMarkPaid} style={styles.footerButton}>

@@ -139,30 +139,20 @@ function setupCTAButtons() {
     const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
     
     buttons.forEach(button => {
-        // Add ripple effect on click
-        button.addEventListener('click', function(e) {
-            const ripple = document.createElement('span');
-            const rect = this.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = x + 'px';
-            ripple.style.top = y + 'px';
-            
-            ripple.classList.add('ripple');
-            this.appendChild(ripple);
-            
-            setTimeout(() => ripple.remove(), 600);
-        });
-        
         // Handle Sign-up flows (replace with actual app logic)
         if (button.textContent.includes('Start Free Trial') || 
             button.textContent.includes('Test TellBill') ||
             button.textContent.includes('Start Your Free')) {
             button.addEventListener('click', handleTrialSignup);
         }
+        
+        // Add click feedback
+        button.addEventListener('click', function(e) {
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 150);
+        });
     });
 }
 
@@ -188,17 +178,35 @@ function handleTrialSignup(e) {
 // DEMO BUTTON INTERACTION
 // ========================================
 
-const demoBtnElement = document.querySelector('.demo-btn');
-if (demoBtnElement) {
-    demoBtnElement.addEventListener('click', () => {
-        const demoPreview = document.querySelector('.demo-preview');
-        if (demoPreview) {
-            demoPreview.style.animation = 'pulse 0.6s ease';
-            setTimeout(() => {
-                demoPreview.style.animation = '';
-            }, 600);
+function setupDemoButton() {
+    const demoBtns = document.querySelectorAll('.demo-btn, [class*="demo"]');
+    
+    demoBtns.forEach(btn => {
+        if (btn.textContent.includes('Demo') || btn.textContent.includes('Play') || btn.textContent.includes('Test')) {
+            btn.addEventListener('click', () => {
+                // Animate the demo mockup
+                const demoPreview = document.querySelector('.demo-preview');
+                if (demoPreview) {
+                    demoPreview.style.transform = 'scale(1.02)';
+                    demoPreview.style.transition = 'all 0.3s ease';
+                    setTimeout(() => {
+                        demoPreview.style.transform = 'scale(1)';
+                    }, 300);
+                    
+                    // Could add modal or video player here
+                    console.log('Demo video would play here');
+                    trackEvent('demo_clicked', { source: 'demo_button' });
+                }
+            });
         }
     });
+}
+
+// Call after DOM load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupDemoButton);
+} else {
+    setupDemoButton();
 }
 
 // ========================================
@@ -373,13 +381,16 @@ function copyToClipboard(text) {
 // ========================================
 
 function setupLazyLoading() {
-    if ('IntersectionObserver' in window) {
+    if ('IntersectionObserver' in window && document.querySelectorAll('img[data-src]').length > 0) {
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.add('loaded');
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                        img.classList.add('loaded');
+                    }
                     observer.unobserve(img);
                 }
             });
@@ -388,11 +399,17 @@ function setupLazyLoading() {
         document.querySelectorAll('img[data-src]').forEach(img => {
             imageObserver.observe(img);
         });
+        
+        console.log('Lazy loading initialized for images');
     }
 }
 
 // Initialize lazy loading if images exist
-document.addEventListener('DOMContentLoaded', setupLazyLoading);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupLazyLoading);
+} else {
+    setupLazyLoading();
+}
 
 // ========================================
 // EXPORT FUNCTIONS FOR TESTING
