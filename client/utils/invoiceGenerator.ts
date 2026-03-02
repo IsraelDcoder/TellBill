@@ -157,8 +157,12 @@ const formatDate = (date: string): string => {
 // ============================================
 
 const HeaderSection = (invoice: InvoiceData, templateType: TemplateType): string => {
-  const statusBadge = getStatusBadgeStyle(invoice.status);
-  const hasAccentStripe = templateType === "modern" || templateType === "professional";
+  // Get contractor company info from custom template or use defaults
+  const companyLogo = invoice.customTemplate?.logoUrl || "";
+  const companyName = invoice.customTemplate?.companyHeaderText || "Your Company";
+  const companyPhone = invoice.customTemplate?.customField1Value || "";
+  const companyEmail = invoice.customTemplate?.customField2Value || "";
+  const companyAddress = invoice.customTemplate?.customField1Name || "";
 
   return `
     <div style="
@@ -166,37 +170,83 @@ const HeaderSection = (invoice: InvoiceData, templateType: TemplateType): string
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: ${SPACING.lg};
-      padding-bottom: ${SPACING.md};
-      border-bottom: 2px solid ${COLORS.divider};
-      ${hasAccentStripe ? `border-left: 4px solid ${COLORS.accent};` : ""}
-      padding-left: ${hasAccentStripe ? SPACING.md : "0"};
+      padding-bottom: ${SPACING.lg};
+      border-bottom: 1px solid ${COLORS.divider};
     ">
+      <!-- LEFT SIDE: Contractor Company Info -->
       <div>
-        <div style="font-size: 28px; font-weight: bold; color: ${COLORS.primaryText}; margin-bottom: 4px;">
-          TellBill
+        <!-- Company Logo (if available) -->
+        ${companyLogo ? `
+          <img src="${companyLogo}" alt="Company Logo" style="
+            max-height: 50px;
+            margin-bottom: ${SPACING.md};
+            display: block;
+          " />
+        ` : ""}
+        
+        <!-- Company Name -->
+        <div style="
+          font-size: 24px;
+          font-weight: bold;
+          color: ${COLORS.primaryText};
+          margin-bottom: ${SPACING.sm};
+        ">
+          ${companyName}
         </div>
-        <div style="font-size: 12px; color: ${COLORS.mutedText};">
-          Stop losing money on finished jobs
+        
+        <!-- Company Contact Info -->
+        <div style="font-size: 12px; color: ${COLORS.mutedText}; line-height: 1.6;">
+          ${companyPhone ? `<div>${companyPhone}</div>` : ""}
+          ${companyEmail ? `<div>${companyEmail}</div>` : ""}
+          ${companyAddress ? `<div>${companyAddress}</div>` : ""}
         </div>
       </div>
+
+      <!-- RIGHT SIDE: Invoice Details + TellBill Branding -->
       <div style="text-align: right;">
-        <div style="font-size: 28px; font-weight: bold; color: ${COLORS.accent}; margin-bottom: 8px;">
+        <!-- INVOICE Title -->
+        <div style="
+          font-size: 32px;
+          font-weight: bold;
+          color: ${COLORS.primaryText};
+          margin-bottom: ${SPACING.md};
+          text-transform: uppercase;
+          letter-spacing: 2px;
+        ">
           INVOICE
         </div>
-        <div style="font-size: 12px; color: ${COLORS.mutedText}; margin-bottom: 12px;">
-          ${invoice.invoiceNumber}
+        
+        <!-- Invoice Meta Info -->
+        <div style="font-size: 12px; color: ${COLORS.mutedText}; line-height: 1.8; margin-bottom: ${SPACING.lg};">
+          <div style="margin-bottom: ${SPACING.sm};">
+            <strong>Invoice #:</strong> ${invoice.invoiceNumber}
+          </div>
+          <div style="margin-bottom: ${SPACING.sm};">
+            <strong>Date:</strong> ${formatDate(invoice.createdAt)}
+          </div>
+          ${invoice.dueDate ? `
+            <div style="margin-bottom: ${SPACING.sm};">
+              <strong>Due Date:</strong> ${formatDate(invoice.dueDate)}
+            </div>
+          ` : ""}
+          <div>
+            <strong>Payment Terms:</strong> ${invoice.paymentTerms}
+          </div>
         </div>
+
+        <!-- TellBill Branding Badge -->
         <div style="
           display: inline-block;
-          background-color: ${statusBadge.bgColor};
-          color: ${statusBadge.textColor};
-          padding: 4px 12px;
-          border-radius: 16px;
-          font-size: 10px;
+          background-color: ${COLORS.accent};
+          color: ${COLORS.white};
+          padding: ${SPACING.sm} ${SPACING.md};
+          border-radius: 6px;
+          font-size: 11px;
           font-weight: bold;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
         ">
-          ${invoice.status}
+          Powered by TellBill
         </div>
       </div>
     </div>
@@ -211,7 +261,7 @@ const BillingSection = (invoice: InvoiceData): string => {
         <div style="
           font-size: ${TYPOGRAPHY.small};
           font-weight: bold;
-          color: ${COLORS.mutedText};
+          color: ${COLORS.primaryText};
           margin-bottom: ${SPACING.sm};
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -221,43 +271,26 @@ const BillingSection = (invoice: InvoiceData): string => {
         <div style="font-size: 14px; font-weight: 600; color: ${COLORS.primaryText}; margin-bottom: 4px;">
           ${invoice.clientName}
         </div>
-        <div style="font-size: 12px; color: ${COLORS.mutedText}; line-height: 1.5;">
+        <div style="font-size: 12px; color: ${COLORS.mutedText}; line-height: 1.6;">
           ${invoice.clientAddress || ""}
           ${invoice.clientEmail ? `<br>${invoice.clientEmail}` : ""}
         </div>
       </div>
 
-      <!-- JOB DETAILS -->
+      <!-- PAYMENT TERMS -->
       <div>
         <div style="
           font-size: ${TYPOGRAPHY.small};
           font-weight: bold;
-          color: ${COLORS.mutedText};
+          color: ${COLORS.primaryText};
           margin-bottom: ${SPACING.sm};
           text-transform: uppercase;
           letter-spacing: 0.5px;
         ">
-          Invoice Details
+          Payment Terms
         </div>
-        <div style="display: flex; justify-content: space-between; gap: ${SPACING.xl}; font-size: 12px;">
-          <div>
-            <div style="color: ${COLORS.mutedText}; margin-bottom: 4px;">Issue Date</div>
-            <div style="color: ${COLORS.primaryText}; font-weight: 500;">
-              ${formatDate(invoice.createdAt)}
-            </div>
-          </div>
-          <div>
-            <div style="color: ${COLORS.mutedText}; margin-bottom: 4px;">Due Date</div>
-            <div style="color: ${COLORS.primaryText}; font-weight: 500;">
-              ${invoice.dueDate ? formatDate(invoice.dueDate) : "On Receipt"}
-            </div>
-          </div>
-          <div>
-            <div style="color: ${COLORS.mutedText}; margin-bottom: 4px;">Terms</div>
-            <div style="color: ${COLORS.primaryText}; font-weight: 500;">
-              ${invoice.paymentTerms}
-            </div>
-          </div>
+        <div style="font-size: 14px; font-weight: 600; color: ${COLORS.primaryText};">
+          ${invoice.paymentTerms}
         </div>
       </div>
     </div>
@@ -349,58 +382,62 @@ const TotalsSection = (invoice: InvoiceData): string => {
     <div style="
       display: flex;
       justify-content: flex-end;
-      margin: ${SPACING.lg} 0;
+      margin: ${SPACING.xl} 0;
     ">
       <div style="
-        width: 300px;
-        background-color: ${COLORS.lightGray};
-        padding: ${SPACING.lg};
-        border-radius: 8px;
-        border: 1px solid ${COLORS.divider};
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        width: 320px;
       ">
         <!-- Subtotal -->
         <div style="
           display: flex;
           justify-content: space-between;
           margin-bottom: ${SPACING.md};
-          font-size: 12px;
+          font-size: 13px;
           color: ${COLORS.primaryText};
+          padding: 0 ${SPACING.md};
         ">
-          <span>Subtotal</span>
+          <span>Subtotal:</span>
           <span style="font-weight: 500;">${formatCurrency(invoice.subtotal)}</span>
         </div>
 
-        <!-- Tax -->
-        ${
-          invoice.taxAmount > 0
-            ? `
-          <div style="
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: ${SPACING.md};
-            font-size: 12px;
-            color: ${COLORS.primaryText};
-          ">
-            <span>${invoice.taxName || "Tax"} (${(invoice.taxRate || 0).toFixed(1)}%)</span>
-            <span style="font-weight: 500;">${formatCurrency(invoice.taxAmount)}</span>
-          </div>
-        `
-            : ""
-        }
-
-        <!-- Total Due -->
+        <!-- Taxes -->
         <div style="
           display: flex;
           justify-content: space-between;
-          padding-top: ${SPACING.md};
-          border-top: 2px solid ${COLORS.accent};
-          font-size: ${TYPOGRAPHY.totalDue};
-          font-weight: bold;
-          color: ${COLORS.accent};
+          margin-bottom: ${SPACING.lg};
+          font-size: 13px;
+          color: ${COLORS.primaryText};
+          padding: 0 ${SPACING.md};
         ">
-          <span>Total Due</span>
-          <span>${formatCurrency(invoice.total)}</span>
+          <span>${invoice.taxName || "Taxes"}:</span>
+          <span style="font-weight: 500;">${formatCurrency(invoice.taxAmount)}</span>
+        </div>
+
+        <!-- Total Due Box -->
+        <div style="
+          background-color: ${COLORS.lightGray};
+          padding: ${SPACING.lg};
+          border-radius: 8px;
+          border: 1px solid ${COLORS.divider};
+          text-align: right;
+        ">
+          <div style="
+            font-size: 12px;
+            color: ${COLORS.mutedText};
+            margin-bottom: ${SPACING.sm};
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+          ">
+            Total Due
+          </div>
+          <div style="
+            font-size: 24px;
+            font-weight: bold;
+            color: ${COLORS.primaryText};
+          ">
+            ${formatCurrency(invoice.total)}
+          </div>
         </div>
       </div>
     </div>

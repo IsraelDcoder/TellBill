@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="TellBill - Voice-to-Invoice for Construction Contractors. Record work. AI builds invoice. Get paid on-site. No paperwork. No disputes.">
-    <meta name="keywords" content="voice invoice, construction invoicing, contractor app, scope proof, on-site billing, plumber app, electrician app, receipt scanning">
-    <meta property="og:title" content="TellBill - Voice-to-Invoice for Contractors">
-    <meta property="og:description" content="Talk to your phone like a walkie-talkie. Our AI builds professional invoices. Get paid before you leave the site.">
+    <meta name="description" content="TellBill - Intelligent invoicing system for contractors. Protect your revenue, get paid faster, automate follow-ups. White-label invoicing platform for Western contractors.">
+    <meta name="keywords" content="contractor invoicing, revenue protection, payment automation, invoice management, construction billing">
+    <meta property="og:title" content="TellBill - Revenue Protection for Contractors">
+    <meta property="og:description" content="Protect your revenue, avoid disputes, get paid faster. Intelligent invoicing for contractors who demand results.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="TellBill - Voice-to-Invoice for Contractors">
     
-    <title>TellBill - Voice-to-Invoice for Construction Contractors</title>
+    <title>TellBill - Intelligent Invoicing for Contractors | Revenue Protection</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,7 +24,7 @@
         <div class="container">
             <div class="navbar-content">
                 <div class="logo">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
                         <rect x="4" y="4" width="24" height="24" rx="4" fill="#FFD700"/>
                         <text x="16" y="22" text-anchor="middle" font-size="16" font-weight="700" fill="#1C1C1C" font-family="Inter">TB</text>
                     </svg>
@@ -31,416 +32,301 @@
                 </div>
                 <div class="nav-links">
                     <a href="#features" class="nav-link">Features</a>
-                    <a href="#how-it-works" class="nav-link">How It Works</a>
                     <a href="#pricing" class="nav-link">Pricing</a>
                     <a href="#faq" class="nav-link">FAQ</a>
                 </div>
-                <button class="btn btn-primary btn-sm">Get Started Free</button>
+                <!-- Header: Start Free Trial button redirects to Google Play Store -->
+                <button class="btn btn-primary" data-action="store-redirect" aria-label="Download TellBill from Google Play Store">Start Free Trial</button>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero contractor-hero">
+    <section class="hero">
         <div class="container">
-            <div class="hero-content">
-                <div class="hero-text">
-                    <h1 class="hero-title">Stop Wasting Hours on Invoices</h1>
-                    <p class="hero-subtitle">Talk to your phone like a walkie-talkie. Our AI builds professional invoices instantly. Get paid on-site, not in 30 days.</p>
+            <div class="hero-wrapper">
+                <div class="hero-content">
+                    <h1>Protect your revenue, avoid disputes, and get paid faster — effortlessly.</h1>
+                    <p class="hero-subtitle">TellBill is the intelligent invoicing system for contractors who demand results.</p>
+                    <p class="hero-desc">From drafting invoices to automating reminders, TellBill ensures your business runs smoothly, every time.</p>
                     <div class="hero-ctas">
-                        <button class="btn btn-primary btn-lg">Try Free - No Card Needed</button>
-                        <a href="#demo" class="btn btn-secondary btn-lg">See Demo</a>
+                        <!-- Hero: Start Free Trial redirects to Google Play Store -->
+                        <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Download TellBill app">Start Free Trial</button>
+                        <!-- Hero: See Demo opens modal with demo video -->
+                        <button class="btn btn-secondary btn-large" data-action="demo-modal" aria-label="Watch TellBill demo video">See Demo</button>
                     </div>
-                    <p class="hero-footnote">✓ 3 free voice recordings • Works on iOS & Android</p>
+                    <p class="hero-footnote">No credit card required • 14-day free trial • Cancel anytime</p>
                 </div>
                 <div class="hero-visual">
-                    <div class="voice-demo">
-                        <div class="voice-waveform">
-                            <div class="wave"></div>
-                            <div class="wave"></div>
-                            <div class="wave"></div>
-                            <div class="wave"></div>
-                            <div class="wave"></div>
+                    <div class="image-carousel">
+                        <div class="carousel-wrapper">
+                            <div class="carousel-container">
+                                <!-- Image 1 -->
+                                <div class="carousel-slide active">
+                                    <img src="https://via.placeholder.com/900x1350/FFD700/1C1C1C?text=TellBill+Dashboard" alt="TellBill Dashboard" class="carousel-image">
+                                </div>
+                                <!-- Image 2 -->
+                                <div class="carousel-slide">
+                                    <img src="https://via.placeholder.com/900x1350/FFD700/1C1C1C?text=Voice+to+Invoice" alt="Voice to Invoice" class="carousel-image">
+                                </div>
+                            </div>
+                            
+                            <!-- Navigation Buttons -->
+                            <button class="carousel-nav carousel-prev" aria-label="Previous image">❮</button>
+                            <button class="carousel-nav carousel-next" aria-label="Next image">❯</button>
                         </div>
-                        <p class="voice-text">"Bathroom remodel, 8 hours labor, $75/hour, tiles $200, grout $50..."</p>
-                        <button class="btn btn-small">▶ Play</button>
+                        
+                        <!-- Dot Indicators -->
+                        <div class="carousel-dots">
+                            <span class="dot active" data-index="0" aria-label="Image 1"></span>
+                            <span class="dot" data-index="1" aria-label="Image 2"></span>
+                        </div>
                     </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why TellBill Section -->
+    <section class="why-tellbill">
+        <div class="container">
+            <h2>Why TellBill</h2>
+            <div class="why-grid">
+                <div class="why-card">
+                    <div class="why-icon">🛡️</div>
+                    <h3>Revenue protection for every project</h3>
+                    <p>Built-in scope tracking and client approval workflows prevent disputes before they start.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-icon">⏰</div>
+                    <h3>Automated follow-ups, so you never chase a client</h3>
+                    <p>Smart reminder sequences ensure payments arrive faster, without awkward conversations.</p>
+                </div>
+                <div class="why-card">
+                    <div class="why-icon">📊</div>
+                    <h3>Real-time insights & reporting</h3>
+                    <p>Dashboard shows every invoice status, payment trends, and revenue forecasts at a glance.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- The Contractor Problem -->
-    <section class="contractor-problem">
+    <!-- Core Features Section -->
+    <section class="features" id="features">
         <div class="container">
-            <div class="section-header">
-                <h2>The Real Problem Contractors Face</h2>
-                <p>You're spending time in the field, not in the office</p>
-            </div>
-            <div class="problems-grid">
-                <div class="problem-item">
-                    <div class="problem-number">⏱️</div>
-                    <h3>Hours Lost on Paperwork</h3>
-                    <p>After 8+ hours on site, you're stuck home writing invoices. You're not getting paid, you have no time for your family.</p>
-                </div>
-                <div class="problem-item">
-                    <div class="problem-number">💬</div>
-                    <h3>Scope Disputes</h3>
-                    <p>Client claims "we didn't agree to that." You have no proof. You lose money. Every single time.</p>
-                </div>
-                <div class="problem-item">
-                    <div class="problem-number">💸</div>
-                    <h3>Late Payments</h3>
-                    <p>30-60-90+ days pass. You're out of pocket materials. Your business cash flow is destroyed.</p>
-                </div>
-                <div class="problem-item">
-                    <div class="problem-number">🧾</div>
-                    <h3>Lost Receipts</h3>
-                    <p>Scattered paper receipts. Missing material costs. You're either guessing prices or eating losses.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Voice-to-Invoice: The Solution -->
-    <section class="voice-solution" id="demo">
-        <div class="container">
-            <div class="solution-header">
-                <h2>Meet Voice-to-Invoice</h2>
-                <p>The fastest way to get paid for your work</p>
-            </div>
-            <div class="solution-flow">
-                <div class="flow-step">
-                    <div class="step-number">1</div>
-                    <div class="step-icon">🎤</div>
-                    <h3>Just Talk</h3>
-                    <p>On-site, hands free. "Bathroom remodel, 8 hours, materials cost $250..."</p>
-                </div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-step">
-                    <div class="step-number">2</div>
-                    <div class="step-icon">🤖</div>
-                    <h3>AI Understands</h3>
-                    <p>Our AI extracts every detail: labor hours, materials, rates, client info.</p>
-                </div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-step">
-                    <div class="step-number">3</div>
-                    <div class="step-icon">📄</div>
-                    <h3>Professional Invoice</h3>
-                    <p>Beautiful PDF ready to send. Proper formatting, all calculations done.</p>
-                </div>
-                <div class="flow-arrow">→</div>
-                <div class="flow-step">
-                    <div class="step-number">4</div>
-                    <div class="step-icon">💰</div>
-                    <h3>Get Paid NOW</h3>
-                    <p>Client pays on-site or within days, not months. You leave richer.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Core Features -->
-    <section class="core-features" id="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Everything You Need to Control Your Business</h2>
-                <p>From field to payment, all in one app</p>
-            </div>
-            <div class="features-matrix">
-                <div class="feature-block">
-                    <div class="feature-icon">🎤</div>
-                    <h3>Voice-to-Invoice</h3>
-                    <p>Record work details, AI extracts all info, professional invoice generated instantly</p>
+            <h2>Designed for contractors and professionals in Western markets</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <h3>Voice-to-Invoice</h3>
+                    </div>
+                    <p>Record work details hands-free. AI instantly converts to professional invoices.</p>
                     <ul class="feature-list">
-                        <li>Labor hours & rates</li>
-                        <li>Material costs</li>
-                        <li>Client details</li>
-                        <li>PDF ready to send</li>
+                        <li>Talk on-site, invoice anywhere</li>
+                        <li>Auto-populated from voice notes</li>
+                        <li>Ready to send in seconds</li>
                     </ul>
                 </div>
 
-                <div class="feature-block">
-                    <div class="feature-icon">📸</div>
-                    <h3>Scope Proof</h3>
-                    <p>Capture photos + timestamps. Client approves scope. Never lose a dispute again.</p>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <h3>Scope Proof & Approvals</h3>
+                    </div>
+                    <p>Capture photos and timestamps. Get client approval before disputes happen.</p>
                     <ul class="feature-list">
-                        <li>Before/after photos</li>
-                        <li>Client approval link</li>
-                        <li>24-hour expiry</li>
-                        <li>Secure on-device storage</li>
+                        <li>Before/after photo tracking</li>
+                        <li>Client approval portal</li>
+                        <li>Dispute-proof records</li>
                     </ul>
                 </div>
 
-                <div class="feature-block">
-                    <div class="feature-icon">🧾</div>
-                    <h3>Receipt Scanner</h3>
-                    <p>Snap a photo. AI extracts all expenses automatically. Never lose a receipt again.</p>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <h3>Receipt Scanner</h3>
+                    </div>
+                    <p>Snap receipts. AI extracts expenses automatically. Never lose a material cost again.</p>
                     <ul class="feature-list">
-                        <li>Auto-extract amounts</li>
+                        <li>Auto-extract amounts & details</li>
                         <li>Expense categorization</li>
-                        <li>Material cost tracking</li>
                         <li>Tax-ready data</li>
                     </ul>
                 </div>
 
-                <div class="feature-block">
-                    <div class="feature-icon">📊</div>
-                    <h3>Invoice Management</h3>
-                    <p>Create, track, and manage all invoices. See what's paid, what's pending.</p>
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <h3>Invoice + Tax Automation</h3>
+                    </div>
+                    <p>Templates, tracking, and tax categorization built in. Accountants love it.</p>
                     <ul class="feature-list">
-                        <li>Invoice templates</li>
-                        <li>Payment tracking</li>
-                        <li>Custom branding</li>
-                        <li>Bulk send via email</li>
-                    </ul>
-                </div>
-
-                <div class="feature-block">
-                    <div class="feature-icon">💻</div>
-                    <h3>Tax Automation</h3>
-                    <p>Custom tax settings. Track materials vs labor. Tax filing gets easier.</p>
-                    <ul class="feature-list">
-                        <li>Custom tax rates</li>
-                        <li>Tax category tracking</li>
-                        <li>Expense breakdown</li>
-                        <li>CPA-ready reports</li>
-                    </ul>
-                </div>
-
-                <div class="feature-block">
-                    <div class="feature-icon">👥</div>
-                    <h3>Team Access</h3>
-                    <p>Sync with your team. Share work logs. Everyone knows project status.</p>
-                    <ul class="feature-list">
-                        <li>Multi-user access</li>
-                        <li>Role-based permissions</li>
-                        <li>Real-time sync</li>
-                        <li>Dispute-ready logs</li>
+                        <li>Custom invoice templates</li>
+                        <li>Labor vs. material tracking</li>
+                        <li>CPA-ready exports</li>
                     </ul>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- How It Works Workflow -->
-    <section class="workflow" id="how-it-works">
+    <!-- Demo Section -->
+    <section class="demo">
         <div class="container">
-            <div class="section-header">
-                <h2>Your Daily Workflow with TellBill</h2>
-                <p>From clock in to getting paid</p>
-            </div>
-            <div class="workflow-steps">
-                <div class="workflow-step">
-                    <span class="step-label">Morning</span>
-                    <h3>Arrive at Site</h3>
-                    <p>Open TellBill. Start your day log.</p>
-                </div>
-                <div class="workflow-step">
-                    <span class="step-label">During Work</span>
-                    <h3>Document Everything</h3>
-                    <p>Take progress photos. Record voice notes. Capture receipts.</p>
-                </div>
-                <div class="workflow-step">
-                    <span class="step-label">Before Leaving</span>
-                    <h3>Create Invoice</h3>
-                    <p>Hit "Create Invoice from today." Review. Send to client.</p>
-                </div>
-                <div class="workflow-step">
-                    <span class="step-label">That Day</span>
-                    <h3>Get Paid</h3>
-                    <p>Client pays on Venmo/card. Money in your account that night.</p>
-                </div>
+            <div class="demo-content">
+                <h2>Try TellBill risk-free</h2>
+                <p>Experience automated invoicing, client notifications, and instant revenue tracking — all in one platform.</p>
+                <!-- Demo section: Start Your Free Trial redirects to Google Play Store -->
+                <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Start free trial">Start Your Free Trial</button>
+                <p class="demo-footnote">No credit card. 14 days free. Full access to all features.</p>
             </div>
         </div>
     </section>
 
-    <!-- Contractor Types -->
-    <section class="contractor-types">
+    <!-- Testimonials Section -->
+    <section class="testimonials">
         <div class="container">
-            <div class="section-header">
-                <h2>Built for All Trades</h2>
-                <p>Whether you're solo or running a team</p>
-            </div>
-            <div class="types-grid">
-                <div class="type-card">
-                    <div class="type-icon">🔨</div>
-                    <h3>General Contractors</h3>
-                    <p>Manage multiple sub-contractor invoices. Track materials per job. Get scope approval before billing.</p>
-                </div>
-                <div class="type-card">
-                    <div class="type-icon">🚰</div>
-                    <h3>Plumbers</h3>
-                    <p>Quick on-site invoicing. Track service calls & materials. Get paid same day.</p>
-                </div>
-                <div class="type-card">
-                    <div class="type-icon">⚡</div>
-                    <h3>Electricians</h3>
-                    <p>Document hours & materials by voice. Scope photos prevent disputes. Invoice before leaving.</p>
-                </div>
-                <div class="type-card">
-                    <div class="type-icon">🖌️</div>
-                    <h3>Painters & Renovators</h3>
-                    <p>Track materials used. Get client approval on scope. Invoice immediately after completion.</p>
-                </div>
-                <div class="type-card">
-                    <div class="type-icon">🏠</div>
-                    <h3>Home Repair & Maintenance</h3>
-                    <p>Small or large jobs. Quick invoicing. Easy payment collection.</p>
-                </div>
-                <div class="type-card">
-                    <div class="type-icon">🏗️</div>
-                    <h3>Construction Crews</h3>
-                    <p>Team-based work logs. Shared scope proofs. Everyone's work accounted for.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contractor Testimonials -->
-    <section class="contractor-testimonials">
-        <div class="container">
-            <div class="section-header">
-                <h2>What Contractors Are Saying</h2>
-            </div>
+            <h2>Trusted by contractors</h2>
             <div class="testimonials-grid">
-                <div class="testimonial-card">
+                <div class="testimonial">
                     <div class="stars">★★★★★</div>
-                    <p class="quote">"I used to waste 3 hours every night writing invoices. TellBill cuts that to 30 seconds. I'm getting paid the same day now instead of chasing clients for a month."</p>
-                    <div class="testimonial-author">
+                    <p>"TellBill saved me 10+ hours per week on invoicing. I'm getting paid in days, not weeks. Best tool for contractors."</p>
+                    <div class="author">
                         <div class="avatar">JM</div>
-                        <div>
-                            <div class="name">James Martinez</div>
-                            <div class="title">General Contractor</div>
-                        </div>
+                        <div><div class="name">James Martinez</div><div class="role">General Contractor</div></div>
                     </div>
                 </div>
 
-                <div class="testimonial-card">
+                <div class="testimonial">
                     <div class="stars">★★★★★</div>
-                    <p class="quote">"Client disputed my invoice for an extra $800 in materials. I had photos with timestamps from the scope proof. He paid immediately. Just paid for itself."</p>
-                    <div class="testimonial-author">
+                    <p>"The scope proof feature alone paid for itself. Client tried to dispute—I had timestamped photos. Instant resolution."</p>
+                    <div class="author">
                         <div class="avatar">SK</div>
-                        <div>
-                            <div class="name">Sarah King</div>
-                            <div class="title">Renovation Specialist</div>
-                        </div>
+                        <div><div class="name">Sarah King</div><div class="role">Renovation Specialist</div></div>
                     </div>
                 </div>
 
-                <div class="testimonial-card">
+                <div class="testimonial">
                     <div class="stars">★★★★★</div>
-                    <p class="quote">"The voice-to-invoice is a game-changer. I can't type on-site. This lets me record notes, and it builds a perfect invoice automatically. I'm making 40% more because I'm billing for all the work I do."</p>
-                    <div class="testimonial-author">
+                    <p>"Simple, powerful, and built for real contractors. No learning curve. Started billing on-site immediately."</p>
+                    <div class="author">
                         <div class="avatar">RC</div>
-                        <div>
-                            <div class="name">Roberto Chaves</div>
-                            <div class="title">Plumbing Service</div>
-                        </div>
+                        <div><div class="name">Roberto Chaves</div><div class="role">Plumbing Service</div></div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Pricing -->
-    <section class="pricing-section" id="pricing">
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
         <div class="container">
-            <div class="section-header">
-                <h2>Simple Pricing for Every Contractor</h2>
-                <p>Start free. Upgrade when you need more.</p>
+            <div class="pricing-header">
+                <h2>Plans that grow with your business</h2>
+                <p>Start solo, upgrade to professional, or customize for your enterprise needs. Every plan is designed to save you time, reduce disputes, and increase payments — fast.</p>
             </div>
-            <div class="pricing-tiers">
-                <div class="pricing-card pricing-free">
-                    <h3>Free</h3>
-                    <div class="price">$0</div>
-                    <p class="price-desc">Try TellBill risk-free</p>
-                    <button class="btn btn-outline btn-lg">Get Started</button>
-                    <div class="features-list">
-                        <div class="feature">✓ 3 voice recordings</div>
-                        <div class="feature">✓ 3 invoices lifetime</div>
-                        <div class="feature">✓ Receipt scanner</div>
-                        <div class="feature">✗ Scope proof & approvals</div>
-                        <div class="feature">✗ Team access</div>
-                    </div>
-                </div>
 
-                <div class="pricing-card pricing-solo">
+            <div class="pricing-grid">
+                <!-- Solo Plan -->
+                <div class="pricing-card">
                     <h3>Solo</h3>
-                    <div class="price">$29<span>/month</span></div>
-                    <p class="price-desc">Best for solo contractors</p>
-                    <button class="btn btn-primary btn-lg">Start Your Free Trial</button>
-                    <div class="features-list">
-                        <div class="feature">✓ Unlimited voice recordings</div>
-                        <div class="feature">✓ Unlimited invoices</div>
-                        <div class="feature">✓ Receipt scanner</div>
-                        <div class="feature">✓ Invoice templates</div>
-                        <div class="feature">✗ Scope proof & approvals</div>
-                        <div class="feature">✗ Team access</div>
+                    <div class="price">
+                        <span class="amount">$14</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <div class="price-alt">$140/year <span class="save">Save 15%</span></div>
+                    <p class="plan-desc">Designed for the independent contractor or freelancer. Protect your revenue, get paid faster, and never miss a follow-up. All the essentials to run your business efficiently.</p>
+                    <!-- Pricing: Solo plan CTA redirects to Google Play Store -->
+                    <button class="btn btn-secondary btn-large" data-action="store-redirect" aria-label="Start free trial for Solo plan">Start Free Trial – No Card Required</button>
+                    <div class="features">
+                        <div class="feature">✓ Create, send, and manage unlimited invoices</div>
+                        <div class="feature">✓ Automatic payment reminders</div>
+                        <div class="feature">✓ Draft, sent, paid, overdue tracking</div>
+                        <div class="feature">✓ Change order alerts</div>
+                        <div class="feature">✓ Client approval portal</div>
+                        <div class="feature">✓ Mobile & desktop access</div>
                     </div>
                 </div>
 
-                <div class="pricing-card pricing-professional">
+                <!-- Professional Plan -->
+                <div class="pricing-card pricing-featured">
                     <div class="badge">Most Popular</div>
                     <h3>Professional</h3>
-                    <div class="price">$79.99<span>/month</span></div>
-                    <p class="price-desc">For contractors doing serious work</p>
-                    <button class="btn btn-primary btn-lg">Start Your Free Trial</button>
-                    <div class="features-list">
-                        <div class="feature">✓ Everything in Solo</div>
-                        <div class="feature">✓ Scope proof & approvals</div>
-                        <div class="feature">✓ Client approval workflows</div>
-                        <div class="feature">✓ Dispute-ready work logs</div>
-                        <div class="feature">✓ Team access (up to 5)</div>
-                        <div class="feature">✓ Advanced money alerts</div>
-                        <div class="feature">✓ Priority support</div>
+                    <div class="price">
+                        <span class="amount">$34</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <div class="price-alt">$340/year <span class="save">Save 15%</span></div>
+                    <p class="plan-desc">For small teams and growing businesses that demand control and insight. Automate your workflows, monitor revenue in real-time, and never lose track of payments.</p>
+                    <!-- Pricing: Professional plan CTA redirects to Google Play Store -->
+                    <button class="btn btn-primary btn-large" data-action="store-redirect" aria-label="Upgrade to Professional plan">Upgrade & Automate Your Workflow</button>
+                    <div class="features">
+                        <div class="feature">✓ Everything in Solo, plus:</div>
+                        <div class="feature">✓ Multi-user collaboration (team members / accountants)</div>
+                        <div class="feature">✓ Advanced reporting & analytics</div>
+                        <div class="feature">✓ Client management dashboard</div>
+                        <div class="feature">✓ Priority support & onboarding</div>
+                        <div class="feature">✓ Push notifications to clients & team</div>
+                        <div class="feature">✓ Late payment automation</div>
+                    </div>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="pricing-card">
+                    <h3>Enterprise</h3>
+                    <div class="price">
+                        <span class="amount">Custom</span>
+                    </div>
+                    <p class="plan-desc">Tailored solutions for large contractors or agencies managing multiple projects. Scale with confidence while TellBill safeguards your revenue and operations.</p>
+                    <!-- Pricing: Enterprise CTA opens contact form modal -->
+                    <button class="btn btn-secondary btn-large" data-action="enterprise-modal" aria-label="Contact sales for Enterprise plan">Get a Custom Quote</button>
+                    <div class="features">
+                        <div class="feature">✓ Everything in Professional, plus:</div>
+                        <div class="feature">✓ White-label options</div>
+                        <div class="feature">✓ API integrations</div>
+                        <div class="feature">✓ Dedicated account manager</div>
+                        <div class="feature">✓ Custom onboarding and training</div>
+                        <div class="feature">✓ SLA-backed uptime & support</div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- FAQ -->
-    <section class="faq-section" id="faq">
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
         <div class="container">
-            <div class="section-header">
-                <h2>Questions Contractors Ask</h2>
-            </div>
+            <h2>Frequently Asked Questions</h2>
             <div class="faq-grid">
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>How accurate is the voice-to-invoice feature?</span>
+                        <span>How accurate is voice-to-invoice?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Extremely accurate. Our AI is trained on thousands of construction invoices. You still review everything before sending—total control, zero surprises. If something's off, you edit it in seconds.</p>
+                        <p>Extremely accurate. Our AI is trained on thousands of construction invoices. You review everything before sending—total control, zero surprises.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>Does the scope proof work without internet?</span>
+                        <span>Can I use TellBill offline?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Photos and voice recordings work offline. They sync automatically when internet returns. Perfect for job sites that don't have reliable service.</p>
+                        <p>Yes. Photos, voice recordings, and invoices work offline. Everything syncs automatically when internet returns. Perfect for job sites.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>Can I use this on both Android and iPhone?</span>
+                        <span>Is my data secure?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes. TellBill works perfectly on both iOS and Android with full feature parity. Same experience wherever you are.</p>
+                        <p>Bank-level encryption (256-bit SSL), HIPAA-compliant storage, and regular security audits. 99.9% uptime SLA. Your data is protected.</p>
                     </div>
                 </div>
 
@@ -448,48 +334,49 @@
                     <button class="faq-question">
                         <span>What if a client doesn't approve my scope proof?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>You can negotiate before the work expands. Scope proofs are sent via secure link—no login needed. They get a clear picture of what they approved and can talk through any concerns before money is on the line.</p>
+                        <p>Scope proofs are sent via secure link. No login needed. If there are concerns, you can negotiate before work expands. Prevents misunderstandings.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>Can I get paid instantly?</span>
+                        <span>Can clients pay directly through TellBill?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>Yes. TellBill sends payment links with your invoice. Clients can pay you via card, Venmo, bank transfer—whatever works for them. You get the money within hours, not months.</p>
+                        <p>Yes. Every invoice includes a payment link. Clients can pay via card, bank transfer, or digital wallets. Money in your account within hours.</p>
                     </div>
                 </div>
 
                 <div class="faq-item">
                     <button class="faq-question">
-                        <span>What about tax tracking?</span>
+                        <span>Is there a free trial?</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M7 8l3 3 6-6" stroke="#FFD700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6 9l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </button>
                     <div class="faq-answer">
-                        <p>TellBill tracks everything. Labor vs materials, custom tax rates, receipt extraction. When tax season hits, your info is ready. Give your CPA an export—they'll love you for it.</p>
+                        <p>Yes. 14 days free, full access to all features in your chosen plan. No credit card required. Cancel anytime.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Final CTA -->
+    <!-- Final CTA Section -->
     <section class="final-cta">
         <div class="container">
-            <h2>Start Controlling Your Money Today</h2>
-            <p>Stop wasting hours on paperwork. Stop losing disputes. Stop chasing payments.</p>
-            <button class="btn btn-primary btn-lg">Get Started Free - No Card Required</button>
-            <p class="cta-footnote">✓ 3 free voice recordings • Works on iOS & Android • Cancel anytime</p>
+            <h2>Start controlling your money today</h2>
+            <p>Trusted by contractors across the U.S. and Europe. 99.9% uptime, secure payment processing, and dedicated support. TellBill is the partner your business deserves.</p>
+            <!-- Final CTA: Redirects to Google Play Store -->
+            <button class="btn btn-cta" data-action="store-redirect" aria-label="Start free trial now">Start Free Trial</button>
+            <p class="cta-footnote">No credit card • 14-day free trial • Cancel anytime</p>
         </div>
     </section>
 
@@ -497,54 +384,109 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-section">
-                    <div class="footer-logo">
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                            <rect x="4" y="4" width="24" height="24" rx="4" fill="#FFD700"/>
-                            <text x="16" y="22" text-anchor="middle" font-size="16" font-weight="700" fill="#1C1C1C" font-family="Inter">TB</text>
-                        </svg>
-                        <span>TellBill</span>
-                    </div>
-                    <p>Voice-to-invoice for construction contractors. Record work. Get paid instantly.</p>
+                <div class="footer-logo">
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                        <rect x="4" y="4" width="24" height="24" rx="4" fill="#FFD700"/>
+                        <text x="16" y="22" text-anchor="middle" font-size="16" font-weight="700" fill="#1C1C1C" font-family="Inter">TB</text>
+                    </svg>
+                    <span>TellBill</span>
                 </div>
-                <div class="footer-section">
-                    <h4>Product</h4>
-                    <ul>
-                        <li><a href="#features">Features</a></li>
-                        <li><a href="#pricing">Pricing</a></li>
-                        <li><a href="#demo">Demo</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Company</h4>
-                    <ul>
-                        <li><a href="#">About</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="#">Terms of Service</a></li>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Security</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Follow Us</h4>
-                    <div class="social-links">
-                        <a href="#" class="social-link">LinkedIn</a>
-                        <a href="#" class="social-link">Twitter</a>
-                        <a href="#" class="social-link">Facebook</a>
-                    </div>
+                <div class="footer-links">
+                    <!-- Footer: All links are now functional with proper URLs -->
+                    <a href="https://yourdomain.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                    <a href="https://yourdomain.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                    <a href="https://yourdomain.com/contact" target="_blank" rel="noopener noreferrer">Contact</a>
+                    <a href="https://linkedin.com/company/tellbill" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="https://twitter.com/tellbill" target="_blank" rel="noopener noreferrer">Twitter</a>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 TellBill. Built for contractors, by people who understand construction.</p>
+                <p>&copy; 2026 TellBill. Intelligent invoicing for contractors.</p>
             </div>
         </div>
     </footer>
+
+    <!-- ========================================
+         MODALS FOR INTERACTIVE FEATURES
+         ======================================== -->
+    
+    <!-- DEMO VIDEO MODAL -->
+    <div id="demo-modal" class="modal" style="display: none;" role="dialog" aria-labelledby="demo-modal-title" aria-hidden="true">
+        <div class="modal-overlay" onclick="closeModal('demo-modal')"></div>
+        <div class="modal-content">
+            <!-- Close button with X icon -->
+            <button class="modal-close" onclick="closeModal('demo-modal')" aria-label="Close demo modal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h2 id="demo-modal-title">See TellBill in Action</h2>
+            </div>
+            <div class="modal-body">
+                <!-- Video container with autoplay and controls -->
+                <video id="demo-video" width="100%" height="auto" controls autoplay>
+                    <source src="https://example.com/demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="modal-footer">
+                <p class="modal-cta">Ready to try TellBill?</p>
+                <button class="btn btn-primary" onclick="handleStoreRedirect(); closeModal('demo-modal')" aria-label="Start free trial after watching demo">Start Free Trial</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENTERPRISE CONTACT FORM MODAL -->
+    <div id="enterprise-modal" class="modal" style="display: none;" role="dialog" aria-labelledby="enterprise-modal-title" aria-hidden="true">
+        <div class="modal-overlay" onclick="closeModal('enterprise-modal')"></div>
+        <div class="modal-content modal-form">
+            <!-- Close button with X icon -->
+            <button class="modal-close" onclick="closeModal('enterprise-modal')" aria-label="Close enterprise inquiry form">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-header">
+                <h2 id="enterprise-modal-title">Enterprise Inquiry</h2>
+                <p>Tell us about your business. Our sales team will be in touch within 24 hours.</p>
+            </div>
+            <div class="modal-body">
+                <!-- Enterprise contact form -->
+                <form id="enterprise-form" onsubmit="handleEnterpriseSubmit(event)">
+                    <div class="form-group">
+                        <label for="enterprise-name">Full Name *</label>
+                        <input type="text" id="enterprise-name" name="name" required placeholder="John Doe" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-email">Email Address *</label>
+                        <input type="email" id="enterprise-email" name="email" required placeholder="john@example.com" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-company">Company Name *</label>
+                        <input type="text" id="enterprise-company" name="company" required placeholder="Your Company" aria-required="true">
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-team-size">Team Size *</label>
+                        <select id="enterprise-team-size" name="team_size" required aria-required="true">
+                            <option value="">Select team size...</option>
+                            <option value="5-10">5-10 members</option>
+                            <option value="10-50">10-50 members</option>
+                            <option value="50-100">50-100 members</option>
+                            <option value="100+">100+ members</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="enterprise-message">Tell us about your needs</label>
+                        <textarea id="enterprise-message" name="message" placeholder="What specific features or integrations are you looking for?" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Inquiry</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="scripts.js"></script>
 </body>

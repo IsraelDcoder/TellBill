@@ -1,30 +1,288 @@
-// ========================================
-// TELLBILL LANDING PAGE - SCRIPTS
-// Contractor-focused version
-// ========================================
+/* ========================================
+   TELLBILL PROFESSIONAL LANDING PAGE
+   JavaScript Interactions
+   ======================================== */
 
 // ========================================
-// FAQ ACCORDION FUNCTIONALITY
+// CONFIGURATION
 // ========================================
 
-function setupFAQAccordion() {
+const CONFIG = {
+    // Google Play Store app link - opens in new tab
+    GOOGLE_PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.tellbill.app',
+    // Demo video URL
+    DEMO_VIDEO_URL: 'https://example.com/demo.mp4',
+    // Enterprise for submission endpoint (can be connected to backend)
+    ENTERPRISE_FORM_ENDPOINT: '/api/enterprise-inquiry'
+};
+
+// ========================================
+// MODAL FUNCTIONS
+// ========================================
+
+/**
+ * Opens a modal dialog
+ * @param {string} modalId - ID of the modal element to open
+ */
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        // Disable body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        
+        // Track modal opening with GA4
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_opened', {
+                modal_name: modalId
+            });
+        }
+        
+        console.log(`Modal opened: ${modalId}`);
+    }
+}
+
+/**
+ * Closes a modal dialog
+ * @param {string} modalId - ID of the modal element to close
+ */
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        // Re-enable body scroll
+        document.body.style.overflow = 'auto';
+        
+        // Pause video if demo modal was closed
+        if (modalId === 'demo-modal') {
+            const video = document.getElementById('demo-video');
+            if (video) {
+                video.pause();
+            }
+        }
+        
+        console.log(`Modal closed: ${modalId}`);
+    }
+}
+
+/**
+ * Setup modal event listeners - allow clicking overlay to close modal
+ */
+function setupModalListeners() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                const modal = overlay.parentElement;
+                closeModal(modal.id);
+            }
+        });
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal[style*="display: flex"]');
+            if (openModal) {
+                closeModal(openModal.id);
+            }
+        }
+    });
+}
+
+// ========================================
+// GOOGLE PLAY STORE REDIRECT
+// ========================================
+
+/**
+ * Redirects user to Google Play Store in a new tab
+ * Prevents page reload and tracks the action
+ */
+function handleStoreRedirect() {
+    // Track store redirect with GA4
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'store_redirect_click', {
+            store: 'google_play',
+            url: CONFIG.GOOGLE_PLAY_STORE_URL
+        });
+    }
+    
+    console.log('Redirecting to Google Play Store:', CONFIG.GOOGLE_PLAY_STORE_URL);
+    
+    // Open in new tab without stopping page functionality
+    window.open(CONFIG.GOOGLE_PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
+}
+
+/**
+ * Setup all store redirect buttons
+ */
+function setupStoreRedirects() {
+    const storeButtons = document.querySelectorAll('[data-action="store-redirect"]');
+    
+    storeButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleStoreRedirect();
+        });
+    });
+    
+    console.log(`Setup ${storeButtons.length} store redirect button(s)`);
+}
+
+// ========================================
+// DEMO VIDEO MODAL
+// ========================================
+
+/**
+ * Setup demo video buttons to open modal
+ */
+function setupDemoModal() {
+    const demoButtons = document.querySelectorAll('[data-action="demo-modal"]');
+    
+    demoButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Update video source in case it was changed
+            const video = document.getElementById('demo-video');
+            if (video && video.querySelector('source')) {
+                video.querySelector('source').src = CONFIG.DEMO_VIDEO_URL;
+                video.load();
+            }
+            
+            // Open modal
+            openModal('demo-modal');
+        });
+    });
+    
+    console.log(`Setup demo modal button(s)`);
+}
+
+// ========================================
+// ENTERPRISE CONTACT FORM
+// ========================================
+
+/**
+ * Handle enterprise form submission
+ * @param {Event} event - Form submission event
+ */
+function handleEnterpriseSubmit(event) {
+    event.preventDefault();
+    
+    // Get form data
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    // Track form submission with GA4
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'enterprise_inquiry_submit', {
+            company: data.company,
+            team_size: data.team_size
+        });
+    }
+    
+    console.log('Enterprise inquiry submitted:', data);
+    
+    // Send to backend (optional - can be connected to your backend)
+    // For demo, we'll just show a success message
+    showSuccessMessage(form);
+    
+    // In production, you would send this to your backend:
+    /*
+    fetch(CONFIG.ENTERPRISE_FORM_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            showSuccessMessage(form);
+        } else {
+            showErrorMessage(form);
+        }
+    })
+    .catch(error => {
+        console.error('Error submitting form:', error);
+        showErrorMessage(form);
+    });
+    */
+}
+
+/**
+ * Show success message after form submission
+ * @param {HTMLFormElement} form - The form element
+ */
+function showSuccessMessage(form) {
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    const originalClass = submitButton.className;
+    
+    // Update button to show success
+    submitButton.textContent = '✓ Thank you! We\'ll be in touch.';
+    submitButton.style.backgroundColor = '#22c55e';
+    submitButton.disabled = true;
+    
+    // Reset form
+    form.reset();
+    
+    // Revert button after 3 seconds, then close modal
+    setTimeout(() => {
+        submitButton.textContent = originalText;
+        submitButton.className = originalClass;
+        submitButton.style.backgroundColor = '';
+        submitButton.disabled = false;
+        
+        // Close modal after delay
+        closeModal('enterprise-modal');
+    }, 3000);
+}
+
+/**
+ * Setup enterprise contact form modal
+ */
+function setupEnterpriseModal() {
+    const enterpriseButtons = document.querySelectorAll('[data-action="enterprise-modal"]');
+    
+    enterpriseButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal('enterprise-modal');
+        });
+    });
+    
+    // Setup form submission
+    const enterpriseForm = document.getElementById('enterprise-form');
+    if (enterpriseForm) {
+        enterpriseForm.addEventListener('submit', handleEnterpriseSubmit);
+    }
+    
+    console.log(`Setup enterprise modal button(s) and form`);
+}
+
+// ========================================
+// FAQ ACCORDION
+// ========================================
+
+function setupFAQ() {
     const faqItems = document.querySelectorAll('.faq-question');
     
     faqItems.forEach(button => {
         button.addEventListener('click', () => {
+            const wasActive = button.classList.contains('active');
             const answer = button.nextElementSibling;
-            const isActive = button.classList.contains('active');
             
             // Close all other items
-            document.querySelectorAll('.faq-answer.active').forEach(item => {
+            document.querySelectorAll('.faq-question.active').forEach(item => {
                 item.classList.remove('active');
             });
-            document.querySelectorAll('.faq-question.active').forEach(item => {
+            document.querySelectorAll('.faq-answer.active').forEach(item => {
                 item.classList.remove('active');
             });
             
             // Open clicked item if not already active
-            if (!isActive) {
+            if (!wasActive) {
                 button.classList.add('active');
                 answer.classList.add('active');
             }
@@ -40,7 +298,7 @@ function setupSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', (e) => {
             const href = anchor.getAttribute('href');
-            if (href !== '#') {
+            if (href !== '#' && href.length > 1) {
                 e.preventDefault();
                 const target = document.querySelector(href);
                 if (target) {
@@ -55,54 +313,81 @@ function setupSmoothScroll() {
 }
 
 // ========================================
-// DEMO BUTTON INTERACTION
+// CTA TRACKING
 // ========================================
 
-function setupDemoButton() {
-    const demoBtns = document.querySelectorAll('.btn:contains("Play"), .btn:contains("Demo")');
+function setupCTATracking() {
+    const ctaButtons = document.querySelectorAll('.btn-primary, .btn-cta');
     
-    // More reliable selector
-    document.querySelectorAll('.btn, button').forEach(btn => {
-        const text = btn.textContent || '';
-        if ((text.includes('Play') || text.includes('Demo')) && text.includes('video')) {
-            btn.addEventListener('click', () => {
-                const voiceDemo = document.querySelector('.voice-demo');
-                if (voiceDemo) {
-                    voiceDemo.style.transform = 'scale(1.02)';
-                    voiceDemo.style.transition = 'all 0.3s ease';
-                    setTimeout(() => {
-                        voiceDemo.style.transform = 'scale(1)';
-                    }, 300);
-                }
-                
-                // Track event if GA4 available
-                if (typeof gtag !== 'undefined') {
-                    gtag('event', 'demo_clicked', { source: 'demo_button' });
-                }
-            });
-        }
+    ctaButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const buttonText = btn.textContent.trim();
+            
+            // Track with GA4 if available
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'cta_click', {
+                    button_text: buttonText,
+                    button_type: btn.classList.contains('btn-cta') ? 'final' : 'standard'
+                });
+            }
+            
+            // Log for debugging
+            console.log('CTA clicked:', buttonText);
+        });
     });
 }
 
 // ========================================
-// CTA BUTTONS TRACKING
+// NAVBAR SHADOW ON SCROLL
 // ========================================
 
-function setupCTAButtons() {
-    document.querySelectorAll('.btn-primary, .btn-lg').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const text = btn.textContent || '';
-            
-            if (text.includes('Try Free') || text.includes('Get Started') || text.includes('Free Trial') || text.includes('Started')) {
-                if (typeof gtag !== 'undefined') {
-                    gtag('event', 'cta_clicked', { 
-                        button_text: text.substring(0, 50),
-                        button_type: 'primary'
-                    });
+function setupNavbarScroll() {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) return;
+    
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        if (scrollTop > 50) {
+            navbar.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
+        } else {
+            navbar.style.boxShadow = 'none';
+        }
+    }, { passive: true });
+}
+
+// ========================================
+// SCROLL ANIMATIONS
+// ========================================
+
+function setupScrollAnimations() {
+    if ('IntersectionObserver' in window) {
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
                 }
-            }
+            });
+        }, observerOptions);
+        
+        // Observe feature cards, testimonials, pricing cards
+        const elementsToObserve = document.querySelectorAll(
+            '.feature-card, .testimonial, .pricing-card, .why-card'
+        );
+        
+        elementsToObserve.forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.5s ease';
+            observer.observe(el);
         });
-    });
+    }
 }
 
 // ========================================
@@ -117,8 +402,9 @@ function setupLazyLoading() {
                     const img = entry.target;
                     if (img.dataset.src) {
                         img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
                     }
-                    img.classList.add('loaded');
+                    img.classList.remove('lazy');
                     observer.unobserve(img);
                 }
             });
@@ -131,120 +417,42 @@ function setupLazyLoading() {
 }
 
 // ========================================
-// ANIMATE ON SCROLL
+// FORM HANDLING (FOR FUTURE USE)
 // ========================================
 
-function setupScrollAnimations() {
-    if ('IntersectionObserver' in window) {
-        const elementObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                }
-            });
-        }, {
-            threshold: 0.1
-        });
-        
-        // Add animation classes to elements
-        const animatedElements = document.querySelectorAll(
-            '.feature-block, .problem-item, .type-card, .testimonial-card, .flow-step, .pricing-card'
-        );
-        
-        animatedElements.forEach(el => {
-            el.classList.add('animate-on-scroll');
-            elementObserver.observe(el);
-        });
-    }
-}
-
-// ========================================
-// NAVBAR SCROLL EFFECT
-// ========================================
-
-function setupNavbarScroll() {
-    const navbar = document.querySelector('.navbar');
-    if (!navbar) return;
-    
-    window.addEventListener('scroll', () => {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        if (scrollTop > 100) {
-            navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-        } else {
-            navbar.style.boxShadow = 'none';
-            navbar.style.background = 'white';
-        }
-    }, { passive: true });
-}
-
-// ========================================
-// FORM HANDLING (Future)
-// ========================================
-
-function setupFormHandling() {
-    // Placeholder for future form submissions
-    const forms = document.querySelectorAll('form');
+function setupForms() {
+    const forms = document.querySelectorAll('form:not(#enterprise-form)');
     forms.forEach(form => {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             
             if (typeof gtag !== 'undefined') {
-                gtag('event', 'form_submit', { 
-                    form_name: form.name || 'contact'
+                gtag('event', 'form_submit', {
+                    form_name: form.name || 'contact_form'
                 });
             }
             
-            console.log('Form submitted:', form);
+            console.log('Form submitted');
         });
     });
 }
 
 // ========================================
-// INITIALIZATION
+// UTILITY: TRACK EVENTS
 // ========================================
 
-function init() {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            setupFAQAccordion();
-            setupSmoothScroll();
-            setupDemoButton();
-            setupCTAButtons();
-            setupLazyLoading();
-            setupScrollAnimations();
-            setupNavbarScroll();
-            setupFormHandling();
-        });
-    } else {
-        setupFAQAccordion();
-        setupSmoothScroll();
-        setupDemoButton();
-        setupCTAButtons();
-        setupLazyLoading();
-        setupScrollAnimations();
-        setupNavbarScroll();
-        setupFormHandling();
-    }
-}
-
-// Initialize on load
-init();
-
-// ========================================
-// UTILITY FUNCTIONS
-// ========================================
-
-// Track events helper
 function trackEvent(eventName, data = {}) {
+    // Track with GA4 if available
     if (typeof gtag !== 'undefined') {
         gtag('event', eventName, data);
     }
-    console.log(`Event tracked: ${eventName}`, data);
+    console.log(`Event: ${eventName}`, data);
 }
 
-// Debounce helper
+// ========================================
+// UTILITY: DEBOUNCE
+// ========================================
+
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -256,3 +464,140 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// ========================================
+// INITIALIZATION
+// ========================================
+
+function init() {
+    console.log('TellBill Professional Landing Page Initialized');
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Core functionality
+            setupFAQ();
+            setupSmoothScroll();
+            setupCTATracking();
+            setupNavbarScroll();
+            setupScrollAnimations();
+            setupLazyLoading();
+            setupForms();
+            
+            // NEW: Interactive features with modals and redirects
+            setupModalListeners();      // Handle modal open/close interactions
+            setupStoreRedirects();       // All "Start Free Trial" buttons
+            setupDemoModal();            // Demo video modal
+            setupEnterpriseModal();      // Enterprise contact form modal
+        });
+    } else {
+        // Core functionality
+        setupFAQ();
+        setupSmoothScroll();
+        setupCTATracking();
+        setupNavbarScroll();
+        setupScrollAnimations();
+        setupLazyLoading();
+        setupForms();
+        
+        // NEW: Interactive features with modals and redirects
+        setupModalListeners();      // Handle modal open/close interactions
+        setupStoreRedirects();       // All "Start Free Trial" buttons
+        setupDemoModal();            // Demo video modal
+        setupEnterpriseModal();      // Enterprise contact form modal
+        
+        // IMAGE CAROUSEL
+        initializeCarousel();        // Initialize image carousel for hero section
+    }
+}
+
+// ========================================
+// IMAGE CAROUSEL FUNCTIONALITY
+// ========================================
+function initializeCarousel() {
+    const container = document.querySelector('.carousel-container');
+    if (!container) return;
+    
+    const slides = document.querySelectorAll('.carousel-slide');
+    const dots = document.querySelectorAll('.dot');
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    
+    let currentIndex = 0;
+    let autoplayInterval;
+    
+    function showSlide(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.remove('active');
+            dots[i].classList.remove('active');
+        });
+        
+        currentIndex = index;
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+    }
+    
+    function next() {
+        const nextIndex = (currentIndex + 1) % slides.length;
+        showSlide(nextIndex);
+        resetAutoplay();
+    }
+    
+    function prev() {
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        showSlide(prevIndex);
+        resetAutoplay();
+    }
+    
+    function goToSlide(index) {
+        showSlide(index);
+        resetAutoplay();
+    }
+    
+    function startAutoplay() {
+        autoplayInterval = setInterval(next, 5000);
+    }
+    
+    function resetAutoplay() {
+        clearInterval(autoplayInterval);
+        startAutoplay();
+    }
+    
+    // Event listeners
+    prevBtn?.addEventListener('click', prev);
+    nextBtn?.addEventListener('click', next);
+    
+    dots.forEach(dot => {
+        dot.addEventListener('click', (e) => goToSlide(parseInt(e.target.dataset.index)));
+    });
+    
+    // Start autoplay
+    startAutoplay();
+    
+    // Pause autoplay on hover
+    container.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+    container.addEventListener('mouseleave', startAutoplay);
+}
+
+// Start initialization
+init();
+
+// ========================================
+// PERFORMANCE MONITORING (Optional)
+// ========================================
+
+if ('performance' in window && 'PerformanceObserver' in window) {
+    try {
+        const observer = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.duration > 3000) {
+                    console.warn('Long task detected:', entry);
+                }
+            }
+        });
+        observer.observe({ entryTypes: ['longtask'] });
+    } catch (e) {
+        console.log('Performance monitoring not available');
+    }
+}
+        // PerformanceObserver not available in all browsers
