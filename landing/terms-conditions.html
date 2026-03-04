@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TellBill Terms and Conditions - User agreement for contractors using TellBill invoicing app. Understand payment terms, liability, and usage rules.">
+    <meta name="keywords" content="TellBill, terms and conditions, user agreement, contractor app">
+    <meta name="author" content="TellBill">
+    <title>Terms & Conditions - TellBill</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-white: #FFFFFF;
+            --color-off-white: #F8F8F8;
+            --color-gold: #FFD700;
+            --color-charcoal: #1C1C1C;
+            --color-gray-light: #F0F0F0;
+            --color-gray-medium: #666666;
+            --color-gray-dark: #333333;
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            color: var(--color-charcoal);
+            background-color: var(--color-white);
+            line-height: 1.8;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-off-white) 100%);
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--color-gray-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--color-charcoal);
+            text-decoration: none;
+            font-family: var(--font-serif);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-badge {
+            background: var(--color-gold);
+            color: var(--color-charcoal);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--color-gray-medium);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-gold);
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-family: var(--font-serif);
+            margin-bottom: 16px;
+            color: var(--color-charcoal);
+            line-height: 1.2;
+        }
+
+        .last-updated {
+            color: var(--color-gray-medium);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-family: var(--font-serif);
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--color-charcoal);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-gold);
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--color-charcoal);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--color-gray-dark);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: var(--color-gray-dark);
+            font-size: 15px;
+        }
+
+        .highlight {
+            background-color: #FFF7ED;
+            padding: 20px;
+            border-left: 4px solid var(--color-gold);
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+
+        .highlight strong {
+            color: var(--color-charcoal);
+        }
+
+        footer {
+            background: var(--color-off-white);
+            border-top: 1px solid var(--color-gray-light);
+            padding: 40px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            color: var(--color-charcoal);
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--color-gray-medium);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--color-gold);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--color-gray-light);
+            padding-top: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            color: var(--color-gray-medium);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .nav-links {
+                gap: 16px;
+                font-size: 12px;
+            }
+
+            main {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <a href="index.html" class="logo">
+                <span class="logo-badge">TB</span>
+                TellBill
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    <li><a href="terms-conditions.html">Terms & Conditions</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1>Terms & Conditions</h1>
+        <p class="last-updated">Last updated: March 2026</p>
+
+        <h2>1. Agreement to Terms</h2>
+        <p>
+            By accessing and using TellBill ("Service"), you accept and agree to be bound by the terms and provision 
+            of this agreement. If you do not agree to abide by the above, please do not use this service.
+        </p>
+
+        <h2>2. Use License</h2>
+        <p>
+            TellBill grants you a limited, non-exclusive, non-transferable license to use the Service for lawful purposes 
+            only, in accordance with these Terms & Conditions. You agree not to:
+        </p>
+        <ul>
+            <li>Reproduce, duplicate, copy, or resell any portion of the Service without express written permission</li>
+            <li>Attempt to gain unauthorized access to restricted portions or features of the Service</li>
+            <li>Interfere with or disrupt the integrity or performance of the Service</li>
+            <li>Use the Service for any illegal, fraudulent, or harmful purpose</li>
+            <li>Harass, threaten, or abuse other users</li>
+            <li>Create automated tools or scripts to access the Service without permission</li>
+            <li>Reverse engineer, decompile, or attempt to discover the source code or algorithms</li>
+        </ul>
+
+        <h2>3. User Accounts & Responsibilities</h2>
+
+        <h3>3.1 Account Registration</h3>
+        <p>
+            To use TellBill, you must create an account with accurate, current, and complete information. 
+            You are responsible for maintaining the confidentiality of your login credentials and password.
+        </p>
+
+        <h3>3.2 User Responsibilities</h3>
+        <ul>
+            <li>You are solely responsible for all activities conducted through your account</li>
+            <li>You must notify us immediately of any unauthorized access or suspected breach</li>
+            <li>You agree to provide accurate client information and project details</li>
+            <li>You are responsible for the legality and accuracy of invoices you create</li>
+            <li>You agree to comply with all applicable laws and regulations in your jurisdiction</li>
+        </ul>
+
+        <h3>3.3 Age Requirement</h3>
+        <p>
+            You must be at least 18 years of age to use TellBill. If you are under 18, you must have parental 
+            consent to use this service.
+        </p>
+
+        <h2>4. Payment & Subscription Terms</h2>
+
+        <h3>4.1 Pricing & Billing</h3>
+        <ul>
+            <li><strong>Free Tier:</strong> No payment required (subject to usage limits)</li>
+            <li><strong>Solo Plan:</strong> $14/month (billed monthly or annually at discounted rate)</li>
+            <li><strong>Professional Plan:</strong> $34/month (billed monthly or annually at discounted rate)</li>
+            <li><strong>Enterprise Plan:</strong> Custom pricing (contact sales for quote)</li>
+        </ul>
+
+        <h3>4.2 Automatic Renewal</h3>
+        <p>
+            Paid plans are automatically renewed unless canceled. Your subscription will renew on the same day 
+            each billing cycle. You will be charged using the payment method on file.
+        </p>
+
+        <h3>4.3 Cancellation & Refunds</h3>
+        <ul>
+            <li>You may cancel your subscription at any time through your account settings</li>
+            <li>Cancellation takes effect at the end of your current billing cycle</li>
+            <li>No refunds are provided for partial months or unused service</li>
+            <li>Refund requests for billing errors must be submitted within 30 days</li>
+        </ul>
+
+        <h3>4.4 Payment Processing</h3>
+        <p>
+            Payments are processed securely through Stripe and RevenueCat. By providing payment information, 
+            you authorize these third-party payment processors to charge your account. TellBill does not store 
+            your credit card information.
+        </p>
+
+        <h3>4.5 Price Changes</h3>
+        <p>
+            TellBill reserves the right to modify pricing with 30 days' notice. Existing subscribers will be 
+            notified of price changes before they take effect. Continued use of the Service constitutes acceptance 
+            of new pricing.
+        </p>
+
+        <h2>5. Usage Limits & Fair Use</h2>
+        <ul>
+            <li><strong>Free Tier:</strong> Limited invoices per month, basic features</li>
+            <li><strong>Solo Plan:</strong> Higher invoice limits, advanced features</li>
+            <li><strong>Professional Plan:</strong> Unlimited invoices, all premium features, team collaboration</li>
+            <li><strong>API & Rate Limiting:</strong> Users are subject to rate limits to prevent service abuse</li>
+        </ul>
+
+        <p>
+            Excessive usage that impacts service availability for other users may result in service suspension or termination.
+        </p>
+
+        <h2>6. Intellectual Property Rights</h2>
+        <p>
+            The Service, including all content, features, and functionality (including but not limited to all 
+            information, software, text, displays, images, video, and audio) is owned by TellBill, its licensors, 
+            or other providers of such material and is protected by United States and international copyright laws.
+        </p>
+
+        <h3>6.1 Your Content</h3>
+        <p>
+            You retain all rights to the content you upload (invoices, client data, etc.). By using TellBill, 
+            you grant us a non-exclusive license to store, display, and process your content to provide the Service.
+        </p>
+
+        <h2>7. Disclaimer of Warranties</h2>
+        <p>
+            TellBill is provided on an "AS IS" and "AS AVAILABLE" basis. We make no warranties, expressed or implied, 
+            regarding the Service. We disclaim all warranties including:
+        </p>
+        <ul>
+            <li>Warranties of merchantability or fitness for a particular purpose</li>
+            <li>Warranties of non-infringement of third-party rights</li>
+            <li>Warranties of accuracy, timeliness, or completeness of information</li>
+            <li>Warranties regarding uninterrupted or error-free service</li>
+        </ul>
+
+        <div class="highlight">
+            <strong>Important:</strong> TellBill is a business management tool. We strongly recommend verifying 
+            all invoices and financial data independently before sending to clients.
+        </div>
+
+        <h2>8. Limitation of Liability</h2>
+        <p>
+            To the maximum extent permitted by law, TellBill and its officers, directors, employees, and agents 
+            shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including:
+        </p>
+        <ul>
+            <li>Loss of profits, revenue, or data</li>
+            <li>Business interruption</li>
+            <li>Loss of business opportunity</li>
+            <li>Reputational harm</li>
+        </ul>
+
+        <p>
+            In no case shall TellBill's total liability for all claims exceed the amount paid by you for the Service 
+            in the 12 months preceding the claim.
+        </p>
+
+        <h2>9. Indemnification</h2>
+        <p>
+            You agree to indemnify, defend, and hold harmless TellBill and its officers, directors, employees, 
+            agents, and successors from any claims, damages, or costs (including attorney fees) arising from:
+        </p>
+        <ul>
+            <li>Your violation of these Terms & Conditions</li>
+            <li>Your use of the Service</li>
+            <li>Your content or data uploaded to the Service</li>
+            <li>Violation of any third-party rights</li>
+            <li>Any illegal activity conducted through your account</li>
+        </ul>
+
+        <h2>10. Termination</h2>
+        <p>
+            TellBill may terminate your account and access to the Service immediately, without notice, for:
+        </p>
+        <ul>
+            <li>Violation of these Terms & Conditions</li>
+            <li>Fraudulent or illegal activity</li>
+            <li>Non-payment after 30 days of notice</li>
+            <li>Abuse of the Service or other users</li>
+            <li>Any reason at TellBill's sole discretion with 30 days' notice</li>
+        </ul>
+
+        <p>
+            Upon termination, your access to the Service will be immediately revoked, though you may request 
+            download of your data within 30 days.
+        </p>
+
+        <h2>11. Data Backup & Loss</h2>
+        <p>
+            While TellBill implements automated backup systems, we recommend you maintain independent backups 
+            of your invoices and data. TellBill is not responsible for data loss resulting from:
+        </p>
+        <ul>
+            <li>Natural disasters, server failures, or infrastructure outages</li>
+            <li>Your failure to backup data</li>
+            <li>Third-party service providers (Stripe, RevenueCat, etc.)</li>
+            <li>Cyberattacks or unauthorized access due to weak passwords</li>
+        </ul>
+
+        <h2>12. Third-Party Services & Links</h2>
+        <p>
+            TellBill integrates with third-party services including Stripe, RevenueCat, Twilio, and others. 
+            These services have their own terms of service and privacy policies. TellBill is not responsible 
+            for the performance, reliability, or conduct of third-party services.
+        </p>
+
+        <h2>13. Invoices & Legal Responsibility</h2>
+        <p>
+            TellBill is a tool to generate and manage invoices. You are solely responsible for:
+        </p>
+        <ul>
+            <li>Ensuring invoices comply with local tax and business laws</li>
+            <li>Accurately reporting income and taxes to relevant authorities</li>
+            <li>Including required information (tax IDs, business details, etc.)</li>
+            <li>Following payment terms and contract obligations with clients</li>
+        </ul>
+
+        <p>
+            TellBill does not provide legal or tax advice. Consult a qualified accountant or attorney for tax 
+            and legal compliance questions.
+        </p>
+
+        <h2>14. Dispute Resolution</h2>
+        <p>
+            These Terms & Conditions are governed by and construed in accordance with the laws of the United States, 
+            and you irrevocably submit to the exclusive jurisdiction of the courts in that location.
+        </p>
+
+        <p>
+            Before initiating legal action, you agree to attempt resolution through our support team at support@tellbill.com.
+        </p>
+
+        <h2>15. Changes to Terms</h2>
+        <p>
+            TellBill reserves the right to modify these Terms & Conditions at any time. Changes will be posted 
+            on this page with an updated effective date. Your continued use of the Service constitutes acceptance 
+            of the modified terms.
+        </p>
+
+        <h2>16. Contact & Support</h2>
+        <p>
+            For questions regarding these Terms & Conditions, contact:
+        </p>
+        <ul>
+            <li><strong>Email:</strong> support@tellbill.com</li>
+            <li><strong>Response Time:</strong> We aim to respond within 24-48 business hours</li>
+        </ul>
+
+        <h2>17. Severability</h2>
+        <p>
+            If any portion of these Terms & Conditions is found to be invalid or unenforceable, the remaining 
+            provisions shall continue in full force and effect.
+        </p>
+
+        <h2>18. Entire Agreement</h2>
+        <p>
+            These Terms & Conditions, together with our Privacy Policy, constitute the entire agreement between 
+            you and TellBill regarding the Service and supersede all prior understandings and agreements.
+        </p>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>TellBill</h3>
+                <ul class="footer-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    <li><a href="terms-conditions.html">Terms & Conditions</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <p style="font-size: 13px; color: var(--color-gray-medium);">
+                    All rights reserved. TellBill is a trademark of TellBill, Inc.
+                </p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 TellBill, Inc. All rights reserved. | Protect your revenue, avoid disputes, get paid faster — effortlessly.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TellBill Privacy Policy - Learn how we protect your data. Comprehensive privacy information for contractors using TellBill invoicing app.">
+    <meta name="keywords" content="TellBill, privacy policy, data protection, GDPR, contractor app">
+    <meta name="author" content="TellBill">
+    <title>Privacy Policy - TellBill</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-white: #FFFFFF;
+            --color-off-white: #F8F8F8;
+            --color-gold: #FFD700;
+            --color-charcoal: #1C1C1C;
+            --color-gray-light: #F0F0F0;
+            --color-gray-medium: #666666;
+            --color-gray-dark: #333333;
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            color: var(--color-charcoal);
+            background-color: var(--color-white);
+            line-height: 1.8;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--color-white) 0%, var(--color-off-white) 100%);
+            padding: 24px 40px;
+            border-bottom: 1px solid var(--color-gray-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--color-charcoal);
+            text-decoration: none;
+            font-family: var(--font-serif);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-badge {
+            background: var(--color-gold);
+            color: var(--color-charcoal);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--color-gray-medium);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-gold);
+        }
+
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-family: var(--font-serif);
+            margin-bottom: 16px;
+            color: var(--color-charcoal);
+            line-height: 1.2;
+        }
+
+        .last-updated {
+            color: var(--color-gray-medium);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-family: var(--font-serif);
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--color-charcoal);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--color-gold);
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--color-charcoal);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--color-gray-dark);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: var(--color-gray-dark);
+            font-size: 15px;
+        }
+
+        .highlight {
+            background-color: #FFF7ED;
+            padding: 20px;
+            border-left: 4px solid var(--color-gold);
+            margin: 24px 0;
+            border-radius: 4px;
+        }
+
+        .highlight strong {
+            color: var(--color-charcoal);
+        }
+
+        footer {
+            background: var(--color-off-white);
+            border-top: 1px solid var(--color-gray-light);
+            padding: 40px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-section h3 {
+            color: var(--color-charcoal);
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--color-gray-medium);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--color-gold);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--color-gray-light);
+            padding-top: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            color: var(--color-gray-medium);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .nav-links {
+                gap: 16px;
+                font-size: 12px;
+            }
+
+            main {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <a href="index.html" class="logo">
+                <span class="logo-badge">TB</span>
+                TellBill
+            </a>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    <li><a href="terms-conditions.html">Terms & Conditions</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: March 2026</p>
+
+        <h2>1. Introduction</h2>
+        <p>
+            TellBill ("we," "us," "our," or "Company") is committed to protecting your privacy. This Privacy Policy 
+            explains how we collect, use, disclose, and safeguard your information when you use our mobile application 
+            and related services (the "Service").
+        </p>
+        <p>
+            Please read this Privacy Policy carefully. If you do not agree with our policies and practices, 
+            please do not use our Service.
+        </p>
+
+        <h2>2. Information We Collect</h2>
+
+        <h3>2.1 Information You Provide Directly</h3>
+        <ul>
+            <li><strong>Account Information:</strong> Email address, name, phone number, company details, business address</li>
+            <li><strong>Profile Information:</strong> Company logo, website, tax ID, payment settings</li>
+            <li><strong>Invoice Data:</strong> Client names, addresses, project details, payment information</li>
+            <li><strong>Communication Data:</strong> Messages sent through our support channels</li>
+            <li><strong>Payment Information:</strong> Processed securely through Stripe and RevenueCat (we do not store card details)</li>
+        </ul>
+
+        <h3>2.2 Information Collected Automatically</h3>
+        <ul>
+            <li><strong>Device Information:</strong> Device type, operating system, app version, unique identifiers</li>
+            <li><strong>Usage Data:</strong> Features used, frequency of use, actions performed, time spent in app</li>
+            <li><strong>Location Data:</strong> Approximate location based on IP address (not precise GPS)</li>
+            <li><strong>Analytics Data:</strong> Via Sentry and analytics services to track performance and errors</li>
+            <li><strong>Voice Data:</strong> Only stored locally on your device when using voice-to-invoice feature</li>
+        </ul>
+
+        <h2>3. How We Use Your Information</h2>
+        <p>We use collected information for the following purposes:</p>
+        <ul>
+            <li>Providing, maintaining, and improving our Service</li>
+            <li>Processing invoices and managing your account</li>
+            <li>Sending transactional emails (invoice confirmations, payment reminders)</li>
+            <li>Sending marketing communications (with your consent)</li>
+            <li>Personalizing your experience</li>
+            <li>Detecting and preventing fraud and abuse</li>
+            <li>Complying with legal and regulatory obligations</li>
+            <li>Analyzing usage patterns to improve features and functionality</li>
+            <li>Customer support and troubleshooting</li>
+        </ul>
+
+        <h2>4. Data Sharing & Third Parties</h2>
+        <p>
+            We do not sell your personal data. However, we may share information with:
+        </p>
+        <ul>
+            <li><strong>Payment Processors:</strong> Stripe, RevenueCat (for billing)</li>
+            <li><strong>Email Service:</strong> Resend (for transactional emails)</li>
+            <li><strong>SMS Providers:</strong> Twilio (for SMS reminders with consent)</li>
+            <li><strong>Analytics:</strong> Sentry (error tracking), Firebase (analytics)</li>
+            <li><strong>Customer Support:</strong> Intercom (for chat support)</li>
+            <li><strong>Legal Requirements:</strong> When required by law or court orders</li>
+        </ul>
+
+        <p>
+            All third-party partners are contractually obligated to maintain data confidentiality and use data 
+            only for the purposes we specify.
+        </p>
+
+        <h2>5. Data Security</h2>
+        <p>
+            TellBill implements industry-standard security measures to protect your data:
+        </p>
+        <ul>
+            <li>End-to-end encryption for sensitive communications</li>
+            <li>HTTPS/TLS encryption for all data in transit</li>
+            <li>PostgreSQL database with encrypted backups</li>
+            <li>Regular security audits and penetration testing</li>
+            <li>Access controls and role-based permissions</li>
+            <li>No storage of credit card information (delegated to Stripe)</li>
+            <li>Sentry integration for real-time error monitoring and security alerts</li>
+        </ul>
+
+        <div class="highlight">
+            <strong>Note:</strong> While we strive to protect your data, no security system is impenetrable. 
+            We encourage you to use strong passwords and keep your login credentials confidential.
+        </div>
+
+        <h2>6. Data Retention</h2>
+        <p>
+            We retain your data for as long as necessary to provide our Service and comply with legal obligations:
+        </p>
+        <ul>
+            <li><strong>Active Accounts:</strong> Data retained while account is active</li>
+            <li><strong>Account Deletion:</strong> After 30 days of account deletion, data is permanently removed</li>
+            <li><strong>Backups:</strong> Backup copies are retained for 90 days for disaster recovery</li>
+            <li><strong>Legal Hold:</strong> Data may be retained if legally required</li>
+        </ul>
+
+        <h2>7. GDPR Compliance (EU Users)</h2>
+        <p>
+            If you are a resident of the European Union, the following additional rights apply:
+        </p>
+        <ul>
+            <li><strong>Right to Access:</strong> Request a copy of your personal data</li>
+            <li><strong>Right to Rectification:</strong> Correct inaccurate data</li>
+            <li><strong>Right to Erasure:</strong> Request deletion of your data ("right to be forgotten")</li>
+            <li><strong>Right to Restrict Processing:</strong> Limit how we use your data</li>
+            <li><strong>Right to Portability:</strong> Export your data in a portable format</li>
+            <li><strong>Right to Object:</strong> Opt out of marketing communications</li>
+            <li><strong>Right to Lodge a Complaint:</strong> Contact your local data protection authority</li>
+        </ul>
+
+        <p>
+            Legal Basis: We process your data based on: (1) Your consent, (2) Contract performance, 
+            (3) Legal compliance, (4) Legitimate business interests.
+        </p>
+
+        <h2>8. Cookies & Tracking Technologies</h2>
+        <p>
+            TellBill uses cookies and similar technologies to:
+        </p>
+        <ul>
+            <li>Remember your login information (session cookies)</li>
+            <li>Track analytics and usage patterns</li>
+            <li>Improve user experience</li>
+            <li>Personalize content and recommendations</li>
+        </ul>
+
+        <p>
+            You can control cookies through your browser settings. Disabling cookies may affect app functionality.
+        </p>
+
+        <h2>9. Children's Privacy</h2>
+        <p>
+            TellBill is not intended for users under 13 years of age. We do not knowingly collect personal 
+            information from children under 13. If we discover such information, we will delete it immediately.
+        </p>
+
+        <h2>10. Your Rights & Choices</h2>
+        <ul>
+            <li><strong>Marketing Emails:</strong> Click "Unsubscribe" in any email</li>
+            <li><strong>SMS Notifications:</strong> Reply "STOP" to opt out</li>
+            <li><strong>Account Data:</strong> Access or download your data via account settings</li>
+            <li><strong>Account Deletion:</strong> Request account deletion at support@tellbill.com</li>
+        </ul>
+
+        <h2>11. Data Processing & Compliance</h2>
+        <p>
+            TellBill complies with:
+        </p>
+        <ul>
+            <li>GDPR (General Data Protection Regulation)</li>
+            <li>CCPA (California Consumer Privacy Act)</li>
+            <li>PIPEDA (Canada's Personal Information Protection and Electronic Documents Act)</li>
+            <li>Industry-specific regulations for financial data</li>
+        </ul>
+
+        <h2>12. International Data Transfers</h2>
+        <p>
+            Your data may be processed and stored on servers located in the United States. By using TellBill, 
+            you consent to the transfer of your information to countries outside your country of residence.
+        </p>
+
+        <h2>13. Contact Us</h2>
+        <p>
+            For privacy-related questions or to exercise your rights, contact us at:
+        </p>
+        <ul>
+            <li><strong>Email:</strong> privacy@tellbill.com</li>
+            <li><strong>Mailing Address:</strong> TellBill, Inc. | Support Team | United States</li>
+            <li><strong>Response Time:</strong> We will respond within 30 days</li>
+        </ul>
+
+        <h2>14. Policy Changes</h2>
+        <p>
+            We may update this Privacy Policy periodically. Changes will be posted on this page with an updated 
+            "Last Updated" timestamp. Continued use of the Service constitutes acceptance of the updated policy.
+        </p>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>TellBill</h3>
+                <ul class="footer-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                    <li><a href="terms-conditions.html">Terms & Conditions</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <p style="font-size: 13px; color: var(--color-gray-medium);">
+                    All rights reserved. TellBill is a trademark of TellBill, Inc.
+                </p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 TellBill, Inc. All rights reserved. | Protect your revenue, avoid disputes, get paid faster — effortlessly.</p>
+        </div>
+    </footer>
+</body>
+</html>
