@@ -505,78 +505,7 @@ function init() {
         setupStoreRedirects();       // All "Start Free Trial" buttons
         setupDemoModal();            // Demo video modal
         setupEnterpriseModal();      // Enterprise contact form modal
-        
-        // IMAGE CAROUSEL
-        initializeCarousel();        // Initialize image carousel for hero section
     }
-}
-
-// ========================================
-// IMAGE CAROUSEL FUNCTIONALITY
-// ========================================
-function initializeCarousel() {
-    const container = document.querySelector('.carousel-container');
-    if (!container) return;
-    
-    const slides = document.querySelectorAll('.carousel-slide');
-    const dots = document.querySelectorAll('.dot');
-    const prevBtn = document.querySelector('.carousel-prev');
-    const nextBtn = document.querySelector('.carousel-next');
-    
-    let currentIndex = 0;
-    let autoplayInterval;
-    
-    function showSlide(index) {
-        slides.forEach((slide, i) => {
-            slide.classList.remove('active');
-            dots[i].classList.remove('active');
-        });
-        
-        currentIndex = index;
-        slides[index].classList.add('active');
-        dots[index].classList.add('active');
-    }
-    
-    function next() {
-        const nextIndex = (currentIndex + 1) % slides.length;
-        showSlide(nextIndex);
-        resetAutoplay();
-    }
-    
-    function prev() {
-        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
-        showSlide(prevIndex);
-        resetAutoplay();
-    }
-    
-    function goToSlide(index) {
-        showSlide(index);
-        resetAutoplay();
-    }
-    
-    function startAutoplay() {
-        autoplayInterval = setInterval(next, 5000);
-    }
-    
-    function resetAutoplay() {
-        clearInterval(autoplayInterval);
-        startAutoplay();
-    }
-    
-    // Event listeners
-    prevBtn?.addEventListener('click', prev);
-    nextBtn?.addEventListener('click', next);
-    
-    dots.forEach(dot => {
-        dot.addEventListener('click', (e) => goToSlide(parseInt(e.target.dataset.index)));
-    });
-    
-    // Start autoplay
-    startAutoplay();
-    
-    // Pause autoplay on hover
-    container.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
-    container.addEventListener('mouseleave', startAutoplay);
 }
 
 // Start initialization
