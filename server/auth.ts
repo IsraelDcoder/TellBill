@@ -642,11 +642,11 @@ export function registerAuthRoutes(app: Express) {
 
       console.log("[Auth] 🔐 Google OAuth: Processing token for", googleUserEmail);
 
-      // ✅ RETRY LOGIC: Attempt up to 3 times with exponential backoff for database queries
+      // ✅ RETRY LOGIC: Attempt up to 5 times with exponential backoff (more aggressive for OAuth)
       let existingUser: any[] = [];
       let dbError: Error | null = null;
       
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= 5; attempt++) {
         try {
           existingUser = await db
             .select()
@@ -655,26 +655,30 @@ export function registerAuthRoutes(app: Express) {
             .limit(1);
           
           dbError = null; // Clear error on success
-          console.log(`[Auth] ✅ Google OAuth: User lookup succeeded on attempt ${attempt}`);
+          if (attempt > 1) {
+            console.log(`[Auth] ✅ Google OAuth: User lookup succeeded on attempt ${attempt}`);
+          }
           break; // Exit retry loop on success
         } catch (err) {
           dbError = err as Error;
-          console.warn(`[Auth] ⚠️  Google OAuth: Database query attempt ${attempt}/3 failed - ${dbError.message}`);
+          console.warn(`[Auth] ⚠️  Google OAuth: Database query attempt ${attempt}/5 failed - ${dbError.message}`);
           
-          if (attempt < 3) {
-            // Exponential backoff: 500ms on attempt 1, 1000ms on attempt 2
-            const delay = 500 * Math.pow(2, attempt - 1);
+          if (attempt < 5) {
+            // Exponential backoff: 500ms, 1000ms, 2000ms, 4000ms
+            const delay = 500 * Math.pow(2, Math.min(attempt - 1, 3));
+            console.log(`[Auth] 💤 Waiting ${delay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
       }
       
       if (dbError) {
-        console.error("[Auth] ❌ Google OAuth: Failed to query database after 3 attempts:", dbError.message);
+        console.error("[Auth] ❌ Google OAuth: Failed to query database after 5 attempts:", dbError.message);
         return res.status(503).json({
           success: false,
-          error: "Database connection temporarily unavailable. Please try again in a moment.",
-          details: dbError.message.includes("timeout") ? "connection_timeout" : "connection_error",
+          error: "Service temporarily unavailable. Please try again in 30 seconds.",
+          details: "Database connection unavailable",
+          retryAfter: 30,
         });
       }
 
@@ -685,11 +689,11 @@ export function registerAuthRoutes(app: Express) {
         userToReturn = existingUser[0];
         console.log("[Auth] ✅ Google login for existing user:", googleUserEmail);
       } else {
-        // ✅ NEW USER: Create user account with retry logic
+        // ✅ NEW USER: Create user account with aggressive retry logic
         let newUser: any[] = [];
         let createError: Error | null = null;
         
-        for (let attempt = 1; attempt <= 3; attempt++) {
+        for (let attempt = 1; attempt <= 5; attempt++) {
           try {
             newUser = await db
               .insert(users)
@@ -701,25 +705,29 @@ export function registerAuthRoutes(app: Express) {
               .returning();
             
             createError = null;
-            console.log(`[Auth] ✅ Google OAuth: User creation succeeded on attempt ${attempt}`);
+            if (attempt > 1) {
+              console.log(`[Auth] ✅ Google OAuth: User creation succeeded on attempt ${attempt}`);
+            }
             break;
           } catch (err) {
             createError = err as Error;
-            console.warn(`[Auth] ⚠️  Google OAuth: User creation attempt ${attempt}/3 failed - ${createError.message}`);
+            console.warn(`[Auth] ⚠️  Google OAuth: User creation attempt ${attempt}/5 failed - ${createError.message}`);
             
-            if (attempt < 3) {
-              const delay = 500 * Math.pow(2, attempt - 1);
+            if (attempt < 5) {
+              const delay = 500 * Math.pow(2, Math.min(attempt - 1, 3));
+              console.log(`[Auth] 💤 Waiting ${delay}ms before retry...`);
               await new Promise(resolve => setTimeout(resolve, delay));
             }
           }
         }
 
         if (createError || !newUser || newUser.length === 0) {
-          console.error("[Auth] ❌ Failed to create Google user after 3 attempts:", createError?.message || "Empty response");
+          console.error("[Auth] ❌ Failed to create Google user after 5 attempts:", createError?.message || "Empty response");
           return res.status(503).json({
             success: false,
-            error: "Could not create user account. Please try again in a moment.",
-            details: "user_creation_failed",
+            error: "Service temporarily unavailable. Please try again in 30 seconds.",
+            details: "Could not create user account after multiple attempts",
+            retryAfter: 30,
           });
         }
 

@@ -14,24 +14,23 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
-  // Connection pool settings - optimized for 2000+ concurrent users
-  max: 100,           // Maximum connections in pool
-  idleTimeoutMillis: 90000,  // Close idle connections after 90 seconds (increased from 30s to stop aggressive cleanup)
-  connectionTimeoutMillis: 10000,  // Timeout to get connection (increased to 10s for better tolerance)
-  statement_timeout: 30000,  // Statement timeout: 30 seconds (increased back to 30s)
+  // Connection pool settings - aggressively optimized for OAuth load spikes
+  max: 150,           // Maximum connections - increased from 100 to handle OAuth surge
+  idleTimeoutMillis: 120000,  // Keep connections alive longer (2 minutes)
+  connectionTimeoutMillis: 15000,  // Wait up to 15 seconds for a connection
+  statement_timeout: 45000,  // Statements get 45 seconds max
 });
 
 // Log connection pool events
 pool.on("error", (err) => {
-  console.error("[DB Pool] ❌ Unexpected error on idle client:", err.message);
+  console.error("[DB Pool] ❌ Critical error on client:", err.message);
 });
 
 pool.on("connect", () => {
-  console.log("[DB] ✅ New connection established");
-});
-
-pool.on("remove", () => {
-  console.warn("[DB Pool] ⚠️  Connection removed from pool");
+  // Suppress noisy logging - only log in debug mode
+  if (process.env.DEBUG_POOL) {
+    console.log("[DB] New connection established");
+  }
 });
 
 // Initialize drizzle with PostgreSQL client and schema
