@@ -30,7 +30,7 @@ pool.on("connect", () => {
   console.log("[DB] ✅ New connection established");
 });
 
-pool.on("close", () => {
+pool.on("remove", () => {
   console.warn("[DB Pool] ⚠️  Connection closed (normal cleanup)");
 });
 
@@ -38,25 +38,28 @@ pool.on("remove", () => {
   console.warn("[DB Pool] ⚠️  Connection removed (may indicate timeout/error)");
 });
 
-// Health check interval - test a connection every 60 seconds
+// Health check interval - test a connection every 120 seconds (less aggressive)
 let healthCheckInterval: NodeJS.Timeout | null = null;
 
 function startHealthCheck() {
   if (healthCheckInterval) return;
   
-  healthCheckInterval = setInterval(async () => {
-    try {
-      const client = await pool.connect();
-      const res = await client.query("SELECT 1");
-      client.release();
-      console.log("[DB Health Check] ✅ Connection healthy");
-    } catch (err) {
-      console.warn("[DB Health Check] ⚠️  Connection unhealthy:", (err as Error).message);
-    }
-  }, 60000); // Check every 60 seconds
+  // Delay health check start by 30 seconds to let pool stabilize
+  setTimeout(() => {
+    healthCheckInterval = setInterval(async () => {
+      try {
+        const client = await pool.connect();
+        await client.query("SELECT 1");
+        client.release();
+        console.log("[DB Health Check] ✅ Connection healthy");
+      } catch (err) {
+        console.warn("[DB Health Check] ⚠️  Connection unhealthy:", (err as Error).message);
+      }
+    }, 120000); // Check every 120 seconds (less aggressive than 60s)
+  }, 30000);
 }
 
-// Start health check after initialization
+// Start health check after initialization (defer until pool is stable)
 startHealthCheck();
 
 // Log pool stats every 30 seconds in development for monitoring
