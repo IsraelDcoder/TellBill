@@ -642,12 +642,41 @@ export function registerAuthRoutes(app: Express) {
 
       console.log("[Auth] 🔐 Google OAuth: Processing token for", googleUserEmail);
 
-      // ✅ EXISTING USER: Check if user with this email exists
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, googleUserEmail))
-        .limit(1);
+      // ✅ RETRY LOGIC: Attempt up to 3 times with exponential backoff for database queries
+      let existingUser: any[] = [];
+      let dbError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          existingUser = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, googleUserEmail))
+            .limit(1);
+          
+          dbError = null; // Clear error on success
+          console.log(`[Auth] ✅ Google OAuth: User lookup succeeded on attempt ${attempt}`);
+          break; // Exit retry loop on success
+        } catch (err) {
+          dbError = err as Error;
+          console.warn(`[Auth] ⚠️  Google OAuth: Database query attempt ${attempt}/3 failed - ${dbError.message}`);
+          
+          if (attempt < 3) {
+            // Exponential backoff: 500ms on attempt 1, 1000ms on attempt 2
+            const delay = 500 * Math.pow(2, attempt - 1);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      if (dbError) {
+        console.error("[Auth] ❌ Google OAuth: Failed to query database after 3 attempts:", dbError.message);
+        return res.status(503).json({
+          success: false,
+          error: "Database connection temporarily unavailable. Please try again in a moment.",
+          details: dbError.message.includes("timeout") ? "connection_timeout" : "connection_error",
+        });
+      }
 
       let userToReturn;
 
@@ -656,27 +685,48 @@ export function registerAuthRoutes(app: Express) {
         userToReturn = existingUser[0];
         console.log("[Auth] ✅ Google login for existing user:", googleUserEmail);
       } else {
-        // ✅ NEW USER: Create user account
-        const newUser = await db
-          .insert(users)
-          .values({
-            email: googleUserEmail as string,
-            name: googleUserName,
-            password: "", // No password for OAuth users
-          })
-          .returning();
+        // ✅ NEW USER: Create user account with retry logic
+        let newUser: any[] = [];
+        let createError: Error | null = null;
+        
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            newUser = await db
+              .insert(users)
+              .values({
+                email: googleUserEmail as string,
+                name: googleUserName,
+                password: "", // No password for OAuth users
+              })
+              .returning();
+            
+            createError = null;
+            console.log(`[Auth] ✅ Google OAuth: User creation succeeded on attempt ${attempt}`);
+            break;
+          } catch (err) {
+            createError = err as Error;
+            console.warn(`[Auth] ⚠️  Google OAuth: User creation attempt ${attempt}/3 failed - ${createError.message}`);
+            
+            if (attempt < 3) {
+              const delay = 500 * Math.pow(2, attempt - 1);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
 
-        if (!newUser || newUser.length === 0) {
-          return res.status(500).json({
+        if (createError || !newUser || newUser.length === 0) {
+          console.error("[Auth] ❌ Failed to create Google user after 3 attempts:", createError?.message || "Empty response");
+          return res.status(503).json({
             success: false,
-            error: "Failed to create user account",
+            error: "Could not create user account. Please try again in a moment.",
+            details: "user_creation_failed",
           });
         }
 
         userToReturn = newUser[0];
         console.log("[Auth] ✅ New Google user created:", googleUserEmail);
 
-        // Send welcome email
+        // Send welcome email (non-blocking - don't await)
         sendWelcomeEmail(userToReturn.email, userToReturn.name || "User").catch((err) => {
           console.error("[Auth] Failed to send welcome email:", err);
         });
@@ -705,10 +755,21 @@ export function registerAuthRoutes(app: Express) {
         },
       });
     } catch (error) {
-      console.error("[Auth] ❌ Google sign-in error:", error);
-      return res.status(500).json({
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("[Auth] ❌ Google sign-in error:", errorMsg);
+      
+      // Detect network/connection errors
+      const isNetworkError = errorMsg.includes("ENOTFOUND") || 
+                            errorMsg.includes("timeout") || 
+                            errorMsg.includes("Connection") ||
+                            errorMsg.includes("ECONNREFUSED");
+      
+      return res.status(isNetworkError ? 503 : 500).json({
         success: false,
-        error: "Google authentication failed",
+        error: isNetworkError 
+          ? "Service temporarily unavailable. Please try again in a moment."
+          : "Google authentication failed. Please try again.",
+        details: process.env.NODE_ENV === "development" ? errorMsg.substring(0, 100) : undefined,
       });
     }
   });
