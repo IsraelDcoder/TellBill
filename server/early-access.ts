@@ -131,7 +131,7 @@ export function registerEarlyAccessRoutes(app: Express) {
 
       // ✅ Group by trade for stats
       const tradeStats: Record<string, number> = {};
-      signups.forEach((signup) => {
+      signups.forEach((signup: typeof signups[number]) => {
         if (signup.trade) {
           tradeStats[signup.trade] = (tradeStats[signup.trade] || 0) + 1;
         }
