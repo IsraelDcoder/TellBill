@@ -8,21 +8,6 @@
     "scheme": "tellbill",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "deepLinking": {
-      "enabled": true,
-      "prefixes": [
-        "exp://",
-        "tellbill://",
-        "https://tellbill.app"
-      ],
-      "config": {
-        "screens": {
-          "auth-callback": "auth-callback",
-          "SignUp": "signup",
-          "SignUpWithRef": "signup?ref=:ref"
-        }
-      }
-    },
     "plugins": [
       [
         "expo-splash-screen",
@@ -33,12 +18,9 @@
           "backgroundColor": "#2D2E2E"
         }
       ],
-      "expo-web-browser"
-    ],
-    "permissions": [
-      "android.permission.RECORD_AUDIO",
-      "android.permission.WRITE_EXTERNAL_STORAGE",
-      "android.permission.READ_EXTERNAL_STORAGE"
+      "expo-web-browser",
+      "expo-asset",
+      "@sentry/react-native"
     ],
     "ios": {
       "supportsTablet": true,
@@ -54,7 +36,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.tellbill.app"
+      "package": "com.tellbill.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "single",
