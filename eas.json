@@ -8,9 +8,11 @@
     "preview": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease --stacktrace",
+        "gradleCommand": ":app:assembleRelease -x checkReleaseDuplicateClasses --stacktrace",
         "env": {
-          "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false"
+          "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
+          "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
+          "ORG_GRADLE_PROJECT_android_enableJetifier": "true"
         }
       },
       "ios": {
