@@ -8,8 +8,6 @@ import Purchases, {
   PurchasesEntitlementInfo,
   PurchasesOffering,
   CustomerInfo,
-  ATTRIBUTION_NETWORKS,
-  Purchases as PurchasesType,
 } from "react-native-purchases";
 import { Platform } from "react-native";
 
@@ -135,12 +133,12 @@ export async function purchasePackage(
 
     console.log(`[RevenueCat] Starting purchase: ${pkg.identifier}`);
     
-    const customerInfo = await Purchases.purchasePackage(pkg);
+    const result = await Purchases.purchasePackage(pkg);
+    const customerInfo = result.customerInfo || result;
     
     console.log("[RevenueCat] ✅ Purchase successful");
-    console.log("[RevenueCat] Active subscriptions:", customerInfo.activeSubscriptions);
     
-    return customerInfo;
+    return customerInfo as CustomerInfo;
   } catch (error: any) {
     if (error.userCancelled) {
       console.log("[RevenueCat] User cancelled purchase");
@@ -237,16 +235,22 @@ export async function getSubscriptionExpiryDate(): Promise<Date | null> {
   try {
     const customerInfo = await getCustomerInfo();
     
-    if (!customerInfo || customerInfo.activeSubscriptions.length === 0) {
+    if (!customerInfo || !customerInfo.entitlements.active) {
       return null;
     }
 
-    // Get the first active subscription's expiry date
-    const firstSubscription = customerInfo.activeSubscriptions[0];
-    const expiryDate = customerInfo.expirationDateForActiveEntitlement(firstSubscription);
+    // Get the first active entitlement's expiry date
+    const activeEntitlements = Object.values(customerInfo.entitlements.active);
     
-    if (expiryDate instanceof Date) {
-      return expiryDate;
+    if (activeEntitlements.length === 0) {
+      return null;
+    }
+
+    const firstEntitlement = activeEntitlements[0];
+    
+    // RevenueCat returns expirationDate as ISO string
+    if (firstEntitlement.expirationDate) {
+      return new Date(firstEntitlement.expirationDate);
     }
 
     return null;
@@ -282,7 +286,8 @@ export function setupPurchaseUpdateListener(
  */
 export function removePurchaseUpdateListener(): void {
   try {
-    Purchases.removeCustomerInfoUpdateListener();
+    // RevenueCat SDK clears all listeners when called
+    Purchases.removeCustomerInfoUpdateListener(() => {});
     console.log("[RevenueCat] ✅ Purchase listener removed");
   } catch (error) {
     console.error("[RevenueCat] Failed to remove listener:", error);
@@ -296,7 +301,7 @@ export async function setupAttribution(appsflyerId?: string): Promise<void> {
   try {
     if (!appsflyerId) return;
     
-    await Purchases.setAdjustId(appsflyerId);
+    await Purchases.setAdjustID(appsflyerId);
     console.log("[RevenueCat] ✅ Attribution set");
   } catch (error) {
     console.error("[RevenueCat] Failed to set attribution:", error);
