@@ -20,7 +20,15 @@
       ],
       "expo-web-browser",
       "expo-asset",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "organization": "tellbill",
+          "project": "tellbill-app",
+          "url": "https://sentry.io/",
+          "skipProguardMapping": true
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
