@@ -25,18 +25,5 @@
         "buildType": "app-bundle"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "android": {
-        "serviceAccount": "@credentials.json",
-        "track": "internal",
-        "changesNotSentForReview": true
-      },
-      "ios": {
-        "appleId": "@appleId",
-        "ascAppId": "@ascAppId"
-      }
-    }
   }
 }
