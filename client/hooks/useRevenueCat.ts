@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
-import Purchases, { CustomerInfo } from "react-native-purchases";
+import * as RevenueCatService from "@/services/revenuecatService";
 import { useAuth } from "@/context/AuthContext";
 import { getApiUrl } from "@/lib/backendUrl";
 
 /**
- * ✅ FIXED: Initialize RevenueCat SDK with proper configuration
- * Must call Purchases.configure() BEFORE using any other SDK methods
+ * Initialize RevenueCat REST API service
  */
 let sdkInitialized = false;
 let sdkInitializationPromise: Promise<void> | null = null;
@@ -24,24 +23,11 @@ async function ensureRevenueCatInitialized(): Promise<void> {
 
   sdkInitializationPromise = (async () => {
     try {
-      // Get API key from environment
-      const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
-      if (!apiKey) {
-        console.warn("[RevenueCat] ⚠️ EXPO_PUBLIC_REVENUECAT_API_KEY not set - subscriptions disabled");
-        sdkInitialized = true;
-        return;
-      }
-
-      // ✅ CRITICAL: Configure SDK with API key FIRST
-      await Purchases.configure({
-        apiKey: apiKey,
-      });
-      console.log("[RevenueCat] ✅ SDK configured successfully");
-      
+      await RevenueCatService.initializeRevenueCat();
+      console.log("[RevenueCat] ✅ Initialized successfully");
       sdkInitialized = true;
     } catch (error) {
-      console.error("[RevenueCat] ❌ Failed to configure SDK:", error);
-      // Don't throw - allow app to continue in free tier mode
+      console.error("[RevenueCat] ❌ Failed to initialize:", error);
       sdkInitialized = true;
     }
   })();
@@ -77,24 +63,26 @@ export function useRevenueCatInitialization(userId?: string) {
         if (userId) {
           // Link RevenueCat user to our TellBill user ID
           try {
-            await Purchases.logIn(userId);
-            console.log(`[RevenueCat] ✅ Logged in user: ${userId}`);
+            await RevenueCatService.setRevenueCatUserId(userId);
+            console.log(`[RevenueCat] ✅ User ID set: ${userId}`);
           } catch (loginError) {
-            console.warn("[RevenueCat] Login error (non-critical):", loginError);
+            console.warn("[RevenueCat] Error setting user ID (non-critical):", loginError);
           }
 
           // Get customer info to check entitlements
           try {
-            const customerInfo = await Purchases.getCustomerInfo();
-            handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
-            console.log("[RevenueCat] ✅ Retrieved customer info");
+            const customerInfo = await RevenueCatService.getCustomerInfo();
+            if (customerInfo) {
+              handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+              console.log("[RevenueCat] ✅ Retrieved customer info");
+            }
           } catch (customerError) {
             console.warn("[RevenueCat] Failed to get customer info:", customerError);
             // Default to free tier on error
             setUserEntitlement("none");
           }
         } else {
-          console.log("[RevenueCat] No userId provided - skipping login");
+          console.log("[RevenueCat] No userId provided - skipping");
           setUserEntitlement("none");
         }
 
@@ -123,7 +111,7 @@ export function useRevenueCatListener() {
     ensureRevenueCatInitialized()
       .then(() => {
         // Set up listener for customer info updates
-        Purchases.addCustomerInfoUpdateListener((customerInfo: CustomerInfo) => {
+        RevenueCatService.setupPurchaseUpdateListener((customerInfo: any) => {
           console.log("[RevenueCat] Customer info updated");
           handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
         });
@@ -132,9 +120,8 @@ export function useRevenueCatListener() {
         console.warn("[RevenueCat] Failed to set up listener:", error);
       });
 
-    // Note: RevenueCat SDK doesn't require explicit unsubscribe for listeners
     return () => {
-      // Cleanup if needed
+      RevenueCatService.removePurchaseUpdateListener();
     };
   }, [setUserEntitlement, setSubscription]);
 }
@@ -171,10 +158,15 @@ export function useEntitlementRefresh() {
         }
 
         // Get current customer info from RevenueCat
-        const customerInfo = await Purchases.getCustomerInfo();
+        const customerInfo = await RevenueCatService.getCustomerInfo();
+        if (!customerInfo) {
+          console.warn("[Entitlement] No customer info available");
+          return;
+        }
+        
         console.log("[Entitlement] Got RevenueCat customer info", {
-          customerId: customerInfo.originalAppUserId,
-          entitlements: Object.keys(customerInfo.entitlements.active || {}),
+          uid: customerInfo.uid,
+          entitlements: Object.keys(customerInfo.entitlements || {}),
         });
 
         // Verify purchase with backend
@@ -224,14 +216,14 @@ export function useEntitlementRefresh() {
  * Helper: Process customer info and extract entitlements
  */
 function handleCustomerInfo(
-  customerInfo: CustomerInfo,
+  customerInfo: any,
   setUserEntitlement: (entitlement: any) => void,
   setSubscription: (subscription: any) => void
 ) {
   try {
     // Check active entitlements
-    const activeEntitlements = customerInfo.entitlements.active || {};
-    const entitlementIds = Object.keys(activeEntitlements);
+    const entitlements = customerInfo.entitlements || {};
+    const entitlementIds = Object.keys(entitlements);
 
     console.log("[RevenueCat] Active entitlements:", entitlementIds);
 
@@ -240,7 +232,7 @@ function handleCustomerInfo(
 
     if (entitlementIds.includes("professional")) {
       currentEntitlement = "professional";
-    } else if (entitlementIds.includes("professional")) {
+    } else if (entitlementIds.includes("solo")) {
       currentEntitlement = "professional";
     } else if (entitlementIds.includes("solo")) {
       currentEntitlement = "solo";

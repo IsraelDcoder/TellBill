@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import Purchases, { PurchasesPackage, CustomerInfo } from "react-native-purchases";
+import * as RevenueCatService from "@/services/revenuecatService";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -46,24 +46,23 @@ export default function PricingScreen({ route, navigation }: any) {
   const [message, setMessage] = useState(route?.params?.message || "");
   const [showConfetti, setShowConfetti] = useState(false);
   const [minutesSaved, setMinutesSaved] = useState(0);
-  const [packages, setPackages] = useState<Map<string, PurchasesPackage | undefined>>(new Map());
+  const [packages, setPackages] = useState<Map<string, string>>(new Map());
 
   // Fetch packages from RevenueCat on component mount
   useEffect(() => {
     const fetchPackages = async () => {
       try {
-        const offerings = await Purchases.getOfferings();
+        const offerings = await RevenueCatService.getSubscriptionPackages();
         
-        if (offerings.current) {
-          const packageMap = new Map<string, PurchasesPackage | undefined>();
+        if (offerings && offerings.length > 0) {
+          const packageMap = new Map<string, string>();
           
           // Map tier names to product identifiers
-          offerings.current.availablePackages.forEach((pkg) => {
+          offerings.forEach((pkg: any) => {
             if (pkg.identifier.includes("solo")) {
-              packageMap.set("solo", pkg);
+              packageMap.set("solo", pkg.identifier);
             } else if (pkg.identifier.includes("professional")) {
-              packageMap.set("professional", pkg);
-
+              packageMap.set("professional", pkg.identifier);
             }
           });
           
@@ -111,46 +110,46 @@ export default function PricingScreen({ route, navigation }: any) {
 
       // Make the purchase through RevenueCat
       try {
-        const result = await Purchases.purchasePackage(pkgToPurchase);
+        const result = await RevenueCatService.purchasePackage(pkgToPurchase);
         
-        // Purchase successful, update entitlements
-        const activeEntitlements = Object.keys(result.customerInfo.entitlements.active || {});
-        
-        if (activeEntitlements.length > 0) {
-          // Map entitlements to our tier system
-          let entitlement: Entitlement = "none";
+        if (result) {
+          // Purchase successful, update entitlements
+          const activeEntitlements = Object.keys(result.entitlements || {});
           
-          if (activeEntitlements.includes("professional")) {
-            entitlement = "professional";
-          } else if (activeEntitlements.includes("professional")) {
-            entitlement = "professional";
-          } else if (activeEntitlements.includes("solo")) {
-            entitlement = "solo";
-          }
-          
-          setUserEntitlement(entitlement);
-          if (entitlement !== "none") {
-            setCurrentPlan(entitlement);
-            setIsSubscribed(true);
-          }
-          setShowConfetti(true);
-          
-          Alert.alert(
-            "Success! 🎉",
-            `You're now on the ${tier.displayName} plan!`,
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  if (route?.params?.returnTo) {
-                    navigation.navigate(route.params.returnTo);
-                  } else {
-                    navigation.goBack();
-                  }
+          if (activeEntitlements.length > 0) {
+            // Map entitlements to our tier system
+            let entitlement: Entitlement = "none";
+            
+            if (activeEntitlements.includes("professional")) {
+              entitlement = "professional";
+            } else if (activeEntitlements.includes("solo")) {
+              entitlement = "solo";
+            }
+            
+            setUserEntitlement(entitlement);
+            if (entitlement !== "none") {
+              setCurrentPlan(entitlement);
+              setIsSubscribed(true);
+            }
+            setShowConfetti(true);
+            
+            Alert.alert(
+              "Success! 🎉",
+              `You're now on the ${tier.displayName} plan!`,
+              [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    if (route?.params?.returnTo) {
+                      navigation.navigate(route.params.returnTo);
+                    } else {
+                      navigation.goBack();
+                    }
+                  },
                 },
-              },
-            ]
-          );
+              ]
+            );
+          }
         }
       } catch (purchaseError: any) {
         if (purchaseError.userCancelled) {

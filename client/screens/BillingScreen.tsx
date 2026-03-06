@@ -25,11 +25,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import Purchases, {
-  PurchasesPackage,
-  PurchasesOffering,
-  CustomerInfo,
-} from "react-native-purchases";
+import * as RevenueCatService from "@/services/revenuecatService";
 import { Dimensions } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -44,7 +40,7 @@ interface PricingTier {
   name: string;
   description: string;
   features: string[];
-  package?: PurchasesPackage;
+  packageId?: string;
   isPopular?: boolean;
 }
 
@@ -54,7 +50,7 @@ export default function BillingScreen() {
   const { user } = useAuth();
   const { userEntitlement, setUserEntitlement } = useSubscriptionStore();
 
-  const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
+  const [offerings, setOfferings] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
@@ -84,11 +80,11 @@ export default function BillingScreen() {
   const loadOfferings = useCallback(async () => {
     try {
       console.log("Loading RevenueCat offerings...");
-      const offerings = await Purchases.getOfferings();
+      const packages = await RevenueCatService.getSubscriptionPackages();
 
-      if (offerings.current) {
-        console.log("✅ Offerings loaded", { current: offerings.current });
-        setOfferings(offerings.current);
+      if (packages.length > 0) {
+        console.log("✅ Offerings loaded", { count: packages.length });
+        setOfferings({ packages });
       } else {
         Alert.alert("Error", "No pricing found. Please try again later.");
       }
@@ -108,7 +104,7 @@ export default function BillingScreen() {
    * Verify purchase with backend
    */
   const verifyPurchaseWithBackend = useCallback(
-    async (customerInfo: CustomerInfo) => {
+    async (customerInfo: any) => {
       try {
         if (!token) {
           throw new Error("Not authenticated");
@@ -155,27 +151,29 @@ export default function BillingScreen() {
    */
   const handlePurchase = useCallback(
     async (tier: PricingTier) => {
-      if (!tier.package) {
+      if (!tier.packageId) {
         Alert.alert("Error", "Unable to process purchase");
         return;
       }
 
       try {
-        setPurchasing(tier.package.identifier);
-        console.log("Starting purchase", { product: tier.package.identifier });
+        setPurchasing(tier.packageId || null);
+        console.log("Starting purchase", { product: tier.packageId });
 
-        // Make purchase via RevenueCat SDK
-        const { customerInfo } = await Purchases.purchasePackage(tier.package);
+        // Make purchase via RevenueCat API
+        const result = await RevenueCatService.purchasePackage(tier.packageId || "");
 
-        console.log("✅ Purchase successful", { customerInfo });
+        console.log("✅ Purchase successful", { result });
 
-        // Verify with backend
-        const verification = await verifyPurchaseWithBackend(customerInfo);
+        if (result) {
+          // Verify with backend
+          const verification = await verifyPurchaseWithBackend(result);
 
-        Alert.alert(
-          "Success",
-          `🎉 Upgraded to ${tier.name}!\n\nYour new plan: ${verification.plan}`
-        );
+          Alert.alert(
+            "Success",
+            `🎉 Upgraded to ${tier.name}!\n\nYour new plan: ${verification.plan}`
+          );
+        }
       } catch (error: any) {
         if (error.userCancelled) {
           console.log("User cancelled purchase");
@@ -198,13 +196,15 @@ export default function BillingScreen() {
       setPurchasing("restore");
       console.log("Restoring purchases...");
 
-      const customerInfo = await Purchases.restorePurchases();
+      const customerInfo = await RevenueCatService.restorePurchases();
       console.log("✅ Purchases restored", { customerInfo });
 
-      // Verify with backend
-      await verifyPurchaseWithBackend(customerInfo);
+      if (customerInfo) {
+        // Verify with backend
+        await verifyPurchaseWithBackend(customerInfo);
 
-      Alert.alert("Success", "✅ Purchases restored!");
+        Alert.alert("Success", "✅ Purchases restored!");
+      }
     } catch (error) {
       console.error("Restore error", error);
       Alert.alert("Error", "Failed to restore purchases");
@@ -226,11 +226,7 @@ export default function BillingScreen() {
         "Basic invoicing",
         "Payment tracking",
       ],
-      package: offerings?.availablePackages.find(
-        (p) =>
-          p.identifier.includes("solo") &&
-          !p.identifier.includes("professional")
-      ),
+      packageId: isAnnual ? "solo_annual" : "solo_monthly",
     },
     {
       name: "Professional",
@@ -242,9 +238,7 @@ export default function BillingScreen() {
         "Automatic payment reminders",
         "Priority email support",
       ],
-      package: offerings?.availablePackages.find(
-        (p) => p.identifier.includes("professional")
-      ),
+      packageId: isAnnual ? "professional_annual" : "professional_monthly",
       isPopular: true,
     },
   ];
@@ -481,7 +475,7 @@ export default function BillingScreen() {
                 },
               ]}
             >
-              {purchasing === tiers[0].package?.identifier ? (
+              {purchasing === tiers[0].packageId ? (
                 <ActivityIndicator
                   size="small"
                   color={BrandColors.white}
@@ -625,7 +619,7 @@ export default function BillingScreen() {
                 },
               ]}
             >
-              {purchasing === tiers[1].package?.identifier ? (
+              {purchasing === tiers[1].packageId ? (
                 <ActivityIndicator
                   size="small"
                   color={BrandColors.white}
