@@ -14,8 +14,8 @@
 
 ### Subscription Plans
 - **Free**: 3 voice recordings, 3 invoices lifetime
-- **Solo** ($29/month): Unlimited voice-to-invoice, projects, receipt scanning
-- **Professional** ($79/month): Everything in Solo + scope proof, client approvals, advanced money alerts, dispute-ready work logs, priority processing
+- **Solo** ($9/month): Unlimited voice-to-invoice, projects, receipt scanning
+- **Professional** ($29/month): Everything in Solo + scope proof, client approvals, advanced money alerts, dispute-ready work logs, priority processing
 
 ### Technical Features
 - Cross-platform (iOS/Android via React Native + Expo)

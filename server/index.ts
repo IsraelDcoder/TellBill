@@ -32,6 +32,13 @@ logger.info(`[Server] Starting TellBill backend (${process.env.NODE_ENV || "deve
 console.log("[Server] ✅ Environment Variables Status:");
 console.log(`  NODE_ENV: ${process.env.NODE_ENV || "NOT SET"}`);
 console.log(`  DATABASE_URL: ${process.env.DATABASE_URL ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  JWT_SECRET: ${process.env.JWT_SECRET ? "✅ SET" : "❌ NOT SET"}`);
+console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? "✅ SET" : "⚠️  NOT SET (required for OAuth)"}`);
+console.log(`  GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? "✅ SET" : "⚠️  NOT SET (required for OAuth)"}`);
+console.log(`  REVENUECAT_SECRET_KEY: ${process.env.REVENUECAT_SECRET_KEY ? "✅ SET" : "⚠️  NOT SET (payments)"}`);
+console.log(`  REVENUECAT_PUBLIC_KEY: ${process.env.REVENUECAT_PUBLIC_KEY ? "✅ SET" : "⚠️  NOT SET (mobile billing)"}`);
+console.log(`  SENTRY_DSN: ${process.env.SENTRY_DSN ? "✅ SET" : "⚠️  NOT SET (error tracking)"}`);
+console.log(`  RESEND_API_KEY: ${process.env.RESEND_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
 console.log(`  GROQ_API_KEY: ${process.env.GROQ_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
 console.log(`  OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? "✅ SET" : "❌ NOT SET"}`);
 console.log(`  RevenueCat (Google IAP): ✅ ENABLED`);

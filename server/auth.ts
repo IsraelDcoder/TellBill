@@ -11,6 +11,7 @@ import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from 
 import { generateToken, verifyToken } from "./utils/jwt";
 import { generateTokenPair, verifyAccessToken, verifyRefreshToken, generateAccessTokenFromRefresh } from "./services/tokenService";
 import { decodeGoogleIdToken, supabase } from "./supabaseClient";
+import { OAuth2Client } from "google-auth-library";
 import {
   validateSignup,
   validateLogin,
@@ -2258,32 +2259,70 @@ export function registerAuthRoutes(app: Express) {
    * POST /api/auth/google
    * Authenticate with Google ID token
    * 
+   * ✅ SECURITY: Verifies Google ID token with Google API to prevent token forgery
    * Client sends Google ID token, backend verifies with Google API
    * Then creates/finds user and returns JWT auth token
    */
   app.post("/api/auth/google", async (req: Request, res: Response) => {
     try {
-      const { idToken, email, name } = req.body;
+      const { idToken } = req.body;
 
-      if (!idToken || !email) {
+      if (!idToken) {
         return res.status(400).json({
           success: false,
-          error: "Missing idToken or email from Google",
+          error: "Missing idToken from Google",
         });
       }
 
-      console.log("[Auth] 🔍 Processing Google auth for:", email);
+      console.log("[Auth] 🔍 Processing Google auth with token verification");
 
-      // TODO: Verify Google ID token with Google API
-      // import { OAuth2Client } from 'google-auth-library';
-      // const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-      // const ticket = await client.verifyIdToken({
-      //   idToken: idToken,
-      //   audience: process.env.GOOGLE_CLIENT_ID,
-      // });
-      // const payload = ticket.getPayload();
+      // ✅ CRITICAL SECURITY FIX: Verify Google ID token with Google API
+      // This prevents token forgery attacks where any client can create fake tokens
+      const googleOAuth2Client = new OAuth2Client(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
 
-      // For now, assume token is valid (TODO: add verification)
+      let ticket;
+      try {
+        ticket = await googleOAuth2Client.verifyIdToken({
+          idToken: idToken,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+      } catch (verificationError) {
+        console.error("[Auth] ❌ Google token verification failed:", verificationError);
+        return res.status(401).json({
+          success: false,
+          error: "INVALID_TOKEN",
+          message: "Google token verification failed. Please try signing in again.",
+        });
+      }
+
+      const payload = ticket.getPayload();
+      
+      if (!payload) {
+        return res.status(401).json({
+          success: false,
+          error: "INVALID_TOKEN",
+          message: "Invalid Google token payload",
+        });
+      }
+
+      // Extract verified email from Google
+      const email = payload.email;
+      const name = payload.name || payload.given_name || "";
+
+      if (!email) {
+        return res.status(401).json({
+          success: false,
+          error: "INVALID_TOKEN",
+          message: "Google token does not contain email",
+        });
+      }
+
+      console.log("[Auth] ✅ Google token verified for:", email);
+
       const normalizedEmail = sanitizeEmail(email);
 
       // ✅ Check if user exists with this email
