@@ -9,10 +9,31 @@ subprojects {
         if (project.hasProperty("android")) {
             android {
                 packagingOptions {
-                    // Remove conflicting support library versions
+                    // Remove conflicting support library versions - keep androidx only
                     exclude 'META-INF/androidx.*.properties'
+                }
+                
+                configurations.all {
+                    resolutionStrategy {
+                        // Force use of new androidx versions over old support libraries
+                        force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+                        
+                        // Exclude old support library to prevent duplicates
+                        exclude group: 'com.android.support', module: 'support-v4'
+                        exclude group: 'com.android.support', module: 'appcompat-v7'
+                        exclude group: 'com.android.support', module: 'versionedparcelable'
+                    }
                 }
             }
         }
     }
 }
+
+allprojects {
+    repositories {
+        maven {
+            url "https://maven.google.com"
+        }
+    }
+}
+

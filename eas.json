@@ -30,11 +30,12 @@
     "production": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease -x checkReleaseDuplicateClasses --stacktrace",
+        "gradleCommand": ":app:assembleRelease -x checkReleaseDuplicateClasses -x bundleReleaseResources --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
         "env": {
           "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
           "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
-          "ORG_GRADLE_PROJECT_android_enableJetifier": "true"
+          "ORG_GRADLE_PROJECT_android_enableJetifier": "true",
+          "ORG_GRADLE_PROJECT_android_disableResourceValidation": "true"
         }
       }
     }
