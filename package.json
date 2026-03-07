@@ -32,7 +32,9 @@
     "docker:logs": "docker-compose logs -f server",
     "docker:db-push": "docker-compose exec server npm run db:push",
     "docker:restart": "docker-compose restart",
-    "load-test:money-alerts": "tsx scripts/load-test-money-alerts.ts"
+    "load-test:money-alerts": "tsx scripts/load-test-money-alerts.ts",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
@@ -145,7 +147,9 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": ["@react-native-voice/voice"]
+        "exclude": [
+          "@react-native-voice/voice"
+        ]
       }
     }
   }
