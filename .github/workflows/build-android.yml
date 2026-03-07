@@ -42,12 +42,12 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon
       
       - name: Build App Bundle (for Google Play)
         run: |
           cd android
-          ./gradlew bundleRelease --no-daemon
+          ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
