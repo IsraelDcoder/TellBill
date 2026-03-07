@@ -29,7 +29,12 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "env": {
+          "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
+          "ORG_GRADLE_PROJECT_android_enableJetifier": "true",
+          "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false"
+        }
       }
     }
   }
