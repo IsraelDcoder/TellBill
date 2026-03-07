@@ -29,6 +29,7 @@
       }
     },
     "android": {
+      "namespace": "com.tellbill.app",
       "adaptiveIcon": {
         "backgroundColor": "#2D2E2E",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
