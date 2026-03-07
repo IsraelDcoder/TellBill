@@ -36,6 +36,10 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       
+      - name: Fix manifest merger appComponentFactory conflict
+        run: |
+          sed -i 's/<application/<application tools:replace="android:appComponentFactory"/g' android/app/src/main/AndroidManifest.xml
+      
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       
