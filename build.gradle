@@ -1,0 +1,18 @@
+// Build configuration override for manifest merger conflicts
+// This gets applied to the app module build
+subprojects {
+    project.ext {
+        compileSdkVersion = 35
+    }
+    
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                packagingOptions {
+                    // Remove conflicting support library versions
+                    exclude 'META-INF/androidx.*.properties'
+                }
+            }
+        }
+    }
+}
