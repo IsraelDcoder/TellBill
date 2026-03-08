@@ -76,32 +76,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // Listen for Supabase auth state changes
+  // ✅ FIXED: This is triggered when OAuth completes and session is established
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        console.log("[Auth] Supabase auth state changed:", event);
+        console.log("[Auth] 🔔 Supabase auth state changed:", event);
+        console.log("[Auth] Session user:", session?.user?.email);
+        
         if (session?.user) {
-          console.log("[Auth] User authenticated via Supabase:", session.user.email);
+          console.log("[Auth] ✅ User authenticated via Supabase:", session.user.email);
           
-          // ✅ NEW: Exchange Supabase token for backend JWT token
+          // ✅ FIXED: Exchange Supabase token for backend JWT token
           try {
             const supabaseAccessToken = session.access_token;
             console.log("[Auth] 🔄 Exchanging Supabase token for backend JWT...");
 
-            const exchangeResponse = await fetch(getApiUrl("/api/auth/supabase-oauth-callback"), {
+            // ✅ CRITICAL: Use our unified backend URL (not hardcoded)
+            const exchangeUrl = getApiUrl("/api/auth/supabase-oauth-callback");
+            console.log("[Auth] 📡 Exchange endpoint:", exchangeUrl);
+
+            const exchangeResponse = await fetch(exchangeUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ supabaseToken: supabaseAccessToken }),
             });
 
             if (!exchangeResponse.ok) {
+              const errorText = await exchangeResponse.text();
+              console.error("[Auth] ❌ Token exchange failed:", exchangeResponse.status, errorText);
               throw new Error(`Token exchange failed: ${exchangeResponse.status}`);
             }
 
             const exchangeData = await exchangeResponse.json();
 
             if (!exchangeData.success || !exchangeData.accessToken) {
-              throw new Error("No backend token in response");
+              throw new Error(exchangeData.error || "No backend token in response");
             }
 
             // ✅ Store the BACKEND JWT token (not Supabase token)
@@ -121,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(session);
             setCurrentUserId(exchangeData.user.id);
             setCurrentPlan("free");
-            setIsLoading(false);
+            setIsLoading(false); // ✅ CRITICAL: Stop loading spinner
+            clearError(); // ✅ Clear any previous errors
 
             // 📊 Initialize analytics and track OAuth signup/login
             await analyticsService.initialize(newUser.id, newUser.email);
@@ -140,9 +150,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.error("[Auth] Data rehydration failed:", err);
               });
             }, 500);
+            
+            console.log("[Auth] ✅✅✅ OAuth login COMPLETE, ready for navigation ✅✅✅");
           } catch (tokenExchangeErr) {
             console.error("[Auth] ❌ Failed to exchange token:", tokenExchangeErr);
-            // Still set the user so they're logged in, but won't have backend data
+            setIsLoading(false); // ✅ Stop loading spinner on error
+            
+            // ✅ FIXED: Set error message so UI shows it instead of spinning
+            const errorMsg = tokenExchangeErr instanceof Error 
+              ? tokenExchangeErr.message 
+              : "Failed to complete authentication";
+            setError("Authentication error: " + errorMsg);
+            
+            // Still set the user so they're logged in via Supabase, but won't have backend data
             const newUser: User = {
               id: session.user.id,
               email: session.user.email || "",
@@ -154,16 +174,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(session);
             setCurrentUserId(session.user.id);
             setCurrentPlan("free");
-            setIsLoading(false);
 
             // 📊 Initialize analytics even without token exchange
-            await analyticsService.initialize(session.user.id, session.user.email);
+            await analyticsService.initialize(session.user.id, session.user.email || "");
             await analyticsService.trackLogin(session.user.id, session.user.email || "", "google");
+            
+            console.warn("[Auth] ⚠️  OAuth succeeded but token exchange failed, continuing with limited session");
           }
-        } else {
+        } else if (event === "SIGNED_OUT") {
           console.log("[Auth] User logged out");
           setUser(null);
           setSession(null);
+          setIsLoading(false);
+          clearError();
+        } else if (event === "USER_UPDATED") {
+          console.log("[Auth] User updated:", session?.user?.email);
           setIsLoading(false);
         }
       }
@@ -175,42 +200,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Listen for deep links from OAuth redirect
+  // ✅ FIXED: Better handling of OAuth callbacks in standalone APK
   useEffect(() => {
     const handleDeepLink = async ({ url }: { url: string }) => {
-      console.log("[Auth] Deep link received:", url);
+      console.log("[Auth] 📲 Deep link received:", url);
       
-      // When deep link comes in with session data (access_token in fragment),
-      // manually extract and set the session since React Native doesn't auto-parse URL fragment
+      // ✅ FIXED: Check for access_token in fragment (OAuth response)
+      // OAuth returns: https://tellbill:///#access_token=xxx&refresh_token=yyy&...
       if (url.includes("access_token")) {
-        console.log("[Auth] 🔐 OAuth callback detected with token, manually syncing session...");
+        console.log("[Auth] ✅ OAuth token detected in deep link!");
         
         try {
           // Extract the fragment (everything after #)
           const hashIndex = url.indexOf("#");
           if (hashIndex === -1) {
-            console.log("[Auth] No hash fragment found");
+            console.warn("[Auth] ⚠️  No hash fragment found in URL");
             return;
           }
           
           const hashFragment = url.substring(hashIndex + 1);
-          console.log("[Auth] Hash fragment extracted");
+          console.log("[Auth] 🔍 Parsing OAuth fragment...");
           
           // Parse the fragment parameters
           const params = new URLSearchParams(hashFragment);
           const accessToken = params.get("access_token");
           const refreshToken = params.get("refresh_token");
+          const expiresIn = params.get("expires_in");
           
           if (!accessToken) {
-            console.error("[Auth] ❌ No access token found in URL");
+            console.error("[Auth] ❌ No access token found in OAuth response");
+            setError("OAuth error: No access token received");
+            setIsLoading(false);
             return;
           }
           
-          console.log("[Auth] ✅ Tokens extracted from URL");
-          console.log("[Auth] Access token:", accessToken.substring(0, 20) + "...");
+          console.log("[Auth] ✅ OAuth tokens extracted from URL");
+          console.log("[Auth] Access token:", accessToken.substring(0, 30) + "...");
           console.log("[Auth] Refresh token:", refreshToken ? "present" : "missing");
+          console.log("[Auth] Expires in:", expiresIn, "seconds");
           
-          // Manually set the session in Supabase
-          // setSession requires access_token and refresh_token
+          // ✅ CRITICAL: Manually set the session in Supabase
+          // This tells Supabase that the user is authenticated
+          // Then it will trigger onAuthStateChange listener with SIGNED_IN event
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || "",
@@ -218,36 +249,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (sessionError) {
             console.error("[Auth] ❌ Failed to set session:", sessionError);
+            setError("Failed to establish OAuth session: " + sessionError.message);
+            setIsLoading(false);
             return;
           }
           
           if (sessionData?.session?.user) {
-            console.log("[Auth] ✅ Session manually set successfully!");
-            console.log("[Auth] User authenticated:", sessionData.session.user.email);
+            console.log("[Auth] ✅ OAuth session established!");
+            console.log("[Auth] User email:", sessionData.session.user.email);
             
-            // This should trigger the onAuthStateChange listener
-            // and update the app state
+            // ✅ This will trigger the onAuthStateChange listener
+            // which handles the rest of the auth flow (token exchange, etc)
+            console.log("[Auth] ✅ Waiting for onAuthStateChange listener to complete auth...");
           } else {
             console.warn("[Auth] ⚠️  Session set but no user data returned");
+            setError("OAuth session established but user data missing");
+            setIsLoading(false);
           }
         } catch (err) {
           console.error("[Auth] ❌ Error processing OAuth callback:", err);
+          const errorMsg = err instanceof Error ? err.message : "OAuth callback processing failed";
+          setError("OAuth error: " + errorMsg);
+          setIsLoading(false);
         }
+      } else if (url.includes("reset-password?token=")) {
+        // ✅ Handle password reset deep links
+        console.log("[Auth] 🔑 Password reset link detected");
+        // This is handled by WelcomeScreen, just log it here
+      } else if (url.includes("signup?ref=")) {
+        // ✅ Handle referral deep links
+        console.log("[Auth] 🎁 Referral link detected");
+        // This is handled by WelcomeScreen, just log it here
+      } else {
+        console.log("[Auth] ℹ️  General deep link (not OAuth):", url);
       }
     };
 
-    // Listen for deep links when app is already open
-    const subscription = Linking.addEventListener("url", handleDeepLink);
-
-    // Also check initial URL (in case app was closed and opened via deep link)
-    Linking.getInitialURL().then((url) => {
+    // ✅ FIXED: Check initial URL when app starts
+    // This handles the case where app was closed and opened via deep link
+    const getInitialURL = async () => {
+      const url = await Linking.getInitialURL();
       if (url != null) {
-        console.log("[Auth] Initial URL detected:", url);
-        handleDeepLink({ url });
+        console.log("[Auth] 📱 Initial URL detected (app was launched via deep link):", url);
+        await handleDeepLink({ url });
       }
-    }).catch((err) => {
+    };
+
+    getInitialURL().catch((err) => {
       console.error("[Auth] Error getting initial URL:", err);
     });
+
+    // ✅ FIXED: Listen for deep links during app runtime
+    // This handles the case where user completes OAuth and returns to app
+    const subscription = Linking.addEventListener("url", handleDeepLink);
 
     return () => {
       subscription.remove();
@@ -714,7 +768,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   /**
-   * ✅ Trigger Google Sign-In flow via Supabase OAuth
+   * ✅ FIXED: Trigger Google Sign-In flow via Supabase OAuth
+   * 
+   * CRITICAL FIX FOR STANDALONE APK:
+   * - Opens browser for OAuth flow
+   * - Handles redirect via deep link callback
+   * - Uses timeout to prevent indefinite loading
+   * - Checks for Supabase session after OAuth completes
+   * - Properly transitions to onboarding/home on success
    */
   const signInWithGoogle = async () => {
     try {
@@ -722,50 +783,108 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
 
-      // Use Expo's auto-generated URL for OAuth redirect
-      // This will be exp://YOUR_IP:8081 in development
+      // ✅ FIXED: createURL with path ensures proper deep link format
+      // This will be: tellbill:///* (for standalone APK)
+      // or exp://YOUR_IP:8081/* (for Expo Go)
       const redirectUrl = Linking.createURL("/");
-      console.log("[Auth] Redirect URL:", redirectUrl);
+      console.log("[Auth] ✅ OAuth Redirect URL configured:", redirectUrl);
 
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: true, // ✅ Don't let Supabase auto-redirect, we'll handle it
+          skipBrowserRedirect: true, // ✅ CRITICAL: We handle redirect, not Supabase
         },
       });
 
       if (error) {
+        console.error("[Auth] ❌ OAuth init error:", error);
         throw error;
       }
 
-      if (data?.url) {
-        // Open OAuth URL in system browser
-        console.log("[Auth] Opening browser for OAuth...");
+      if (!data?.url) {
+        throw new Error("No OAuth URL provided by Supabase");
+      }
+
+      console.log("[Auth] ✅ OAuth URL received, opening browser...");
+      
+      // ✅ FIXED: Add timeout for OAuth flow
+      // If user doesn't complete OAuth or closes browser, we need to handle it
+      let oauthTimeout: NodeJS.Timeout | undefined;
+      
+      // Create timeout that will reject if OAuth takes too long
+      const oauthPromise = new Promise<void>((resolve, reject) => {
+        oauthTimeout = setTimeout(() => {
+          console.warn("[Auth] ⚠️  OAuth timeout (60s) - user may have cancelled");
+          setIsLoading(false);
+          setError("Google Sign-In took too long. Please try again.");
+          reject(new Error("OAuth timeout"));
+        }, 60000); // 60 second timeout
+      });
+
+      // ✅ FIXED: Open browser and await result
+      // When user completes OAuth in browser and is redirected back:
+      // 1. Browser closes
+      // 2. Deep link listener triggers
+      // 3. Session is set in Supabase
+      // 4. onAuthStateChange listener fires
+      try {
         const result = await WebBrowser.openBrowserAsync(data.url);
-        console.log("[Auth] ✅ Google OAuth browser opened, result:", result.type);
-        
-        // After browser closes, try to get the session
-        if (result.type === "dismiss" || result.type === "cancel") {
-          console.log("[Auth] Browser closed, checking for new session...");
-          // Give Supabase a moment to process the session
-          setTimeout(() => {
-            supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-              if (newSession) {
-                console.log("[Auth] ✅ Session found after OAuth callback");
-              } else {
-                console.log("[Auth] No session found yet, waiting for deep link...");
-              }
-            });
-          }, 500);
+        if (oauthTimeout) {
+          clearTimeout(oauthTimeout);
         }
+        
+        console.log("[Auth] 🌐 Browser result:", result.type);
+        
+        if (result.type === "dismiss" || result.type === "cancel") {
+          console.log("[Auth] ℹ️  Browser was closed/dismissed, waiting for OAuth callback...");
+          
+          // ✅ FIXED: Don't immediately fail, wait for deep link to arrive
+          // The deep link handler will complete the flow
+          // Give deep link handler up to 5 seconds to process
+          return new Promise<void>((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+              supabase.auth.getSession().then(({ data: { session: newSession } }) => {
+                if (newSession?.user) {
+                  console.log("[Auth] ✅ Session established via OAuth callback!");
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              });
+            }, 500);
+
+            // Timeout after 5 seconds
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              supabase.auth.getSession().then(({ data: { session: newSession } }) => {
+                if (newSession?.user) {
+                  console.log("[Auth] ✅ Session found after timeout");
+                  resolve();
+                } else {
+                  console.error("[Auth] ❌ No session found after OAuth callback");
+                  setError("OAuth flow did not complete. Please check your internet connection.");
+                  reject(new Error("OAuth callback not received"));
+                }
+              });
+            }, 5000);
+          });
+        }
+      } catch (browserErr) {
+        if (oauthTimeout) {
+          clearTimeout(oauthTimeout);
+        }
+        console.error("[Auth] ❌ Browser error:", browserErr);
+        throw new Error("Failed to open browser for Google Sign-In");
       }
     } catch (err) {
-      console.error("[Auth] ❌ Error starting Google sign-in:", err);
-      const message = err instanceof Error ? err.message : "Failed to start Google sign-in";
-      setError(message);
+      console.error("[Auth] ❌ Google Sign-In error:", err);
       setIsLoading(false);
+      const message = err instanceof Error ? err.message : "Failed to start Google Sign-In";
+      setError(message);
+      throw err;
     }
+    // ✅ Note: isLoading will be set to false by the onAuthStateChange listener
+    // when the OAuth completes and user is authenticated
   };
 
   const resetPassword = async (email: string) => {
