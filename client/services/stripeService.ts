@@ -1,8 +1,7 @@
 import axios from "axios";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
+import { getApiUrl } from "@/lib/backendUrl";
 
 export interface CheckoutResponse {
   checkoutUrl: string;
@@ -28,7 +27,7 @@ export const stripeService = {
       }
 
       const response = await axios.post<CheckoutResponse>(
-        `${API_URL}/api/payments/stripe/checkout`,
+        getApiUrl("/api/payments/stripe/checkout"),
         { plan },
         {
           headers: {
@@ -64,7 +63,7 @@ export const stripeService = {
       }
 
       const response = await axios.post<{ portalUrl: string }>(
-        `${API_URL}/api/payments/stripe/portal`,
+        getApiUrl("/api/payments/stripe/portal"),
         {},
         {
           headers: {
@@ -100,7 +99,7 @@ export const stripeService = {
       }
 
       const response = await axios.post<SubscriptionStatus>(
-        `${API_URL}/api/payments/stripe/subscription-status`,
+        getApiUrl("/api/payments/stripe/subscription-status"),
         {},
         {
           headers: {

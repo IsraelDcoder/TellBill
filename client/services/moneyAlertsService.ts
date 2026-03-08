@@ -1,8 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const getApiUrl = () => {
-  return process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_IP || "http://localhost:3000";
-};
+import { getApiUrl } from "@/lib/backendUrl";
 
 export class MoneyAlertsService {
   /**
@@ -11,7 +8,7 @@ export class MoneyAlertsService {
   static async getAlerts() {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${getApiUrl()}/api/money-alerts`, {
+      const response = await fetch(getApiUrl("/api/money-alerts"), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -37,7 +34,7 @@ export class MoneyAlertsService {
   static async getSummary() {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${getApiUrl()}/api/money-alerts/summary`, {
+      const response = await fetch(getApiUrl("/api/money-alerts/summary"), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +59,7 @@ export class MoneyAlertsService {
   static async getAlert(alertId: string) {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${getApiUrl()}/api/money-alerts/${alertId}`, {
+      const response = await fetch(getApiUrl(`/api/money-alerts/${alertId}`), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -87,7 +84,7 @@ export class MoneyAlertsService {
   static async fixAlert(alertId: string, action: any) {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${getApiUrl()}/api/money-alerts/${alertId}/fix`, {
+      const response = await fetch(getApiUrl(`/api/money-alerts/${alertId}/fix`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -114,7 +111,7 @@ export class MoneyAlertsService {
   static async resolveAlert(alertId: string, reason: string, note?: string) {
     try {
       const token = await AsyncStorage.getItem("authToken");
-      const response = await fetch(`${getApiUrl()}/api/money-alerts/${alertId}/resolve`, {
+      const response = await fetch(getApiUrl(`/api/money-alerts/${alertId}/resolve`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

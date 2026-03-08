@@ -1,20 +1,18 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getBackendUrl } from "./backendUrl";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
- * @returns {string} The API base URL
+ * Gets the base URL for the Express API server
+ * Uses unified backend configuration from @/lib/backendUrl
+ * Supports:
+ *  - Production: EXPO_PUBLIC_BACKEND_URL (full HTTPS URL)
+ *  - Development: EXPO_PUBLIC_BACKEND_IP (machine IP for Expo Go)
+ *  - Fallback: localhost:3000
  */
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
-
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
-  }
-
-  let url = new URL(`https://${host}`);
-
-  return url.href;
+  const base = getBackendUrl();
+  return base.endsWith('/') ? base : base + '/';
 }
 
 /**

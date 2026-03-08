@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { getApiUrl } from "@/lib/backendUrl";
 
 interface ExtractedReceipt {
   vendor: string;
@@ -32,7 +33,6 @@ interface ReceiptMetadata {
 }
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 export class ReceiptProcessingService {
   /**
@@ -43,7 +43,7 @@ export class ReceiptProcessingService {
     photoBase64: string
   ): Promise<{ success: boolean; receiptId?: string; error?: string }> {
     try {
-      const response = await fetch(`${API_URL}/api/receipts/upload`, {
+      const response = await fetch(getApiUrl("/api/receipts/upload"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

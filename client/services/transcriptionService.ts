@@ -1,40 +1,7 @@
 import { readAsStringAsync } from "expo-file-system/legacy";
 import { speechToTextService } from "./speechToTextService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// ============================================================================
-// BACKEND CONFIGURATION
-// ============================================================================
-// For Android/Mobile Expo Go: Use your computer's IP address, NOT localhost
-// To find IP: Run 'ipconfig' on Windows, 'ifconfig' on Mac/Linux
-// 
-// DEV_IP: Your local machine IP (for development with Expo Go)
-// PROD_URL: Production backend URL (for deployed app)
-// ============================================================================
-
-const DEV_IP = process.env.EXPO_PUBLIC_BACKEND_IP || "10.16.215.139";
-const DEV_PORT = 3000; // Your backend port
-const PROD_URL = process.env.EXPO_PUBLIC_BACKEND_URL || null;
-
-// Determine which URL to use
-const getBackendUrl = (): string => {
-  // Priority order:
-  // 1. Environment variable EXPO_PUBLIC_BACKEND_URL (production)
-  // 2. Environment variable EXPO_PUBLIC_BACKEND_IP (development with specific port)
-  // 3. Hardcoded DEV_IP (fallback for development)
-  
-  if (PROD_URL) {
-    console.log("[Config] Using production backend URL:", PROD_URL);
-    return PROD_URL;
-  }
-
-  const devUrl = `http://${DEV_IP}:${DEV_PORT}`;
-  console.log("[Config] Using development backend:", devUrl);
-  console.log("[Config] IP from EXPO_PUBLIC_BACKEND_IP:", process.env.EXPO_PUBLIC_BACKEND_IP);
-  return devUrl;
-};
-
-const BACKEND_URL = getBackendUrl();
+import { getApiUrl } from "@/lib/backendUrl";
 
 interface TranscriptionResult {
   text: string;
@@ -128,14 +95,9 @@ class TranscriptionService {
 
       console.log("[Transcription] Audio file loaded, size:", base64Audio.length);
 
-      // Get backend URL
-      const backendUrl = BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
-      if (!backendUrl) {
-        throw new Error(
-          "Backend URL not configured. " +
-          "Please set EXPO_PUBLIC_BACKEND_URL in .env or configure EXPO_PUBLIC_BACKEND_IP in .env"
-        );
-      }
+      // Get backend URL using unified configuration
+      const backendUrl = getApiUrl("");
+      console.log("[Transcription] Using backend:", backendUrl);
 
       // Get auth token
       const authToken = await AsyncStorage.getItem("authToken");
@@ -201,10 +163,9 @@ class TranscriptionService {
 
       console.log("[Invoice Extraction] Starting extraction via backend", {
         transcriptLength: transcript.length,
-        backendUrl: BACKEND_URL,
       });
 
-      const extractUrl = `${BACKEND_URL}/api/extract-invoice`;
+      const extractUrl = getApiUrl("/api/extract-invoice");
       console.log("[Invoice Extraction] Calling backend endpoint:", extractUrl);
 
       // ✅ Get auth token from AsyncStorage
