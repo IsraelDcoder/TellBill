@@ -29,14 +29,16 @@
     },
     "production": {
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease -x checkReleaseDuplicateClasses -x bundleReleaseResources --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease -x checkReleaseDuplicateClasses --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
         "env": {
           "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
           "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
-          "ORG_GRADLE_PROJECT_android_enableJetifier": "true",
-          "ORG_GRADLE_PROJECT_android_disableResourceValidation": "true"
+          "ORG_GRADLE_PROJECT_android_enableJetifier": "true"
         }
+      },
+      "ios": {
+        "buildConfiguration": "Release"
       }
     }
   }

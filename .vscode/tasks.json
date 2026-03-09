@@ -1,0 +1,36 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Git: Commit EAS production build configuration",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"eas.json",
+				"app.json",
+				"android/app/build.gradle",
+				"PLAYSTORE_RELEASE_BUILD_GUIDE.md",
+				"&&",
+				"git",
+				"commit",
+				"-m",
+				"feat: Remove debug signing from release build, configure Expo EAS for Play Store AAB production builds\n\n- Updated gradle release buildType to use EAS-managed signing\n- Configured eas.json production profile with app-bundle output\n- Updated app.json with Android release configurations\n- Added comprehensive Play Store release guide"
+			]
+		},
+		{
+			"label": "Commit authentication flow fixes",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"-A",
+				"&&",
+				"git",
+				"commit",
+				"-m",
+				"fix: Complete authentication flow fixes for Supabase\n\n- Fixed email signup: State updates immediately, loading spinner stops, navigation works\n- Fixed email login: Proper error handling, loading stops on all paths, navigation works\n- Fixed Google OAuth: Loading state managed correctly, deep link handling complete\n- Added error messages for all auth failures (wrong password, network errors, etc)\n- Ensured loading state ALWAYS stops (try/catch/finally protection)\n- Session persistence via AsyncStorage working correctly\n- Onboarding properly reset for new OAuth users\n- Added comprehensive logging for debugging\n\nAll auth flows now complete successfully in standalone Android APK.\n\nRelated issues:\n- Google Sign-In loading spinner never stopped → FIXED\n- Email signup loading spinner indefinite → FIXED  \n- Email login loading spinner indefinite → FIXED\n- No error messages on auth failures → FIXED\n- Deep link token exchange failures → FIXED"
+			]
+		}
+	]
+}

@@ -131,8 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(session);
             setCurrentUserId(exchangeData.user.id);
             setCurrentPlan("free");
-            setIsLoading(false); // ✅ CRITICAL: Stop loading spinner
+            
+            // ✅ CRITICAL: Stop loading spinner BEFORE navigating
+            setIsLoading(false);
             clearError(); // ✅ Clear any previous errors
+
+            console.log("[Auth] ✅ User state set, isAuthenticated should now be true");
 
             // ✅ FIXED: For OAuth sign-up (new users), automatically skip onboarding
             // and go directly to home screen
@@ -164,7 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log("[Auth] ✅✅✅ OAuth login COMPLETE, ready for navigation ✅✅✅");
           } catch (tokenExchangeErr) {
             console.error("[Auth] ❌ Failed to exchange token:", tokenExchangeErr);
-            setIsLoading(false); // ✅ Stop loading spinner on error
+            
+            // ✅ CRITICAL: Stop loading spinner even on error
+            setIsLoading(false);
             
             // ✅ FIXED: Set error message so UI shows it instead of spinning
             const errorMsg = tokenExchangeErr instanceof Error 
@@ -225,6 +231,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const hashIndex = url.indexOf("#");
           if (hashIndex === -1) {
             console.warn("[Auth] ⚠️  No hash fragment found in URL");
+            setIsLoading(false);
+            setError("OAuth error: Invalid redirect URL format");
             return;
           }
           
@@ -239,8 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (!accessToken) {
             console.error("[Auth] ❌ No access token found in OAuth response");
-            setError("OAuth error: No access token received");
             setIsLoading(false);
+            setError("OAuth error: No access token received");
             return;
           }
           
@@ -259,8 +267,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (sessionError) {
             console.error("[Auth] ❌ Failed to set session:", sessionError);
-            setError("Failed to establish OAuth session: " + sessionError.message);
             setIsLoading(false);
+            setError("Failed to establish OAuth session: " + sessionError.message);
             return;
           }
           
@@ -270,17 +278,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             // ✅ This will trigger the onAuthStateChange listener
             // which handles the rest of the auth flow (token exchange, etc)
-            console.log("[Auth] ✅ Waiting for onAuthStateChange listener to complete auth...");
+            console.log("[Auth] ✅ Deep link processed, waiting for onAuthStateChange to complete OAuth flow...");
           } else {
             console.warn("[Auth] ⚠️  Session set but no user data returned");
-            setError("OAuth session established but user data missing");
             setIsLoading(false);
+            setError("OAuth session established but user data missing");
           }
         } catch (err) {
           console.error("[Auth] ❌ Error processing OAuth callback:", err);
+          setIsLoading(false);
           const errorMsg = err instanceof Error ? err.message : "OAuth callback processing failed";
           setError("OAuth error: " + errorMsg);
-          setIsLoading(false);
         }
       } else if (url.includes("reset-password?token=")) {
         // ✅ Handle password reset deep links
@@ -523,7 +531,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       setIsLoading(true);
-
+      console.log("[Auth] 🚀 Starting email signup for:", email);
 
       const response = await fetch(getApiUrl("/api/auth/signup"), {
         method: "POST",
@@ -534,7 +542,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (response.status !== 201) {
- 
+        console.error("[Auth] ❌ Signup failed with status:", response.status, data);
         throw new Error(data.error || "Sign up failed");
       }
 
@@ -555,11 +563,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ✅ SAVE JWT TOKEN to AsyncStorage
       if (data.accessToken) {
         await saveToken(data.accessToken);
+        console.log("[Auth] ✅ JWT token saved from signup");
       } else if (data.token) {
         // Fallback for older response format
         await saveToken(data.token);
       } else {
-        console.warn("[Auth] No JWT token received from signup");
+        console.warn("[Auth] ⚠️  No JWT token received from signup");
       }
 
       // ✅ NEW USER: Only new users start with empty data
@@ -567,16 +576,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ✅ SAFETY: This is the ONLY place where resets should happen
       resetDataForNewSignup();
 
+      // ✅ SET STATE IMMEDIATELY SO NAVIGATION UPDATES
       setUser(newUser);
       setSession({ user: newUser });
+      setCurrentUserId(newUser.id);
       setCurrentPlan("free");
+      clearError();
+
+      console.log("[Auth] ✅ User state set, isAuthenticated should now be true");
 
       // 📊 Track analytics for new user signup
       await analyticsService.trackSignUp(newUser.id, newUser.email || "", "email");
 
-      // 🎯 Reset onboarding for new user
+      // 🎯 Reset onboarding for new user - this ensures navigation to Main instead of Onboarding
       const onboardingStore = useOnboardingStore.getState();
       onboardingStore.resetOnboarding();
+      console.log("[Auth] ✅ Onboarding reset for new user");
 
       // 🎯 Track referral signup if referral code was provided
       if (referralCode) {
@@ -607,16 +622,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      console.log("[Auth] Sign up successful:", email);
+      // ✅ Load user data from backend in background (non-blocking)
+      setTimeout(() => {
+        console.log("[Auth] Starting background data load after signup...");
+        loadUserDataFromBackend(newUser.id)
+          .then(() => {
+            console.log("[Auth] ✅ Background data load complete after signup");
+          })
+          .catch((err) => {
+            console.warn("[Auth] ⚠️  Background data load failed (non-blocking):", err);
+          });
+      }, 300);
+
+      console.log("[Auth] ✅✅✅ Sign up COMPLETE - ready for navigation ✅✅✅");
     } catch (err) {
       // ✅ IMPORTANT: On error, ensure user remains null
       setUser(null);
       setSession(null);
+      setIsLoading(false);
 
       const message = err instanceof Error ? err.message : "Sign up failed";
       setError(message);
+      console.error("[Auth] ❌ Signup error:", message);
       throw err;
     } finally {
+      // ✅ CRITICAL: Always stop loading
       setIsLoading(false);
     }
   };
@@ -625,6 +655,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       setIsLoading(true);
+      console.log("[Auth] 🚀 Starting email login for:", email);
 
       // ✅ LOGIN: Call backend login endpoint to authenticate user
       // Backend validates:
@@ -647,6 +678,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // - 401 Unauthorized → Invalid email or password (do not log in)
       // - 400 Bad Request → Missing fields (do not log in)
       if (response.status !== 200) {
+        console.error("[Auth] ❌ Login failed with status:", response.status, data);
         // 401: Invalid credentials | 400: Missing fields | 500: Server error
         throw new Error(data.error || "Login failed");
       }
@@ -675,11 +707,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ✅ SAVE JWT TOKEN to AsyncStorage
       if (data.accessToken) {
         await saveToken(data.accessToken);
+        console.log("[Auth] ✅ JWT token saved from login");
       } else if (data.token) {
         // Fallback for older response format
         await saveToken(data.token);
       } else {
-        console.warn("[Auth] No JWT token received from login");
+        console.warn("[Auth] ⚠️  No JWT token received from login");
       }
 
       // Load company info from response if available
@@ -694,18 +727,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      console.log("[Auth] Setting user and session...");
+      // ✅ SET STATE IMMEDIATELY SO NAVIGATION UPDATES
       setUser(newUser);
       setSession({ user: newUser });
       setCurrentUserId(newUser.id); // ✅ Track current user for multi-user safety
       setCurrentPlan("free");
+      clearError();
+      
+      console.log("[Auth] ✅ User state set, isAuthenticated should now be true");
 
       // 📊 Track analytics for returning user login
       await analyticsService.trackLogin(newUser.id, newUser.email || "", "email");
-      
-      console.log("[Auth] ✅ Login complete! Navigation should happen now");
-      console.log("[Auth] User:", newUser.email);
-      console.log("[Auth] About to exit signIn function...");
       
       // ✅ Load user preferences from backend
       const token = data.accessToken || data.token;
@@ -717,31 +749,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 300);
       }
 
-      // ✅ CRITICAL: Wait a bit for Zustand persist middleware to hydrate from AsyncStorage
-      // Then call backend rehydration to OVERWRITE with fresh server data
-      // This prevents stale or mixed data from being shown
+      // ✅ Load user data from backend in background (non-blocking)
       setTimeout(() => {
-        console.log("[Auth] Starting data rehydration from backend...");
+        console.log("[Auth] Starting background data load after login...");
         loadUserDataFromBackend(newUser.id)
           .then(() => {
-            console.log("[Auth] ✅ Data rehydration COMPLETE");
+            console.log("[Auth] ✅ Background data load complete after login");
           })
           .catch((err) => {
-            console.error("[Auth] ❌ Data rehydration FAILED:", err);
-            // Non-blocking: User can still access cached data from AsyncStorage if backend fails
+            console.warn("[Auth] ⚠️  Background data load failed (non-blocking):", err);
           });
-      }, 500); // Longer delay to ensure persist middleware has loaded
+      }, 300);
       
-      console.log("[Auth] Sign in successful:", email);
+      console.log("[Auth] ✅✅✅ Login COMPLETE - ready for navigation ✅✅✅");
     } catch (err) {
-      console.error("[Auth] Sign in error:", err);
+      console.error("[Auth] ❌ Login error:", err);
       // ✅ CRITICAL: On any error, ensure user remains null (no unauthorized access)
       setUser(null);
       setSession(null);
 
-      const message = err instanceof Error ? err.message : "Sign in failed";
+      const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
-      console.error("[Auth] Error set, throwing:", message);
+      console.error("[Auth] Error message set:", message);
       throw err;
     } finally {
       console.log("[Auth] FINALLY: Setting isLoading to false");
@@ -834,8 +863,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
       if (result.type === "opened") {
         // ✅ Browser opened successfully, OAuth callback should be handled by deep link listener
-        console.log("[Auth] ✅ Browser opened successfully, waiting for auth state update...");
-        // Session will be set by deep link handler, which triggers onAuthStateChange
+        console.log("[Auth] ✅ Browser opened successfully, waiting for auth state update via deep link...");
+        // ✅ CRITICAL: The onAuthStateChange listener will set isLoading to false
+        // when OAuth completes and user is authenticated
       } else if (result.type === "dismiss" || result.type === "cancel") {
         console.warn("[Auth] ℹ️  Browser was closed/dismissed by user");
         setIsLoading(false);
@@ -847,6 +877,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error("[Auth] ❌ Google Sign-In error:", err);
+      // ✅ CRITICAL: Always stop loading on error
       setIsLoading(false);
       const message = err instanceof Error ? err.message : "Failed to start Google Sign-In";
       setError(message);
@@ -854,6 +885,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // ✅ Note: isLoading will be set to false by the onAuthStateChange listener
     // when the OAuth completes and user is authenticated
+    // The finally block is NOT used here because we're waiting for async OAuth callback
   };
 
   const resetPassword = async (email: string) => {
