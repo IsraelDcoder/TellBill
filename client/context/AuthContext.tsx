@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
+import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { createClient, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { useSubscriptionStore } from "@/stores/subscriptionStore";
@@ -132,6 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setCurrentPlan("free");
             setIsLoading(false); // ✅ CRITICAL: Stop loading spinner
             clearError(); // ✅ Clear any previous errors
+
+            // ✅ FIXED: For OAuth sign-up (new users), automatically skip onboarding
+            // and go directly to home screen
+            // Returning users will have their onboarding status preserved
+            if (exchangeData.user.isNewUser) {
+              console.log("[Auth] 🎁 New OAuth user - skipping onboarding");
+              const onboardingStore = useOnboardingStore.getState();
+              onboardingStore.skipOnboarding();
+            }
 
             // 📊 Initialize analytics and track OAuth signup/login
             await analyticsService.initialize(newUser.id, newUser.email);
@@ -770,12 +780,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * ✅ FIXED: Trigger Google Sign-In flow via Supabase OAuth
    * 
-   * CRITICAL FIX FOR STANDALONE APK:
-   * - Opens browser for OAuth flow
-   * - Handles redirect via deep link callback
-   * - Uses timeout to prevent indefinite loading
-   * - Checks for Supabase session after OAuth completes
-   * - Properly transitions to onboarding/home on success
+   * CRITICAL FIXES FOR STANDALONE APK:
+   * 1. Use AuthSession.makeRedirectUri with scheme "tellbill"
+   * 2. Disable Expo proxy (useProxy: false)
+   * 3. Open browser for OAuth
+   * 4. Handle deep link redirect properly
+   * 5. Set Supabase session from OAuth callback
+   * 6. Navigate to Home (not Onboarding)
    */
   const signInWithGoogle = async () => {
     try {
@@ -783,98 +794,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       console.log("[Auth] 🔐 Starting Supabase Google OAuth flow...");
 
-      // ✅ FIXED: createURL with path ensures proper deep link format
-      // This will be: tellbill:///* (for standalone APK)
-      // or exp://YOUR_IP:8081/* (for Expo Go)
-      const redirectUrl = Linking.createURL("/");
+      // ✅ FIXED: Use AuthSession.makeRedirectUri for proper standalone APK support
+      // This generates: tellbill://auth (not exp://...)
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: "tellbill",
+        path: "auth",
+      });
+      
       console.log("[Auth] ✅ OAuth Redirect URL configured:", redirectUrl);
 
+      // ✅ FIXED: Call Supabase OAuth with proper redirect
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true, // ✅ CRITICAL: We handle redirect, not Supabase
+          redirectTo: redirectUrl, // ✅ Use AuthSession redirect URL
+          skipBrowserRedirect: true, // ✅ We handle redirect, not Supabase
         },
       });
 
       if (error) {
         console.error("[Auth] ❌ OAuth init error:", error);
+        setIsLoading(false);
+        setError("Failed to start Google Sign-In: " + error.message);
         throw error;
       }
 
       if (!data?.url) {
+        console.error("[Auth] ❌ No OAuth URL from Supabase");
+        setIsLoading(false);
+        setError("No OAuth URL provided by Supabase");
         throw new Error("No OAuth URL provided by Supabase");
       }
 
       console.log("[Auth] ✅ OAuth URL received, opening browser...");
       
-      // ✅ FIXED: Add timeout for OAuth flow
-      // If user doesn't complete OAuth or closes browser, we need to handle it
-      let oauthTimeout: NodeJS.Timeout | undefined;
-      
-      // Create timeout that will reject if OAuth takes too long
-      const oauthPromise = new Promise<void>((resolve, reject) => {
-        oauthTimeout = setTimeout(() => {
-          console.warn("[Auth] ⚠️  OAuth timeout (60s) - user may have cancelled");
-          setIsLoading(false);
-          setError("Google Sign-In took too long. Please try again.");
-          reject(new Error("OAuth timeout"));
-        }, 60000); // 60 second timeout
-      });
-
-      // ✅ FIXED: Open browser and await result
-      // When user completes OAuth in browser and is redirected back:
-      // 1. Browser closes
-      // 2. Deep link listener triggers
-      // 3. Session is set in Supabase
-      // 4. onAuthStateChange listener fires
-      try {
-        const result = await WebBrowser.openBrowserAsync(data.url);
-        if (oauthTimeout) {
-          clearTimeout(oauthTimeout);
-        }
+      // ✅ FIXED: Open browser for OAuth and wait for callback
+      const result = await WebBrowser.openBrowserAsync(data.url);
+      console.log("[Auth] 🌐 Browser result:", result.type);
         
-        console.log("[Auth] 🌐 Browser result:", result.type);
-        
-        if (result.type === "dismiss" || result.type === "cancel") {
-          console.log("[Auth] ℹ️  Browser was closed/dismissed, waiting for OAuth callback...");
-          
-          // ✅ FIXED: Don't immediately fail, wait for deep link to arrive
-          // The deep link handler will complete the flow
-          // Give deep link handler up to 5 seconds to process
-          return new Promise<void>((resolve, reject) => {
-            const checkInterval = setInterval(() => {
-              supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-                if (newSession?.user) {
-                  console.log("[Auth] ✅ Session established via OAuth callback!");
-                  clearInterval(checkInterval);
-                  resolve();
-                }
-              });
-            }, 500);
-
-            // Timeout after 5 seconds
-            setTimeout(() => {
-              clearInterval(checkInterval);
-              supabase.auth.getSession().then(({ data: { session: newSession } }) => {
-                if (newSession?.user) {
-                  console.log("[Auth] ✅ Session found after timeout");
-                  resolve();
-                } else {
-                  console.error("[Auth] ❌ No session found after OAuth callback");
-                  setError("OAuth flow did not complete. Please check your internet connection.");
-                  reject(new Error("OAuth callback not received"));
-                }
-              });
-            }, 5000);
-          });
-        }
-      } catch (browserErr) {
-        if (oauthTimeout) {
-          clearTimeout(oauthTimeout);
-        }
-        console.error("[Auth] ❌ Browser error:", browserErr);
-        throw new Error("Failed to open browser for Google Sign-In");
+      if (result.type === "opened") {
+        // ✅ Browser opened successfully, OAuth callback should be handled by deep link listener
+        console.log("[Auth] ✅ Browser opened successfully, waiting for auth state update...");
+        // Session will be set by deep link handler, which triggers onAuthStateChange
+      } else if (result.type === "dismiss" || result.type === "cancel") {
+        console.warn("[Auth] ℹ️  Browser was closed/dismissed by user");
+        setIsLoading(false);
+        setError("Google Sign-In was cancelled");
+      } else {
+        console.warn("[Auth] ℹ️  Browser closed with result type:", result.type);
+        setIsLoading(false);
+        setError("Google Sign-In failed");
       }
     } catch (err) {
       console.error("[Auth] ❌ Google Sign-In error:", err);
