@@ -33,8 +33,6 @@ jobs:
       
       - name: Prebuild native code
         run: npx expo prebuild --clean --platform android --no-install
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       
       - name: Verify and restore release signing configuration
         run: |
