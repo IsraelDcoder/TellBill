@@ -73,12 +73,26 @@ jobs:
       - name: Build APK
         run: |
           cd android
-          ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
+          for attempt in 1 2 3; do
+            echo "Build attempt $attempt/3..."
+            ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123 && break
+            if [ $attempt -lt 3 ]; then
+              echo "⚠️  Build failed, retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
       
       - name: Build App Bundle (for Google Play)
         run: |
           cd android
-          ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
+          for attempt in 1 2 3; do
+            echo "Build attempt $attempt/3..."
+            ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123 && break
+            if [ $attempt -lt 3 ]; then
+              echo "⚠️  Build failed, retrying in 30 seconds..."
+              sleep 30
+            fi
+          done
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
