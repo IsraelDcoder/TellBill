@@ -54,3 +54,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# BUT: Allow critical build configuration files through
+!android/gradle.properties
+!android/app/build.gradle
+!android/app/release.keystore
+
