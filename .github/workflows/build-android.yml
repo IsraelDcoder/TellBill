@@ -59,29 +59,26 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       
+      - name: Verify Release Keystore Exists
+        run: |
+          if [ -f android/app/release.keystore ]; then
+            echo "✅ Release keystore found"
+            ls -lh android/app/release.keystore
+          else
+            echo "❌ Release keystore NOT found!"
+            find android -name "*.keystore" 2>/dev/null || echo "No keystore files found"
+            exit 1
+          fi
+      
       - name: Build APK
         run: |
           cd android
-          for attempt in 1 2 3; do
-            echo "Build attempt $attempt/3..."
-            ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123 && break
-            if [ $attempt -lt 3 ]; then
-              echo "⚠️  Build failed, retrying in 30 seconds..."
-              sleep 30
-            fi
-          done
+          ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
       
       - name: Build App Bundle (for Google Play)
         run: |
           cd android
-          for attempt in 1 2 3; do
-            echo "Build attempt $attempt/3..."
-            ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123 && break
-            if [ $attempt -lt 3 ]; then
-              echo "⚠️  Build failed, retrying in 30 seconds..."
-              sleep 30
-            fi
-          done
+          ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
