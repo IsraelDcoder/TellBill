@@ -36,6 +36,24 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       
+      - name: Verify and restore release signing configuration
+        run: |
+          if ! grep -q "signingConfigs {" android/app/build.gradle; then
+            echo "⚠️  Release signing configuration missing in regenerated build.gradle"
+            echo "Restoring original build.gradle from git..."
+            git checkout HEAD -- android/app/build.gradle
+            echo "✅ Original build.gradle restored with release signing config intact"
+          else
+            echo "✅ Release signing configuration verified in build.gradle"
+          fi
+          
+          # Verify the signing config actually uses the release keystore
+          if grep -A 10 "buildTypes {" android/app/build.gradle | grep -q "signingConfig signingConfigs.release"; then
+            echo "✅ Release build type correctly configured to use release signing"
+          else
+            echo "⚠️  Release build type missing signingConfig reference"
+          fi
+
       - name: Fix manifest merger appComponentFactory conflict
         run: |
           sed -i 's/<application/<application android:appComponentFactory="androidx.core.app.CoreComponentFactory" tools:replace="android:appComponentFactory"/g' android/app/src/main/AndroidManifest.xml
