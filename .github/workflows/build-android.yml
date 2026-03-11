@@ -56,17 +56,6 @@ jobs:
         run: |
           sed -i 's/<application/<application android:appComponentFactory="androidx.core.app.CoreComponentFactory" tools:replace="android:appComponentFactory"/g' android/app/src/main/AndroidManifest.xml
       
-      - name: Exclude old Android Support Library to fix duplicate DEX classes
-        run: |
-          cat >> android/app/build.gradle << 'EOF'
-          
-          configurations.all {
-              resolutionStrategy {
-                  exclude group: 'com.android.support'
-              }
-          }
-          EOF
-      
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       
