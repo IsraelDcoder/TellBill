@@ -1,5 +1,16 @@
 name: Build Android APK and Bundle
 
+# SETUP REQUIRED:
+# Before running this workflow, configure these GitHub Secrets:
+# 1. KEYSTORE_RELEASE_B64 - Base64-encoded release.keystore file
+#    Generate: base64 -w 0 android/app/release.keystore
+# 2. KEYSTORE_PASSWORD - Password for the keystore
+# 3. KEY_ALIAS - Signing key alias (e.g., "tellbill-release")
+# 4. KEY_PASSWORD - Key password (may be same as keystore password)
+#
+# To add secrets:
+# Settings → Secrets and variables → Actions → New repository secret
+
 on:
   push:
     branches: [main]
@@ -34,6 +45,28 @@ jobs:
       - name: Prebuild native code
         run: npx expo prebuild --clean --platform android --no-install
       
+      - name: Setup Release Keystore from Secret
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_RELEASE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+            echo "✅ Release keystore loaded from GitHub Secret"
+          else
+            echo "❌ ERROR: KEYSTORE_RELEASE_B64 secret not configured in GitHub"
+            echo ""
+            echo "To fix this:"
+            echo "1. Encode your local keystore:"
+            echo "   base64 -w 0 android/app/release.keystore"
+            echo ""
+            echo "2. Add as GitHub secret at:"
+            echo "   Settings → Secrets and variables → Actions → New repository secret"
+            echo "   Name: KEYSTORE_RELEASE_B64"
+            echo ""
+            echo "3. Alternatively, use EAS Build with 'eas build -p android --remote'"
+            exit 1
+          fi
+      
       - name: Verify and restore release signing configuration
         run: |
           if ! grep -q "signingConfigs {" android/app/build.gradle; then
@@ -62,23 +95,48 @@ jobs:
       - name: Verify Release Keystore Exists
         run: |
           if [ -f android/app/release.keystore ]; then
-            echo "✅ Release keystore found"
+            echo "✅ Release keystore verified"
             ls -lh android/app/release.keystore
           else
             echo "❌ Release keystore NOT found!"
-            find android -name "*.keystore" 2>/dev/null || echo "No keystore files found"
+            echo ""
+            echo "Possible causes:"
+            echo "1. KEYSTORE_RELEASE_B64 secret not configured in GitHub"
+            echo "2. Secret value is empty or invalid"
+            echo ""
+            echo "Quick fix (for local testing):"
+            if [ -d "./.github/workflows" ]; then
+              echo "  Generate new keystore with:"
+              echo "  keytool -genkey -v -keystore android/app/release.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias tellbill-release"
+            fi
             exit 1
           fi
       
       - name: Build APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
-          ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
+          ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
+            -PKEYSTORE_FILE=app/release.keystore \
+            -PKEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" \
+            -PKEY_ALIAS="$KEY_ALIAS" \
+            -PKEY_PASSWORD="$KEY_PASSWORD"
       
       - name: Build App Bundle (for Google Play)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
-          ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace -PKEYSTORE_FILE=app/release.keystore -PKEYSTORE_PASSWORD=tellbill123 -PKEY_ALIAS=tellbill-release -PKEY_PASSWORD=tellbill123
+          ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
+            -PKEYSTORE_FILE=app/release.keystore \
+            -PKEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" \
+            -PKEY_ALIAS="$KEY_ALIAS" \
+            -PKEY_PASSWORD="$KEY_PASSWORD"
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -101,3 +159,4 @@ jobs:
             android/app/build/outputs/bundle/release/app-release.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+ 
