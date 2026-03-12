@@ -69,18 +69,15 @@ jobs:
       
       - name: Verify and restore release signing configuration
         run: |
+          # Check if signing config exists in regenerated build.gradle
           if ! grep -q "signingConfigs {" android/app/build.gradle; then
-            echo "⚠️  Release signing configuration missing in regenerated build.gradle"
-            echo "Restoring original build.gradle from git..."
+            echo "⚠️  Release signing configuration missing, restoring from git..."
             git checkout HEAD -- android/app/build.gradle
-            echo "✅ Original build.gradle restored with release signing config intact"
-          else
-            echo "✅ Release signing configuration verified in build.gradle"
           fi
           
           # Verify the signing config actually uses the release keystore
           if grep -A 10 "buildTypes {" android/app/build.gradle | grep -q "signingConfig signingConfigs.release"; then
-            echo "✅ Release build type correctly configured to use release signing"
+            echo "✅ Release build type correctly configured for signing"
           else
             echo "⚠️  Release build type missing signingConfig reference"
           fi
@@ -121,9 +118,9 @@ jobs:
           cd android
           ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
             -PKEYSTORE_FILE=app/release.keystore \
-            -PKEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" \
-            -PKEY_ALIAS="$KEY_ALIAS" \
-            -PKEY_PASSWORD="$KEY_PASSWORD"
+            -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
+            -PKEY_ALIAS=$KEY_ALIAS \
+            -PKEY_PASSWORD=$KEY_PASSWORD
       
       - name: Build App Bundle (for Google Play)
         env:
@@ -134,9 +131,9 @@ jobs:
           cd android
           ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
             -PKEYSTORE_FILE=app/release.keystore \
-            -PKEYSTORE_PASSWORD="$KEYSTORE_PASSWORD" \
-            -PKEY_ALIAS="$KEY_ALIAS" \
-            -PKEY_PASSWORD="$KEY_PASSWORD"
+            -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
+            -PKEY_ALIAS=$KEY_ALIAS \
+            -PKEY_PASSWORD=$KEY_PASSWORD
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
