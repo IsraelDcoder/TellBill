@@ -57,6 +57,10 @@ app-example
 !android/gradle.properties
 !android/app/build.gradle
 !android/app/release.keystore
+!android/gradle/wrapper/gradle-wrapper.properties
+!android/gradle/wrapper/gradle-wrapper.jar
+!android/gradlew
+!android/gradlew.bat
 /ios
 /android
 
