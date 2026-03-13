@@ -51,12 +51,12 @@ server_dist/
 static-build/
 app-example
 
-# generated native folders
-/ios
-/android
-
-# BUT: Allow critical build configuration files through
+# generated native folders - BUT ALLOW CRITICAL BUILD CONFIG FILES THROUGH
+# ⚠️  Order matters: Negation rules MUST come BEFORE the ignore rule!
+!android/build.gradle
 !android/gradle.properties
 !android/app/build.gradle
 !android/app/release.keystore
+/ios
+/android
 
