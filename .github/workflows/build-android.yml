@@ -86,7 +86,7 @@ jobs:
         run: |
           sed -i 's/<application/<application android:appComponentFactory="androidx.core.app.CoreComponentFactory" tools:replace="android:appComponentFactory"/g' android/app/src/main/AndroidManifest.xml
       
-      - name: "Debug: Find what's pulling in old support-compat library"
+      - name: Check dependency tree for old support library
         run: |
           cd android
           echo "🔍 Searching for dependencies that require support-compat:28.0.0..."
