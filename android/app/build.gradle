@@ -136,8 +136,11 @@ android {
     }
 
     // ========================================================================
-    // Packaging Options
+    // D8 Configuration (if Jetifier is disabled and old libs slip through)
     // ========================================================================
+    // Configure D8/R8 compiler to handle duplicate classes gracefully
+    // These are emergency fallbacks if all dependency exclusion fails
+    
     packagingOptions {
         jniLibs {
             // Use legacy packaging for compatibility with some libraries
@@ -145,14 +148,13 @@ android {
         }
 
         // CRITICAL: Handle duplicate classes from old vs new support libraries
-        // If a class is defined in multiple DEX files, take the first one found
-        // This resolves DEX merge errors when both old and new support libs are present
+        // If BOTH versions somehow reach DEX merge, take the first one found
+        // This is a last-resort safety net when exclusions fail
         pickFirsts += [
-            // Support library duplicates - old support-compat classes also appear in androidx.core
-            // These are present in BOTH core-1.16.0 and support-compat-28.0.0
-            'android/support/v4/app/INotificationSideChannel.class',
-            'android/support/v4/app/INotificationSideChannel$Stub.class',
-            'android/support/v4/app/INotificationSideChannel$Stub$Proxy.class',
+            // INotificationSideChannel from both core (androidx) and support-compat
+            // Class path: android/support/v4/app/INotificationSideChannel
+            // Both androidx.core:1.16.0 and support-compat:28.0.0 have this
+            'android/support/v4/**',  // Everything in v4.* package
             
             // Native libraries
             'lib/armeabi-v7a/libc++_shared.so',
@@ -160,7 +162,7 @@ android {
             'lib/x86/libc++_shared.so',
             'lib/x86_64/libc++_shared.so',
             
-            // AndroidX metadata (may be in both old and new versions)
+            // AndroidX metadata
             'META-INF/androidx.*',
             'META-INF/proguard/androidx-*.pro',
         ]
