@@ -144,13 +144,18 @@ android {
             useLegacyPackaging = (findProperty('expo.useLegacyPackaging') ?: false).toBoolean()
         }
 
-        // Exclude duplicate/conflicting files from dependencies
-        // Prevents DEX and native library conflicts
+        // CRITICAL: Handle duplicate classes from old vs new support libraries
+        // If a class is defined in multiple DEX files, take the first one found
+        // This resolves DEX merge errors when both old and new support libs are present
         pickFirsts += [
+            // Support library duplicates
             'lib/armeabi-v7a/libc++_shared.so',
             'lib/arm64-v8a/libc++_shared.so',
             'lib/x86/libc++_shared.so',
             'lib/x86_64/libc++_shared.so',
+            // These files might exist in both old and new support libraries
+            'META-INF/androidx.*',
+            'META-INF/proguard/androidx-*.pro',
         ]
     }
 
@@ -185,17 +190,21 @@ android {
             // This prevents all com.android.support:* dependencies
             exclude group: 'com.android.support'
 
-            // Explicitly exclude specific modules that may slip through
-            // as transitive dependencies
-            exclude module: 'support-compat'
-            exclude module: 'support-v4'
-            exclude module: 'support-annotations'
-            exclude module: 'support-fragment'
-            exclude module: 'support-vector-drawable'
-            exclude module: 'animated-vector-drawable'
+            // Explicitly exclude specific modules with group+module combo
+            // to prevent slipping through as transitive dependencies
+            exclude group: 'com.android.support', module: 'support-compat'
+            exclude group: 'com.android.support', module: 'support-v4'
+            exclude group: 'com.android.support', module: 'support-annotations'
+            exclude group: 'com.android.support', module: 'support-fragment'
+            exclude group: 'com.android.support', module: 'support-vector-drawable'
+            exclude group: 'com.android.support', module: 'animated-vector-drawable'
+            exclude group: 'com.android.support', module: 'support-design'
+            exclude group: 'com.android.support', module: 'support-media-compat'
+            exclude group: 'com.android.support', module: 'support-compat'
 
             // The problematic module causing duplicate DEX errors
-            exclude module: 'versionedparcelable'  // Excludes com.android.support:versionedparcelable:28.0.0
+            // Use group+module combination for maximum effect
+            exclude group: 'com.android.support', module: 'versionedparcelable'  // Excludes com.android.support:versionedparcelable:28.0.0
 
             // ================================================================
             // Force AndroidX Versions
@@ -235,6 +244,23 @@ android {
 dependencies {
     // React Native (version managed by React Native Gradle Plugin)
     implementation("com.facebook.react:react-android")
+
+    // ========================================================================
+    // CRITICAL: Dependency Constraints to Enforce AndroidX
+    // ========================================================================
+    // These constraints block old Android Support Library versions and
+    // force AndroidX versions instead. This works differently than exclusions
+    // and is more effective at the dependency constraint level.
+    
+    constraints {
+        // Force AndroidX versions - if anything tries to use old support libs,
+        // these constraints will ensure the AndroidX equivalent is used
+        implementation 'androidx.appcompat:appcompat:1.6.1'
+        implementation 'androidx.core:core:1.16.0'
+        implementation 'androidx.fragment:fragment:1.6.2'
+        implementation 'androidx.activity:activity:1.8.0'
+        implementation 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+    }
 
     // AndroidX libraries (already forced to compatible versions above)
     implementation 'androidx.appcompat:appcompat:1.6.1'

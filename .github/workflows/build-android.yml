@@ -89,10 +89,24 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       
-      - name: Clear Gradle Dependency Cache
+      - name: Clear All Gradle Caches and Build Artifacts
         run: |
+          echo "🧹 Clearing Gradle dependency cache..."
           rm -rf ~/.gradle/caches
-          echo "✅ Gradle cache cleared"
+          
+          echo "🧹 Clearing Gradle wrapper cache..."
+          rm -rf ~/.gradle/wrapper
+          
+          echo "🧹 Clearing local Android build directories..."
+          rm -rf android/app/build
+          rm -rf android/.gradle
+          rm -rf android/build
+          rm -rf .gradle
+          
+          echo "🧹 Clearing native build cache..."
+          rm -rf android/app/.cxx
+          
+          echo "✅ All caches cleared"
       
       - name: Clean Gradle Build Cache
         run: cd android && ./gradlew clean --no-daemon
