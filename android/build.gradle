@@ -20,15 +20,25 @@ allprojects {
   }
 }
 
-apply plugin: "expo-root-project"
-apply plugin: "com.facebook.react.rootproject"
-
 // Exclude old Android Support Library to prevent duplicate DEX classes
 // Must be applied after plugins load
 allprojects {
   configurations.all {
     resolutionStrategy {
       exclude group: 'com.android.support'
+      exclude module: 'support-compat'
+      exclude module: 'support-v4'
+      exclude module: 'support-annotations'
+      exclude module: 'animated-vector-drawable'
+      exclude module: 'support-vector-drawable'
+      
+      force 'androidx.appcompat:appcompat:1.6.1'
+      force 'androidx.core:core:1.16.0'
+      force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+      force 'androidx.core:core-runtime:1.16.0'
     }
   }
 }
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"
