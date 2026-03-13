@@ -255,11 +255,11 @@ dependencies {
     constraints {
         // Force AndroidX versions - if anything tries to use old support libs,
         // these constraints will ensure the AndroidX equivalent is used
-        implementation 'androidx.appcompat:appcompat:1.6.1'
-        implementation 'androidx.core:core:1.16.0'
-        implementation 'androidx.fragment:fragment:1.6.2'
-        implementation 'androidx.activity:activity:1.8.0'
-        implementation 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+        add 'androidx.appcompat:appcompat:1.6.1'
+        add 'androidx.core:core:1.16.0'
+        add 'androidx.fragment:fragment:1.6.2'
+        add 'androidx.activity:activity:1.8.0'
+        add 'androidx.versionedparcelable:versionedparcelable:1.1.1'
     }
 
     // AndroidX libraries (already forced to compatible versions above)
