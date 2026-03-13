@@ -1,44 +1,163 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Copyright TellBill. All rights reserved.
+// Top-level build file for Android project
+// Configure Gradle plugins and repositories for all subprojects
 
 buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-  dependencies {
-    classpath('com.android.tools.build:gradle')
-    classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
-  }
-}
-
-allprojects {
-  repositories {
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
-  }
-}
-
-// Exclude old Android Support Library to prevent duplicate DEX classes
-// Must be applied after plugins load
-allprojects {
-  configurations.all {
-    resolutionStrategy {
-      exclude group: 'com.android.support'
-      exclude module: 'support-compat'
-      exclude module: 'support-v4'
-      exclude module: 'support-annotations'
-      exclude module: 'animated-vector-drawable'
-      exclude module: 'support-vector-drawable'
-      
-      force 'androidx.appcompat:appcompat:1.6.1'
-      force 'androidx.core:core:1.16.0'
-      force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
-      force 'androidx.core:core-runtime:1.16.0'
+    repositories {
+        google()
+        mavenCentral()
     }
-  }
+
+    dependencies {
+        classpath('com.android.tools.build:gradle')
+        classpath('com.facebook.react:react-native-gradle-plugin')
+        classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    }
 }
 
+// ============================================================================
+// Shared Repositories for All Subprojects
+// ============================================================================
+allprojects {
+    repositories {
+        // Google repositories (AndroidX, Google Play Services, etc)
+        google()
+
+        // Maven Central Repository
+        mavenCentral()
+
+        // JitPack for repositories hosted on GitHub
+        maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// ============================================================================
+// Apply Expo and React Native Plugins
+// ============================================================================
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+// ============================================================================
+// CRITICAL: Global Dependency Conflict Resolution
+// ============================================================================
+// This configuration applies to ALL projects and their dependencies
+// Ensures consistent AndroidX versions across entire dependency tree
+// Fixes: DEX duplicate class errors, AndroidX/Support Library conflicts
+//
+// When Gradle encounters conflicting versions of dependencies, this
+// resolutionStrategy tells it which version to use.
+//
+// The key insight: We EXCLUDE all Android Support Libraries and FORCE
+// AndroidX versions. This prevents having both old and new versions of
+// the same class in the DEX files.
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            // ================================================================
+            // Phase 1: EXCLUDE all Android Support Libraries
+            // ================================================================
+            // These are the OLD libraries before Google migrated to AndroidX
+            // They contain duplicate classes that cause DEX merge errors
+            // By excluding them entirely, we force all dependencies to use
+            // the new AndroidX versions instead
+
+            // Pattern matching: Remove all com.android.support:* artifacts
+            // This is the most aggressive and effective approach
+            exclude group: 'com.android.support'
+
+            // Explicit module exclusions for transitive dependencies
+            // Some libraries may try to pull these in even with group exclusion
+            exclude module: 'support-compat'                    // Old compatibility library
+            exclude module: 'support-v4'                        // Old v4 support library
+            exclude module: 'support-annotations'               // Old annotations
+            exclude module: 'support-fragment'                  // Old fragment support
+            exclude module: 'support-vector-drawable'           // Old VectorDrawable
+            exclude module: 'animated-vector-drawable'          // Old animated vectors
+            exclude module: 'support-media-compat'              // Old media
+            exclude module: 'support-core-utils'                // Old core utilities
+            exclude module: 'support-core-ui'                   // Old core UI
+            exclude module: 'support-compat'                    // Old compat library
+            exclude module: 'versionedparcelable'               // THE PROBLEMATIC ONE
+            // OLD: com.android.support:versionedparcelable:28.0.0
+            // NEW: androidx.versionedparcelable:versionedparcelable:1.1.1
+            // This ONE causes the duplicate VersionedParcelable error
+
+            // ================================================================
+            // Phase 2: FORCE Consistent AndroidX Versions
+            // ================================================================
+            // Declares which AndroidX version to use when multiple versions
+            // are requested by different dependencies
+            //
+            // Example: If dep-A wants androidx.core:1.0.0 and dep-B wants
+            // androidx.core:1.16.0, Gradle will use 1.16.0 for both
+
+            // Core AndroidX Libraries
+            force 'androidx.appcompat:appcompat:1.6.1'
+            force 'androidx.core:core:1.16.0'
+            force 'androidx.core:core-runtime:1.16.0'
+            force 'androidx.core:core-ktx:1.16.0'
+            force 'androidx.activity:activity:1.8.0'
+            force 'androidx.activity:activity-ktx:1.8.0'
+            force 'androidx.fragment:fragment:1.6.2'
+            force 'androidx.fragment:fragment-ktx:1.6.2'
+
+            // Lifecycle and Architecture Components
+            force 'androidx.lifecycle:lifecycle-common:2.7.0'
+            force 'androidx.lifecycle:lifecycle-runtime:2.7.0'
+            force 'androidx.lifecycle:lifecycle-viewmodel:2.7.0'
+
+            // Versioned Parcelable (THE CRITICAL ONE)
+            force 'androidx.versionedparcelable:versionedparcelable:1.1.1'
+            force 'androidx.versionedparcelable:versionedparcelable-runtime:1.1.1'
+
+            // Annotations
+            force 'androidx.annotation:annotation:1.7.0'
+            force 'androidx.annotation:annotation-experimental:1.3.0'
+
+            // ================================================================
+            // Phase 3: Media/Image Libraries (Expo/Fresco)
+            // ================================================================
+            // Fresco is Facebook's image library used by React Native
+            // Ensure consistent versions to avoid native library conflicts
+
+            force 'com.facebook.fresco:fresco:2.6.0'
+            force 'com.facebook.fresco:animated-gif:2.6.0'
+            force 'com.facebook.fresco:webpsupport:2.6.0'
+            force 'com.facebook.fresco:animated-webp:2.6.0'
+
+            // ================================================================
+            // Phase 4: Substitution Rules (Fallback for Legacy Code)
+            // ================================================================
+            // Some libraries or project code may still reference the OLD
+            // support libraries. These substitution rules convert those
+            // references to use AndroidX instead.
+            //
+            // This is a fallback mechanism - if a dependency tries to use
+            // the old library, Gradle redirects it to the new one.
+
+            substitute module('com.android.support:versionedparcelable') \
+                    with module('androidx.versionedparcelable:versionedparcelable:1.1.1')
+
+            substitute module('com.android.support:support-v4') \
+                    with module('androidx.legacy:legacy-support-v4:1.0.0')
+
+            substitute module('com.android.support:support-fragment') \
+                    with module('androidx.fragment:fragment:1.6.2')
+
+            substitute module('com.android.support:appcompat-v7') \
+                    with module('androidx.appcompat:appcompat:1.6.1')
+
+            substitute module('com.android.support:animated-vector-drawable') \
+                    with module('androidx.vectordrawable:vectordrawable-animated:1.1.0')
+        }
+    }
+}
+
+// ============================================================================
+// Gradle Wrapper Configuration
+// ============================================================================
+wrapper {
+    gradleVersion = "8.14.3"
+    distributionType = Wrapper.DistributionType.ALL
+}
