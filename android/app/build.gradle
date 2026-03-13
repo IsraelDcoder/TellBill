@@ -231,10 +231,27 @@ android {
 
             // Substitute any remaining old support library references with AndroidX
             // Acts as a fallback if dependencies still request old support libs
+            // CRITICAL: versionedparcelable must be substituted to prevent DEX duplicates
             substitute module('com.android.support:versionedparcelable') with module('androidx.versionedparcelable:versionedparcelable:1.1.1')
             substitute module('com.android.support:support-v4') with module('androidx.legacy:legacy-support-v4:1.0.0')
             substitute module('com.android.support:appcompat-v7') with module('androidx.appcompat:appcompat:1.6.1')
+            substitute module('com.android.support:support-annotations') with module('androidx.annotation:annotation:1.7.0')
+            substitute module('com.android.support:support-compat') with module('androidx.core:core:1.16.0')
+            substitute module('com.android.support:support-fragment') with module('androidx.fragment:fragment:1.6.2')
         }
+    }
+}
+
+// Apply configuration-specific dependency rules for release builds
+configurations {
+    // Ensure release builds completely exclude old support libraries
+    releaseRuntimeClasspath {
+        exclude group: 'com.android.support'
+        exclude module: 'versionedparcelable'
+    }
+    releaseCompileClasspath {
+        exclude group: 'com.android.support'
+        exclude module: 'versionedparcelable'
     }
 }
 
@@ -248,21 +265,13 @@ dependencies {
     // ========================================================================
     // CRITICAL: Dependency Constraints to Enforce AndroidX
     // ========================================================================
-    // These constraints block old Android Support Library versions and
-    // force AndroidX versions instead. This works differently than exclusions
-    // and is more effective at the dependency constraint level.
+    // Explicitly declare androidx versions first to ensure they're resolved
+    // before any transitive dependencies pull in old support libraries
     
-    constraints {
-        // Force AndroidX versions - if anything tries to use old support libs,
-        // these constraints will ensure the AndroidX equivalent is used
-        add 'androidx.appcompat:appcompat:1.6.1'
-        add 'androidx.core:core:1.16.0'
-        add 'androidx.fragment:fragment:1.6.2'
-        add 'androidx.activity:activity:1.8.0'
-        add 'androidx.versionedparcelable:versionedparcelable:1.1.1'
-    }
-
-    // AndroidX libraries (already forced to compatible versions above)
+    // AndroidX libraries (explicitly declared as direct dependencies)
+    // CRITICAL: Explicitly declare androidx.versionedparcelable to ensure it's resolved first
+    // This prevents transitive dependencies from pulling in com.android.support:versionedparcelable:28.0.0
+    implementation 'androidx.versionedparcelable:versionedparcelable:1.1.1'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core:1.16.0'
     implementation 'androidx.multidex:multidex:2.0.1'

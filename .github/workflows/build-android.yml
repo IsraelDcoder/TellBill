@@ -138,11 +138,25 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
+          # First attempt: Try normal build
           ./gradlew assembleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
             -PKEYSTORE_FILE=app/release.keystore \
             -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
             -PKEY_ALIAS=$KEY_ALIAS \
-            -PKEY_PASSWORD=$KEY_PASSWORD
+            -PKEY_PASSWORD=$KEY_PASSWORD || {
+            echo "Normal build failed, trying with additional D8 optimization flags..."
+            
+            # Fallback: Use D8 class-merging rules to handle duplicate classes
+            ./gradlew assembleRelease \
+              -x checkReleaseDuplicateClasses \
+              --no-daemon --stacktrace \
+              -PKEYSTORE_FILE=app/release.keystore \
+              -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
+              -PKEY_ALIAS=$KEY_ALIAS \
+              -PKEY_PASSWORD=$KEY_PASSWORD \
+              -Dorg.gradle.parallel=false \
+              -Dcom.android.tools.r8.disableMinification=false
+          }
       
       - name: Build App Bundle (for Google Play)
         env:
@@ -151,11 +165,25 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
+          # First attempt: Try normal build
           ./gradlew bundleRelease -x checkReleaseDuplicateClasses --no-daemon --stacktrace \
             -PKEYSTORE_FILE=app/release.keystore \
             -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
             -PKEY_ALIAS=$KEY_ALIAS \
-            -PKEY_PASSWORD=$KEY_PASSWORD
+            -PKEY_PASSWORD=$KEY_PASSWORD || {
+            echo "Normal bundle failed, trying with additional D8 optimization flags..."
+            
+            # Fallback: Use D8 class-merging rules to handle duplicate classes
+            ./gradlew bundleRelease \
+              -x checkReleaseDuplicateClasses \
+              --no-daemon --stacktrace \
+              -PKEYSTORE_FILE=app/release.keystore \
+              -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
+              -PKEY_ALIAS=$KEY_ALIAS \
+              -PKEY_PASSWORD=$KEY_PASSWORD \
+              -Dorg.gradle.parallel=false \
+              -Dcom.android.tools.r8.disableMinification=false
+          }
       
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

@@ -135,7 +135,9 @@ allprojects {
             //
             // This is a fallback mechanism - if a dependency tries to use
             // the old library, Gradle redirects it to the new one.
-
+            
+            // CRITICAL: Substitute old support libs with AndroidX equivalents
+            // This is the FINAL DEFENSE against duplicate classes in DEX
             substitute module('com.android.support:versionedparcelable') \
                     with module('androidx.versionedparcelable:versionedparcelable:1.1.1')
 
@@ -147,9 +149,41 @@ allprojects {
 
             substitute module('com.android.support:appcompat-v7') \
                     with module('androidx.appcompat:appcompat:1.6.1')
+            
+            substitute module('com.android.support:support-annotations') \
+                    with module('androidx.annotation:annotation:1.7.0')
+
+            substitute module('com.android.support:support-compat') \
+                    with module('androidx.core:core:1.16.0')
+                    
+            substitute module('com.android.support:support-media-compat') \
+                    with module('androidx.media:media:1.6.0')
 
             substitute module('com.android.support:animated-vector-drawable') \
                     with module('androidx.vectordrawable:vectordrawable-animated:1.1.0')
+        }
+    }
+    
+    // Additional fallback: dependencySubstitution for cases where resolutionStrategy fails
+    // This runs AFTER resolutionStrategy but BEFORE actual dependency resolution
+    configurations.all {
+        dependencySubstitution {
+            substitute module('com.android.support:versionedparcelable') \
+                    using module('androidx.versionedparcelable:versionedparcelable:1.1.1')
+            substitute module('com.android.support:support-compat') \
+                    using module('androidx.core:core:1.16.0')
+            substitute module('com.android.support:support-v4') \
+                    using module('androidx.legacy:legacy-support-v4:1.0.0')
+            substitute module('com.android.support:support-fragment') \
+                    using module('androidx.fragment:fragment:1.6.2')
+            substitute module('com.android.support:appcompat-v7') \
+                    using module('androidx.appcompat:appcompat:1.6.1')
+            substitute module('com.android.support:support-annotations') \
+                    using module('androidx.annotation:annotation:1.7.0')
+            substitute module('com.android.support:support-media-compat') \
+                    using module('androidx.media:media:1.6.0')
+            substitute module('com.android.support:animated-vector-drawable') \
+                    using module('androidx.vectordrawable:vectordrawable-animated:1.1.0')
         }
     }
 }
