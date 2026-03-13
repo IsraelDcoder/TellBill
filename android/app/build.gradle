@@ -148,12 +148,19 @@ android {
         // If a class is defined in multiple DEX files, take the first one found
         // This resolves DEX merge errors when both old and new support libs are present
         pickFirsts += [
-            // Support library duplicates
+            // Support library duplicates - old support-compat classes also appear in androidx.core
+            // These are present in BOTH core-1.16.0 and support-compat-28.0.0
+            'android/support/v4/app/INotificationSideChannel.class',
+            'android/support/v4/app/INotificationSideChannel$Stub.class',
+            'android/support/v4/app/INotificationSideChannel$Stub$Proxy.class',
+            
+            // Native libraries
             'lib/armeabi-v7a/libc++_shared.so',
             'lib/arm64-v8a/libc++_shared.so',
             'lib/x86/libc++_shared.so',
             'lib/x86_64/libc++_shared.so',
-            // These files might exist in both old and new support libraries
+            
+            // AndroidX metadata (may be in both old and new versions)
             'META-INF/androidx.*',
             'META-INF/proguard/androidx-*.pro',
         ]
@@ -244,14 +251,33 @@ android {
 
 // Apply configuration-specific dependency rules for release builds
 configurations {
-    // Ensure release builds completely exclude old support libraries
+    // Ensure release builds completely exclude old support libraries at every level
+    all {
+        // Most aggressive: exclude entire com.android.support group from ALL configurations
+        exclude group: 'com.android.support'
+        
+        // Explicit module-level exclusions as backup
+        exclude module: 'support-compat'
+        exclude module: 'support-v4'
+        exclude module: 'versionedparcelable'
+    }
+    
+    // Additional explicit configuration-level rules for release variants
     releaseRuntimeClasspath {
         exclude group: 'com.android.support'
+        exclude module: 'support-compat'
+        exclude module: 'support-v4'
         exclude module: 'versionedparcelable'
+        exclude module: 'support-annotations'
+        exclude module: 'support-fragment'
     }
     releaseCompileClasspath {
         exclude group: 'com.android.support'
+        exclude module: 'support-compat'
+        exclude module: 'support-v4'
         exclude module: 'versionedparcelable'
+        exclude module: 'support-annotations'
+        exclude module: 'support-fragment'
     }
 }
 

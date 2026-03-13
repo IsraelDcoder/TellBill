@@ -86,6 +86,12 @@ jobs:
         run: |
           sed -i 's/<application/<application android:appComponentFactory="androidx.core.app.CoreComponentFactory" tools:replace="android:appComponentFactory"/g' android/app/src/main/AndroidManifest.xml
       
+      - name: "Debug: Find what's pulling in old support-compat library"
+        run: |
+          cd android
+          echo "🔍 Searching for dependencies that require support-compat:28.0.0..."
+          ./gradlew dependencyInsight --dependency "support-compat" --configuration releaseRuntimeClasspath 2>&1 | head -50
+      
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
       
