@@ -13,9 +13,9 @@ name: Build Android APK and Bundle
 
 on:
   push:
-    branches: [main]
+    branches: []  # DISABLED: Using Expo EAS Build instead
     tags: ['v*']
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only for testing
 
 jobs:
   build:

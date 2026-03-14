@@ -30,11 +30,13 @@
     "production": {
       "android": {
         "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease -x checkReleaseDuplicateClasses --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
+        "gradleCommand": ":app:bundleRelease --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
         "env": {
           "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
           "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
-          "ORG_GRADLE_PROJECT_android_enableJetifier": "true"
+          "ORG_GRADLE_PROJECT_android_enableJetifier": "true",
+          "ORG_GRADLE_PROJECT_com_android_tools_r8_enableHorizontalClassMerging": "true",
+          "ORG_GRADLE_PROJECT_com_android_tools_r8_enableVerticalMerging": "true"
         }
       },
       "ios": {

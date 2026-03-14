@@ -1,0 +1,71 @@
+name: Build Android with Expo EAS
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Authenticate with EAS
+        run: |
+          echo "EAS authentication ready"
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Build Android App Bundle (Production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: eas build --platform android --non-interactive --wait
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Download Build Artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p build-artifacts
+          # EAS Build stores artifacts in .eas/build directory
+          # Note: You may need to download from EAS dashboard manually or use EAS API
+          echo "Build completed. Check EAS dashboard for artifacts."
+
+      - name: Build Development APK
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+
+      - name: Upload to GitHub Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-outputs
+          path: build-artifacts/
+          retention-days: 30
+
+  notify:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Build Status
+        run: |
+          echo "Build Status: ${{ needs.build.result }}"
+          echo "Check EAS dashboard: https://expo.dev"
