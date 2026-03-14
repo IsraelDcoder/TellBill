@@ -136,10 +136,10 @@ android {
     }
 
     // ========================================================================
-    // D8 Configuration (if Jetifier is disabled and old libs slip through)
+    // D8/R8 Configuration & ProGuard Rules for Duplicate Class Handling
     // ========================================================================
-    // Configure D8/R8 compiler to handle duplicate classes gracefully
-    // These are emergency fallbacks if all dependency exclusion fails
+    // Since one of our dependencies has a hard requirement on support-compat:28.0.0
+    // that cannot be excluded, we handle duplicates at the R8 compilation level
     
     packagingOptions {
         jniLibs {
@@ -148,13 +148,13 @@ android {
         }
 
         // CRITICAL: Handle duplicate classes from old vs new support libraries
-        // If BOTH versions somehow reach DEX merge, take the first one found
-        // This is a last-resort safety net when exclusions fail
+        // When D8 merges DEX files with duplicate classes, take the first occurrence
         pickFirsts += [
             // INotificationSideChannel from both core (androidx) and support-compat
-            // Class path: android/support/v4/app/INotificationSideChannel
-            // Both androidx.core:1.16.0 and support-compat:28.0.0 have this
-            'android/support/v4/**',  // Everything in v4.* package
+            // Both androidx.core:1.16.0 and support-compat:28.0.0 contain this interface
+            'android/support/v4/app/INotificationSideChannel.class',
+            'android/support/v4/app/INotificationSideChannel\$Stub.class',
+            'android/support/v4/app/INotificationSideChannel\$Stub\$Proxy.class',
             
             // Native libraries
             'lib/armeabi-v7a/libc++_shared.so',
@@ -286,7 +286,17 @@ configurations {
 // ============================================================================
 // Project Dependencies
 // ============================================================================
+// ============================================================================
+// CRITICAL: Force androidx.core before any transitive dependency resolution
+// ============================================================================
+// This runs BEFORE all other dependency resolution
+// Ensures androidx is downloaded and processed first
 dependencies {
+    // ABSOLUTE PRIORITY: Declare androidx.core as direct dependency first
+    // This ensures it's the FIRST library processed, before any transitive deps
+    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.core:core-runtime:1.16.0'
+    
     // React Native (version managed by React Native Gradle Plugin)
     implementation("com.facebook.react:react-android")
 

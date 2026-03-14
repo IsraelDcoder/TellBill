@@ -3,6 +3,16 @@
 # Reduces APK size while maintaining app functionality
 
 # ============================================================================
+# R8 DUPLICATE CLASS HANDLING
+# ============================================================================
+# Handle duplicate classes from old Android Support Library vs AndroidX
+# Both support-compat:28.0.0 and androidx.core:1.16.0 contain android.support.v4.app.INotificationSideChannel
+# These rules tell R8 to merge or choose one version during compilation
+
+# Keep both versions available so R8 can choose/merge them properly
+-keep class android.support.v4.app.INotificationSideChannel { *; }
+
+# ============================================================================
 # GENERAL PROGUARD RULES FOR PRODUCTION
 # ============================================================================
 
