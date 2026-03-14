@@ -24,7 +24,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,9 +44,12 @@ jobs:
         run: |
           if [ -z "$TOKEN" ]; then
             echo "ERROR: EAS_TOKEN secret not set in GitHub Actions!"
-            echo "Setup: Settings → Secrets and variables → Actions → New secret"
-            echo "Name: EAS_TOKEN"
-            echo "Value: (token from 'eas tokens:create')"
+            echo ""
+            echo "Setup:"
+            echo "  1. Create token at: https://expo.dev/account/settings"
+            echo "  2. Add GitHub Secret: Settings → Secrets and variables → Actions"
+            echo "  3. Name: EAS_TOKEN"
+            echo "  4. Value: (paste your token)"
             exit 1
           fi
           echo "✓ EAS_TOKEN is configured"
