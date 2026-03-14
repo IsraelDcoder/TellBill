@@ -1,13 +1,19 @@
 name: Build Android with Expo EAS
 
 # NOTE: Setup required before first run:
-# 1. Create EAS token via web dashboard:
-#    → https://expo.dev/account/settings/access-tokens
-#    → Create new token
-# 2. Add GitHub Secret: Settings → Secrets and variables → Actions → New secret
-#    Name: EAS_TOKEN
-#    Value: (paste token from step 1)
-# 3. For local testing: export EXPO_TOKEN=<your-token> before running eas build
+# OPTION 1 (Recommended): Personal Access Token
+#   1. Go to: https://expo.dev/account/settings
+#   2. Find "Personal Access Tokens" or "API Tokens" section
+#   3. Create new token
+#   4. Add to GitHub Secrets:
+#      Settings → Secrets and variables → Actions → New secret
+#      Name: EAS_TOKEN
+#      Value: (paste your token)
+#
+# OPTION 2: GitHub Connection (if tokens are hard to find)
+#   1. Visit EAS project settings → GitHub
+#   2. Click "Link GitHub account"
+#   3. EAS will handle auth via GitHub (no manual token needed)
 
 on:
   push:
