@@ -1,5 +1,12 @@
 name: Build Android with Expo EAS
 
+# NOTE: Setup required before first run:
+# 1. Create Expo account: https://expo.dev
+# 2. Create EAS token: eas tokens:create (run locally)
+# 3. Add GitHub Secret: Settings → Secrets and variables → Actions → New secret
+#    Name: EAS_TOKEN
+#    Value: (paste token from step 2)
+
 on:
   push:
     branches: [main]
@@ -9,6 +16,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,47 +33,53 @@ jobs:
       - name: Setup EAS CLI
         run: npm install -g eas-cli
 
-      - name: Authenticate with EAS
+      - name: Validate EAS Token
         run: |
-          echo "EAS authentication ready"
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: EAS_TOKEN secret not set in GitHub Actions!"
+            echo "Setup: Settings → Secrets and variables → Actions → New secret"
+            echo "Name: EAS_TOKEN"
+            echo "Value: (token from 'eas tokens:create')"
+            exit 1
+          fi
+          echo "✓ EAS_TOKEN is configured"
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          TOKEN: ${{ secrets.EAS_TOKEN }}
 
       - name: Build Android App Bundle (Production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: eas build --platform android --non-interactive --wait
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
-
-      - name: Download Build Artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          mkdir -p build-artifacts
-          # EAS Build stores artifacts in .eas/build directory
-          # Note: You may need to download from EAS dashboard manually or use EAS API
-          echo "Build completed. Check EAS dashboard for artifacts."
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
 
       - name: Build Development APK
         if: github.event_name == 'workflow_dispatch'
-        run: |
-          eas build --platform android --profile preview --non-interactive --wait
+        run: eas build --platform android --profile preview --non-interactive --wait
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
 
-      - name: Upload to GitHub Artifacts
+      - name: Build Complete
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-outputs
-          path: build-artifacts/
-          retention-days: 30
-
-  notify:
-    needs: build
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Build Status
         run: |
-          echo "Build Status: ${{ needs.build.result }}"
-          echo "Check EAS dashboard: https://expo.dev"
+          echo "Build Status: ${{ job.status }}"
+          echo ""
+          echo "📦 Build Artifacts:"
+          echo "  → Available in EAS Dashboard: https://expo.dev"
+          echo "  → View logs and download: https://expo.dev/builds"
+          echo ""
+          echo "🚀 Production Release Steps:"
+          echo "  1. Download AAB from EAS Dashboard"
+          echo "  2. Upload to Google Play Console"
+          echo "  3. Complete release form and publish"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Build failed!"
+          echo ""
+          echo "Troubleshooting:"
+          echo "  1. Check EAS_TOKEN secret is set (Settings → Secrets)"
+          echo "  2. Verify eas.json has correct configuration"
+          echo "  3. Check build logs: https://expo.dev/builds"
+          echo ""
+          exit 1
