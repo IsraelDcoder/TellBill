@@ -68,11 +68,11 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
+    "owner": "therealme",
     "extra": {
       "eas": {
-        "projectId": "6cbf6840-f6d6-41f9-b329-b3bc9b40437d"
+        "projectId": "36baf556-71d0-4b52-b86e-e4076b03043a"
       }
-    },
-    "owner": "eazy001kng"
+    }
   }
 }
