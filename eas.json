@@ -7,37 +7,15 @@
   "build": {
     "preview": {
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease -x checkReleaseDuplicateClasses --stacktrace",
-        "env": {
-          "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
-          "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
-          "ORG_GRADLE_PROJECT_android_enableJetifier": "true"
-        }
+        "buildType": "apk"
       },
       "ios": {
         "simulator": true
       }
     },
-    "preview2": {
-      "android": {
-        "gradleCommand": ":app:assembleRelease"
-      }
-    },
-    "preview3": {
-      "developmentClient": true
-    },
     "production": {
       "android": {
-        "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease --stacktrace -Dorg.gradle.jvmargs=-Xmx6144m",
-        "env": {
-          "EAS_BUILD_GRADLE_APPLY_SECURITY_PLUGIN": "false",
-          "ORG_GRADLE_PROJECT_android_useAndroidX": "true",
-          "ORG_GRADLE_PROJECT_android_enableJetifier": "true",
-          "ORG_GRADLE_PROJECT_com_android_tools_r8_enableHorizontalClassMerging": "true",
-          "ORG_GRADLE_PROJECT_com_android_tools_r8_enableVerticalMerging": "true"
-        }
+        "buildType": "app-bundle"
       },
       "ios": {
         "buildConfiguration": "Release"
