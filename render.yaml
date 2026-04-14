@@ -1,9 +1,7 @@
 services:
   - type: web
     name: tellbill-backend
-    env: node
-    buildCommand: npm ci --include=dev && npm run build && echo "Build complete"
-    startCommand: node server_dist/index.js
+    dockerfilePath: Dockerfile
     envVars:
       - key: NODE_ENV
         value: production

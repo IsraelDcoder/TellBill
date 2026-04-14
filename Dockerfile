@@ -12,7 +12,7 @@ RUN npm ci
 COPY . .
 
 # Build the server (compile TypeScript with esbuild)
-RUN npm run server:build
+RUN npm run build
 
 # ============================================================================
 # Stage 2: Runtime
