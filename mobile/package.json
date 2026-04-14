@@ -2,6 +2,9 @@
   "name": "tellbill-mobile",
   "version": "1.0.0",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "scripts": {
     "start": "expo start",
     "start:clear": "expo start --clear",

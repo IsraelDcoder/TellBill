@@ -6,6 +6,7 @@
   },
   "build": {
     "preview": {
+      "node": "20.19.4",
       "android": {
         "buildType": "apk"
       },
@@ -14,6 +15,7 @@
       }
     },
     "production": {
+      "node": "20.19.4",
       "env": {
         "NODE_ENV": "production"
       },
