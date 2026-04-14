@@ -1,0 +1,35 @@
+# Expo
+.expo/
+dist/
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+npm-debug.*
+.npm/
+
+# Mobile native builds
+android/
+ios/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+*.apk
+*.aab
+dist-eas-build/

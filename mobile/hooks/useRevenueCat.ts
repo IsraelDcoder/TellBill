@@ -1,0 +1,266 @@
+import { useEffect, useState } from "react";
+import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSubscriptionStore } from "@/stores/subscriptionStore";
+import * as RevenueCatService from "@/services/revenuecatService";
+import { useAuth } from "@/context/AuthContext";
+import { getApiUrl } from "@/lib/backendUrl";
+
+/**
+ * Initialize RevenueCat REST API service
+ */
+let sdkInitialized = false;
+let sdkInitializationPromise: Promise<void> | null = null;
+
+async function ensureRevenueCatInitialized(): Promise<void> {
+  if (sdkInitialized) {
+    return;
+  }
+
+  if (sdkInitializationPromise) {
+    return sdkInitializationPromise;
+  }
+
+  sdkInitializationPromise = (async () => {
+    try {
+      await RevenueCatService.initializeRevenueCat();
+      console.log("[RevenueCat] ✅ Initialized successfully");
+      sdkInitialized = true;
+    } catch (error) {
+      console.error("[RevenueCat] ❌ Failed to initialize:", error);
+      sdkInitialized = true;
+    }
+  })();
+
+  await sdkInitializationPromise;
+}
+
+/**
+ * Hook to initialize RevenueCat and fetch subscription status
+ * Should be called once in the App root
+ */
+export function useRevenueCatInitialization(userId?: string) {
+  const { setUserEntitlement, setIsLoading, setSubscription } = useSubscriptionStore();
+
+  useEffect(() => {
+    const initializeRevenueCat = async () => {
+      try {
+        setIsLoading(true);
+
+        // ✅ Configure SDK first
+        await ensureRevenueCatInitialized();
+        console.log("[RevenueCat] ✅ SDK configured and ready");
+
+        // Check if SDK was actually configured (API key present)
+        const apiKey = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
+        if (!apiKey) {
+          console.log("[RevenueCat] No API key - running in free tier mode");
+          setUserEntitlement("none");
+          setIsLoading(false);
+          return;
+        }
+
+        if (userId) {
+          // Link RevenueCat user to our TellBill user ID
+          try {
+            await RevenueCatService.setRevenueCatUserId(userId);
+            console.log(`[RevenueCat] ✅ User ID set: ${userId}`);
+          } catch (loginError) {
+            console.warn("[RevenueCat] Error setting user ID (non-critical):", loginError);
+          }
+
+          // Get customer info to check entitlements
+          try {
+            const customerInfo = await RevenueCatService.getCustomerInfo();
+            if (customerInfo) {
+              handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+              console.log("[RevenueCat] ✅ Retrieved customer info");
+            }
+          } catch (customerError) {
+            console.warn("[RevenueCat] Failed to get customer info:", customerError);
+            // Default to free tier on error
+            setUserEntitlement("none");
+          }
+        } else {
+          console.log("[RevenueCat] No userId provided - skipping");
+          setUserEntitlement("none");
+        }
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("[RevenueCat] Initialization error:", error);
+        setIsLoading(false);
+        // Default to free tier on error
+        setUserEntitlement("none");
+      }
+    };
+
+    initializeRevenueCat();
+  }, [userId, setUserEntitlement, setIsLoading, setSubscription]);
+}
+
+/**
+ * Hook to listen for subscription changes
+ * Should be called once in the App root
+ */
+export function useRevenueCatListener() {
+  const { setUserEntitlement, setSubscription } = useSubscriptionStore();
+
+  useEffect(() => {
+    // Ensure SDK is ready before setting up listeners
+    ensureRevenueCatInitialized()
+      .then(() => {
+        // Set up listener for customer info updates
+        RevenueCatService.setupPurchaseUpdateListener((customerInfo: any) => {
+          console.log("[RevenueCat] Customer info updated");
+          handleCustomerInfo(customerInfo, setUserEntitlement, setSubscription);
+        });
+      })
+      .catch((error) => {
+        console.warn("[RevenueCat] Failed to set up listener:", error);
+      });
+
+    return () => {
+      RevenueCatService.removePurchaseUpdateListener();
+    };
+  }, [setUserEntitlement, setSubscription]);
+}
+
+/**
+ * Hook to refresh user entitlements on app startup + when user authenticates
+ * Syncs RevenueCat customer info with backend to update subscription status
+ */
+export function useEntitlementRefresh() {
+  const { user, isAuthenticated } = useAuth();
+  const { setUserEntitlement } = useSubscriptionStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      console.log("[Entitlement] Skipping refresh - not authenticated");
+      return;
+    }
+
+    const syncEntitlementsWithBackend = async () => {
+      try {
+        setIsRefreshing(true);
+        console.log("[Entitlement] Refreshing subscription for user:", user.id);
+
+        // Ensure SDK is ready first
+        await ensureRevenueCatInitialized();
+        console.log("[Entitlement] ✅ SDK ready for entitlement check");
+
+        // Get auth token
+        const token = await AsyncStorage.getItem("authToken");
+        if (!token) {
+          console.warn("[Entitlement] No auth token found");
+          return;
+        }
+
+        // Get current customer info from RevenueCat
+        const customerInfo = await RevenueCatService.getCustomerInfo();
+        if (!customerInfo) {
+          console.warn("[Entitlement] No customer info available");
+          return;
+        }
+        
+        console.log("[Entitlement] Got RevenueCat customer info", {
+          uid: customerInfo.uid,
+          entitlements: Object.keys(customerInfo.entitlements || {}),
+        });
+
+        // Verify purchase with backend
+        const response = await fetch(
+          getApiUrl("/api/billing/restore-purchases"),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              revenuecatCustomerInfo: customerInfo,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          console.warn("[Entitlement] Backend sync failed:", response.status);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("[Entitlement] ✅ Backend sync success", {
+          plan: data.plan,
+          status: data.status,
+        });
+
+        // Update local state
+        if (data.plan) {
+          setUserEntitlement(data.plan);
+          console.log(`[Entitlement] User entitlement updated: ${data.plan}`);
+        }
+      } catch (error) {
+        console.warn("[Entitlement] Sync error:", error);
+        // Silently fail - user can still access free features
+      } finally {
+        setIsRefreshing(false);
+      }
+    };
+
+    syncEntitlementsWithBackend();
+  }, [isAuthenticated, user?.id, setUserEntitlement]);
+}
+
+/**
+ * Helper: Process customer info and extract entitlements
+ */
+function handleCustomerInfo(
+  customerInfo: any,
+  setUserEntitlement: (entitlement: any) => void,
+  setSubscription: (subscription: any) => void
+) {
+  try {
+    // Check active entitlements
+    const entitlements = customerInfo.entitlements || {};
+    const entitlementIds = Object.keys(entitlements);
+
+    console.log("[RevenueCat] Active entitlements:", entitlementIds);
+
+    // Map entitlements to our tier system (highest tier wins)
+    let currentEntitlement: "none" | "solo" | "professional" = "none";
+
+    if (entitlementIds.includes("professional")) {
+      currentEntitlement = "professional";
+    } else if (entitlementIds.includes("solo")) {
+      currentEntitlement = "professional";
+    } else if (entitlementIds.includes("solo")) {
+      currentEntitlement = "solo";
+    }
+
+    setUserEntitlement(currentEntitlement);
+    console.log(`[RevenueCat] User entitlement: ${currentEntitlement}`);
+
+    // Get subscription details if subscribed
+    if (currentEntitlement !== "none") {
+      // Try to extract subscription info from active entitlements
+      const activeEntitlements = customerInfo.entitlements.active;
+      
+      if (activeEntitlements) {
+        const entitlementKey = Object.keys(activeEntitlements)[0];
+        if (entitlementKey) {
+          const entitlement = activeEntitlements[entitlementKey];
+          setSubscription({
+            plan: currentEntitlement,
+            status: "active",
+            currentPeriodStart: new Date().toISOString(),
+            currentPeriodEnd: new Date().toISOString(),
+            isAnnual: entitlementKey.includes("annual"),
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[RevenueCat] Failed to process customer info:", error);
+  }
+}

@@ -1,6 +1,6 @@
-# TellBill 🏗️📱
+# TellBill Monorepo
 
-**TellBill** is a construction business management app that helps contractors manage projects, invoices, scope proofs, and payments all in one place. Use voice-to-invoice transcription, client approval workflows, receipt scanning, and subscription-based billing to run your construction business efficiently.
+Monorepo structure for the TellBill invoice management platform with separate `/mobile` (Expo React Native) and `/server` (Express.js backend) directories.
 
 
 ## ✨ Features

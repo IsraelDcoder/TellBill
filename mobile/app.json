@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "TellBill",
+    "slug": "tellbill",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "tellbill",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#2D2E2E"
+        }
+      ],
+      "expo-web-browser",
+      "expo-asset"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tellbill.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app needs microphone access to record voice notes for invoices"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2D2E2E",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.tellbill.app",
+      "versionCode": 1,
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "tellbill.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "owner": "therealme",
+    "extra": {
+      "eas": {
+        "projectId": "36baf556-71d0-4b52-b86e-e4076b03043a"
+      }
+    }
+  }
+}
