@@ -2,9 +2,9 @@ services:
   - type: web
     name: tellbill-backend
     env: node
-    plan: free
-    buildCommand: npm ci --include=dev && npm run build
-    startCommand: npm start
+    buildCommand: npm ci --include=dev && npm run build && echo "Build complete"
+    startCommand: node server_dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
+
