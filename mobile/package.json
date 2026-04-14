@@ -67,51 +67,5 @@
     "@types/react": "18.3.1",
     "typescript": "~5.9.2"
   },
-  "private": true,
-  "expo": {
-    "name": "TellBill",
-    "slug": "tellbill",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "tellbill",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "plugins": [
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#2D2E2E"
-        }
-      ],
-      "expo-web-browser",
-      "expo-asset"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.tellbill.app",
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "This app needs microphone access to record voice notes for invoices"
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#2D2E2E"
-      },
-      "package": "com.tellbill.app",
-      "permissions": [
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "CAMERA"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/images/favicon.png"
-    }
-  }
+  "private": true
 }
