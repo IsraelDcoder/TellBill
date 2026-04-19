@@ -13,7 +13,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "node ./postinstall.js"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
