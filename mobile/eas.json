@@ -20,7 +20,8 @@
         "NODE_ENV": "production"
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease -PkotlinVersion=2.0.20"
       },
       "ios": {
         "buildConfiguration": "Release"
