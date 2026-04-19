@@ -73,7 +73,7 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "owner": "therealme",
+    "owner": "painme",
     "extra": {
       "eas": {
         "projectId": "36baf556-71d0-4b52-b86e-e4076b03043a"
