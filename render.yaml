@@ -1,7 +1,9 @@
 services:
   - type: web
     name: tellbill-backend
-    runtime: docker
+    runtime: node
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node server_dist/index.js
     region: oregon
     envVars:
       - key: NODE_ENV
