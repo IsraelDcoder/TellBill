@@ -63,6 +63,7 @@
     "react-native-screens": "~4.8.0",
     "react-native-svg": "15.6.0",
     "react-native-web": "~0.19.0",
+    "@react-native-voice/voice": "^3.2.4",
     "resend": "^6.8.0",
     "zustand": "^5.0.10"
   },
