@@ -19,7 +19,15 @@
         }
       ],
       "expo-web-browser",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.0.20"
+          }
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
@@ -43,7 +51,6 @@
         "WRITE_EXTERNAL_STORAGE",
         "CAMERA"
       ],
-      "kotlinVersion": "2.0.20",
       "intentFilters": [
         {
           "action": "VIEW",
