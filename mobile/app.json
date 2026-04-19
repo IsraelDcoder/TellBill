@@ -27,7 +27,8 @@
             "kotlinVersion": "2.0.20"
           }
         }
-      ]
+      ],
+      "@react-native-voice/voice"
     ],
     "ios": {
       "supportsTablet": true,
