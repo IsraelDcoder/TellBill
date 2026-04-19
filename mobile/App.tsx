@@ -3,7 +3,6 @@ import { StyleSheet } from "react-native";
 import { NavigationContainer, LinkingOptions } from "@react-navigation/native";
 import * as Linking from "expo-linking";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -68,14 +67,12 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <GestureHandlerRootView style={styles.root}>
-            <KeyboardProvider>
-              <AuthProvider>
-                <AuthRootGuard>
-                  <AppContent />
-                </AuthRootGuard>
-              </AuthProvider>
-              <StatusBar style="auto" />
-            </KeyboardProvider>
+            <AuthProvider>
+              <AuthRootGuard>
+                <AppContent />
+              </AuthRootGuard>
+            </AuthProvider>
+            <StatusBar style="auto" />
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </QueryClientProvider>
