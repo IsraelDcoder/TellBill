@@ -8,7 +8,8 @@
     "preview": {
       "node": "20.19.4",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease -PkotlinVersion=2.0.20"
       },
       "ios": {
         "simulator": true
