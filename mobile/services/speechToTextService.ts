@@ -1,6 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
-import Voice from "@react-native-voice/voice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
@@ -42,34 +41,6 @@ class SpeechToTextService {
       this.backendUrl = `http://${ip}:3000`;
       console.log("[SpeechToText] Backend URL configured:", this.backendUrl);
     }
-
-    // Initialize Voice library
-    try {
-      Voice.onSpeechStart = this.onSpeechStart.bind(this);
-      Voice.onSpeechEnd = this.onSpeechEnd.bind(this);
-      Voice.onSpeechError = this.onSpeechError.bind(this);
-      Voice.onSpeechResults = this.onSpeechResults.bind(this);
-    } catch (error) {
-      console.warn("[SpeechToText] Voice library initialization warning:", error);
-    }
-  }
-
-  private onSpeechStart() {
-    this.isListening = true;
-    console.log("[SpeechToText] Voice recognition started");
-  }
-
-  private onSpeechEnd() {
-    this.isListening = false;
-    console.log("[SpeechToText] Voice recognition ended");
-  }
-
-  private onSpeechError(error: any) {
-    console.error("[SpeechToText] Voice error:", error);
-  }
-
-  private onSpeechResults(result: any) {
-    console.log("[SpeechToText] Speech results:", result);
   }
 
   /**
@@ -79,21 +50,14 @@ class SpeechToTextService {
     try {
       console.log("[SpeechToText] Checking transcription availability on", Platform.OS);
       
-      // Check if we have backend URL for fallback
+      // Check if we have backend URL for transcription
       if (this.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL) {
         console.log("[SpeechToText] Speech-to-text available (OpenRouter Whisper backend)");
         return true;
       }
       
-      // Try to check Voice library
-      try {
-        await Voice.isAvailable();
-        console.log("[SpeechToText] Native speech recognition available");
-        return true;
-      } catch {
-        console.log("[SpeechToText] Native speech recognition unavailable, using backend");
-        return true; // Still available via backend
-      }
+      console.log("[SpeechToText] No backend configured for transcription");
+      return false;
     } catch (error) {
       console.error("[SpeechToText] Transcription not available:", error);
       return false;
@@ -184,11 +148,8 @@ class SpeechToTextService {
    * Cleanup resources
    */
   destroy() {
-    try {
-      Voice.destroy();
-    } catch (error) {
-      console.warn("[SpeechToText] Error destroying Voice:", error);
-    }
+    // No resources to clean up (Voice library removed)
+    console.log("[SpeechToText] Service cleanup complete");
   }
 }
 
