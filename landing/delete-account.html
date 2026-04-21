@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Request to delete your TellBill account and associated data">
+    <title>Delete Your Account - TellBill</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #f8f9fb 100%);
+            color: #2d3748;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-top: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #718096;
+            font-weight: 400;
+        }
+
+        main {
+            flex: 1;
+        }
+
+        .intro {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            line-height: 1.8;
+            color: #4a5568;
+            font-size: 16px;
+        }
+
+        section {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        section h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #edf2f7;
+        }
+
+        section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+            margin-top: 20px;
+        }
+
+        section h3:first-of-type {
+            margin-top: 0;
+        }
+
+        ol {
+            margin-left: 24px;
+            color: #4a5568;
+        }
+
+        ol li {
+            margin-bottom: 14px;
+            line-height: 1.7;
+        }
+
+        ol li strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        ul {
+            margin-left: 24px;
+            color: #4a5568;
+        }
+
+        ul li {
+            margin-bottom: 12px;
+            line-height: 1.7;
+            list-style-type: disc;
+        }
+
+        .highlight {
+            background-color: #fffaf0;
+            border-left: 4px solid #f6ad55;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+            color: #7c2d12;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .highlight strong {
+            color: #5a1d0b;
+            font-weight: 600;
+        }
+
+        a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+
+        .contact-link {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin-top: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .contact-link:hover {
+            background-color: #1d4ed8;
+            text-decoration: none;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px 20px;
+            color: #a0aec0;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 50px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px 16px;
+            }
+
+            header {
+                margin-bottom: 36px;
+                padding-top: 12px;
+            }
+
+            .logo {
+                font-size: 20px;
+            }
+
+            h1 {
+                font-size: 28px;
+                margin-bottom: 12px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            section {
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+
+            section h2 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+
+            .intro {
+                padding: 24px;
+                font-size: 15px;
+            }
+
+            ol, ul {
+                margin-left: 20px;
+            }
+
+            .highlight {
+                padding: 14px;
+                margin: 16px 0;
+                font-size: 14px;
+            }
+
+            footer {
+                padding: 32px 16px 16px;
+                font-size: 13px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            a {
+                transition: none;
+            }
+
+            .contact-link {
+                transition: none;
+            }
+        }
+
+        /* Accessibility improvements */
+        a:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        section:focus-within {
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">TellBill</div>
+            <h1>Delete Your Account</h1>
+            <p class="subtitle">Request deletion of your account and data</p>
+        </header>
+
+        <main>
+            <div class="intro">
+                <p>We respect your privacy and your right to delete your account. If you'd like to remove your TellBill account and associated data, we're here to help. This page explains how to request account deletion and what happens next.</p>
+            </div>
+
+            <section>
+                <h2>How to Request Account Deletion</h2>
+                <p>To delete your TellBill account, please follow these simple steps:</p>
+                <ol>
+                    <li><strong>Send an email</strong> to <a href="mailto:theonyekachithompson@gmail.com">theonyekachithompson@gmail.com</a></li>
+                    <li><strong>Use the subject line:</strong> "Account Deletion Request"</li>
+                    <li><strong>Include your registered email address</strong> in the message body so we can verify your identity</li>
+                </ol>
+                <p style="margin-top: 20px; color: #718096;">We'll review your request and process it promptly. For security purposes, we may ask you to verify your identity before proceeding.</p>
+            </section>
+
+            <section>
+                <h2>What Data Will Be Deleted</h2>
+                <p>When you request account deletion, the following data associated with your account will be removed:</p>
+                <ul>
+                    <li>Personal information (name, email address, phone number)</li>
+                    <li>Invoice and billing data</li>
+                    <li>Payment method information</li>
+                    <li>Uploaded files (receipts, images, documents)</li>
+                    <li>Voice recordings and transcriptions</li>
+                    <li>Subscription and plan history</li>
+                    <li>All project and client information</li>
+                </ul>
+                <p style="margin-top: 20px; color: #718096;">This action is <strong>permanent and cannot be undone</strong>. Please ensure you have backed up any important data before requesting deletion.</p>
+            </section>
+
+            <section>
+                <h2>Data Retention Policy</h2>
+                <p>While most data is deleted immediately upon request processing, please note:</p>
+                <ul>
+                    <li><strong>Financial records:</strong> Some transaction and payment records may be retained for 90 days for accounting and tax compliance purposes</li>
+                    <li><strong>Legal records:</strong> Records may be retained as required by applicable laws and regulations</li>
+                    <li><strong>Final deletion:</strong> After the retention period expires, all remaining data is permanently deleted from our servers</li>
+                    <li><strong>Backups:</strong> Data may remain in automated backups for up to 30 days before being permanently purged</li>
+                </ul>
+                <div class="highlight">
+                    <strong>Important:</strong> We comply with data deletion requirements under GDPR, CCPA, and other applicable privacy laws. Upon request, we can provide confirmation of deletion in writing.
+                </div>
+            </section>
+
+            <section>
+                <h2>Processing Time</h2>
+                <p>Once we receive your account deletion request:</p>
+                <ul>
+                    <li><strong>Verification:</strong> We'll verify your identity (usually within 2 business days)</li>
+                    <li><strong>Processing:</strong> Your account and data will be deleted within 7 business days of verification</li>
+                    <li><strong>Confirmation:</strong> We'll send you an email confirming the deletion has been completed</li>
+                </ul>
+                <p style="margin-top: 20px; color: #718096;">Requests are processed during business days. Weekend and holiday requests may take longer to process.</p>
+            </section>
+
+            <section>
+                <h2>Contact &amp; Support</h2>
+                <p>If you have any questions about account deletion or our data policies, please reach out:</p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:theonyekachithompson@gmail.com">theonyekachithompson@gmail.com</a></li>
+                    <li><strong>Subject line:</strong> "Account Deletion" or "Data Privacy Question"</li>
+                </ul>
+                <a href="mailto:theonyekachithompson@gmail.com" class="contact-link">Request Account Deletion</a>
+            </section>
+
+            <section>
+                <h2>Privacy &amp; Data Protection</h2>
+                <p>At TellBill, we take your privacy seriously. For more information about how we handle your data, please refer to our:</p>
+                <ul>
+                    <li><a href="https://tellbill.app/privacy-policy.html">Privacy Policy</a></li>
+                    <li><a href="https://tellbill.app/terms-conditions">Terms &amp; Conditions</a></li>
+                </ul>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 TellBill. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

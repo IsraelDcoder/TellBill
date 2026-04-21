@@ -90,8 +90,8 @@ export const PLAN_FEATURES = {
  * Plan prices in cents (for reference)
  */
 export const PLAN_PRICES = {
-  solo: 2999, // $29.99
-  professional: 7999, // $79.99
+  solo: 1499, // $14.99
+  professional: 3499, // $34.99
 };
 
 /**

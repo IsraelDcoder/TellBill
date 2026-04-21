@@ -125,8 +125,8 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           id: "solo_tier",
           name: "solo",
           displayName: "Solo",
-          monthlyPrice: 9,          // ✅ Impulse buy threshold ($9/month)
-          annualPrice: 90,          // ✅ Save 17% ($7.50/month)
+          monthlyPrice: 14.99,      // Solo plan ($14.99/month)
+          annualPrice: 149,         // Save 17% ($12.42/month)
           isPopular: false,
           features: [
             "Unlimited voice recordings",
@@ -143,8 +143,8 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           id: "professional_tier",
           name: "professional",
           displayName: "Professional",
-          monthlyPrice: 24,         // ✅ 2.7x Solo (clear upgrade value)
-          annualPrice: 240,         // ✅ Save 17% ($20/month)
+          monthlyPrice: 34.99,      // Professional plan ($34.99/month)
+          annualPrice: 349,         // Save 17% ($29.08/month)
           isPopular: true,
           features: [
             "Scope proof & client approval",

@@ -60,10 +60,10 @@ export default function BillingScreen() {
   const screenWidth = Dimensions.get("window").width;
 
   // Pricing values
-  const soloMonthly = "$9";
-  const soloAnnual = "$90";
-  const professionalMonthly = "$24";
-  const professionalAnnual = "$240";
+  const soloMonthly = "$14.99";
+  const soloAnnual = "$149";
+  const professionalMonthly = "$34.99";
+  const professionalAnnual = "$349";
 
   /**
    * Get auth token from storage
