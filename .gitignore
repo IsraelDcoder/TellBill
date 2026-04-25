@@ -51,6 +51,10 @@ server_dist/
 static-build/
 app-example
 
+# ⚠️  Secrets - NEVER commit credentials!
+fastlane/key.json
+fastlane/*.json
+
 # generated native folders - BUT ALLOW CRITICAL BUILD CONFIG FILES THROUGH
 # ⚠️  Order matters: Negation rules MUST come BEFORE the ignore rule!
 !android/build.gradle

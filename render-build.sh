@@ -10,7 +10,8 @@ echo "🔨 Building TellBill backend..."
 # Install dependencies (including devDependencies for build tools)
 npm ci --include=dev
 
-# Compile TypeScript to server_dist/index.js
+# Compile TypeScript to server_dist/
 npm run build
 
 echo "✅ Build complete!"
+echo "📂 Compiled output in server_dist/"

@@ -26,5 +26,9 @@
     "dist",
     "server_dist",
     "**/*.test.ts"
-  ]
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalEsm": true
+  }
 }

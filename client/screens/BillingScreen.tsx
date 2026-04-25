@@ -104,7 +104,7 @@ export default function BillingScreen() {
    * Verify purchase with backend
    */
   const verifyPurchaseWithBackend = useCallback(
-    async (customerInfo: any) => {
+    async (customerInfo: Record<string, any>) => {
       try {
         if (!token) {
           throw new Error("Not authenticated");
@@ -371,7 +371,7 @@ export default function BillingScreen() {
           snapToInterval={screenWidth * 0.85}
           decelerationRate="fast"
           contentContainerStyle={{ alignItems: "center", paddingVertical: Spacing.lg }}
-          onMomentumScrollEnd={e => {
+          onMomentumScrollEnd={(e) => {
             const idx = Math.round(e.nativeEvent.contentOffset.x / (screenWidth * 0.85));
             setActivePlan(idx);
           }}
@@ -445,7 +445,7 @@ export default function BillingScreen() {
                 "Unlimited invoices",
                 "Basic invoicing",
                 "Payment tracking",
-              ].map((feature) => (
+              ].map((feature: string) => (
                 <View key={feature} style={styles.featureItem}>
                   <Feather
                     name="check"
@@ -501,7 +501,7 @@ export default function BillingScreen() {
                 marginTop: Spacing.sm,
               }}
             >
-              $9 / month
+              {isAnnual ? `${soloAnnual} / year` : `${soloMonthly} / month`}
             </ThemedText>
           </View>
 
@@ -589,7 +589,7 @@ export default function BillingScreen() {
                 "Prove extra work was approved",
                 "Automatic payment reminders",
                 "Priority email support",
-              ].map((feature) => (
+              ].map((feature: string) => (
                 <View key={feature} style={styles.featureItem}>
                   <Feather
                     name="check"
@@ -652,7 +652,7 @@ export default function BillingScreen() {
 
         {/* Plan indicator dots */}
         <View style={{ flexDirection: "row", justifyContent: "center", marginBottom: Spacing.xl }}>
-          {[0, 1].map(idx => (
+          {[0, 1].map((idx: number) => (
             <View
               key={idx}
               style={{
