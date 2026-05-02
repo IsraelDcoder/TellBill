@@ -1,0 +1,27 @@
+fix: Disable Jetifier and add D8 class merging configuration as emergency fallback
+
+Problem: Jetifier is transforming BOTH old support-compat:28.0.0 AND new androidx.core:1.16.0
+to the same androidx.versionedparcelable namespace, causing D8 compiler to see
+identical class definitions from both JAR files.
+
+Solution:
+1. Disable android.enableJetifier (set to false)
+   - Prevents Jetifier from converting old support libs to androidx namespace
+   - Old support lib classes will stay in com.android.support namespace
+   - Should prevent duplicate androidx.versionedparcelable classes
+
+2. Add D8 emergency class merging configuration
+   - com.android.tools.r8.enableHorizontalClassMerging=true
+   - Tells D8 to aggressively merge/deduplicate classes if needed
+   - Last resort if exclusions still don't fully work
+
+3. Expand packagingOptions pickFirsts pattern
+   - Changed from individual class files to 'android/support/v4/**'
+   - Catches entire v4 package if duplicates slip through
+   - More robust pattern matching
+
+Testing approach:
+- Jetifier disabled means old support lib wont be auto-converted
+- With exclusion rules in place, old lib should be filtered out entirely
+- If old lib somehow reaches build, it should stay in com.android.support namespace,
+  not androidx namespace, preventing duplicate class names

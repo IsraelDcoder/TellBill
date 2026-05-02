@@ -11,7 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, BrandColors } from "@/constants/theme";
 import { formatCents } from "../lib/money";
-import { isOverdue, daysOverdue } from "@/lib/invoiceUtils";
+import { isOverdue, getDaysOverdue } from "@/lib/invoiceUtils";
 
 export type ActivityStatus = "draft" | "created" | "sent" | "paid" | "pending" | "overdue";
 
@@ -73,7 +73,7 @@ export function ActivityItem({
   // Check if invoice is overdue
   const invoice = dueDate ? { dueDate, status, paidAt } : null;
   const showOverdueIndicator = invoice && isOverdue(invoice as any);
-  const daysOverdueCount = showOverdueIndicator ? daysOverdue(invoice as any) : 0;
+  const daysOverdueCount = showOverdueIndicator ? getDaysOverdue(invoice as any) : 0;
 
   return (
     <AnimatedPressable

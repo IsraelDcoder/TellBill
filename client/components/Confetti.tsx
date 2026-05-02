@@ -122,7 +122,7 @@ export function Confetti({
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: "none",
     overflow: "hidden",
   },

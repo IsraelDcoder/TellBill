@@ -20,6 +20,7 @@
     "declarationMap": false,
     "sourceMap": true,
     "noEmit": true,
+    "types": ["react-native", "node"],
     "paths": {
       "@/*": ["./*"],
       "@components/*": ["./components/*"],
@@ -41,7 +42,8 @@
   },
   "include": [
     "./**/*.ts",
-    "./**/*.tsx"
+    "./**/*.tsx",
+    "index.js"
   ],
   "exclude": [
     "node_modules",
@@ -49,5 +51,10 @@
     "dist",
     "**/*.test.ts",
     "**/*.test.tsx"
-  ]
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
 }
