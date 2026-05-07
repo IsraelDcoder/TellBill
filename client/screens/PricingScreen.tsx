@@ -40,7 +40,6 @@ export default function PricingScreen({ route, navigation }: any) {
   } = useSubscriptionStore();
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
-  const [isAnnual, setIsAnnual] = useState(false);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState(route?.params?.message || "");
@@ -172,15 +171,7 @@ export default function PricingScreen({ route, navigation }: any) {
     }
   };
 
-  const getYearlyPrice = (monthlyPrice: number) => {
-    return Math.floor(monthlyPrice * 12 * 0.8); // 20% discount
-  };
-
-  const getSavings = (monthlyPrice: number) => {
-    const regular = monthlyPrice * 12;
-    const discounted = getYearlyPrice(monthlyPrice);
-    return regular - discounted;
-  };
+  // Monthly-only pricing (no annual option)
 
   return (
     <ThemedView style={styles.container}>
@@ -222,51 +213,11 @@ export default function PricingScreen({ route, navigation }: any) {
           </View>
         )}
 
-        {/* Billing Toggle */}
-        <View style={styles.billingToggleContainer}>
-          <View style={styles.billingToggle}>
-            <ThemedText
-              type="body"
-              style={[
-                styles.billingLabel,
-                { color: !isAnnual ? theme.text : theme.textSecondary },
-              ]}
-            >
-              Monthly
-            </ThemedText>
-            <Switch
-              value={isAnnual}
-              onValueChange={setIsAnnual}
-              trackColor={{ false: theme.border, true: BrandColors.constructionGold }}
-              thumbColor={isAnnual ? BrandColors.constructionGold : "#f4f3f4"}
-            />
-            <ThemedText
-              type="body"
-              style={[
-                styles.billingLabel,
-                { color: isAnnual ? theme.text : theme.textSecondary },
-              ]}
-            >
-              Yearly
-            </ThemedText>
-          </View>
-          {isAnnual && (
-            <ThemedText
-              type="small"
-              style={[styles.savingsLabel, { color: BrandColors.success }]}
-            >
-              Save 20%
-            </ThemedText>
-          )}
-        </View>
-
         {/* Pricing Cards */}
         <View style={styles.cardsContainer}>
           {pricingTiers.map((tier) => {
-            const price = isAnnual ? getYearlyPrice(tier.monthlyPrice) : tier.monthlyPrice;
-            const displayPrice = isAnnual ? price : tier.monthlyPrice;
-            const billingPeriod = isAnnual ? "year" : "month";
-            const savings = isAnnual ? getSavings(tier.monthlyPrice) : 0;
+            const displayPrice = tier.monthlyPrice;
+            const billingPeriod = "month";
 
             return (
               <Pressable
@@ -320,14 +271,6 @@ export default function PricingScreen({ route, navigation }: any) {
                 </View>
 
                 {/* Savings */}
-                {savings > 0 && (
-                  <ThemedText
-                    type="small"
-                    style={[styles.savingsText, { color: BrandColors.success }]}
-                  >
-                    Save ${savings}/year
-                  </ThemedText>
-                )}
 
                 {/* CTA Button */}
                 <Button

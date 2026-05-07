@@ -18,7 +18,6 @@ export interface PricingTier {
   name: "solo" | "professional";
   displayName: string;
   monthlyPrice: number;
-  annualPrice: number;
   isPopular: boolean;
   features: string[];
   revenueCatProductId: string;
@@ -126,7 +125,6 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           name: "solo",
           displayName: "Solo",
           monthlyPrice: 29,         // ✅ $29/month
-          annualPrice: 289,         // ✅ Save 17% (~$24/month)
           isPopular: false,
           features: [
             "Unlimited voice recordings",
@@ -144,7 +142,6 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           name: "professional",
           displayName: "Professional",
           monthlyPrice: 34.99,      // ✅ $34.99/month
-          annualPrice: 348,         // ✅ Save 17% (~$29/month)
           isPopular: true,
           features: [
             "Scope proof & client approval",
