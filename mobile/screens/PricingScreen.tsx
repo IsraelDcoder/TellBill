@@ -361,10 +361,7 @@ export default function PricingScreen({ route, navigation }: any) {
         onDismiss={() => setShowLimitModal(false)}
         onUpgrade={() => {
           setShowLimitModal(false);
-          // Scroll to Solo tier for upgrade
-          setTimeout(() => {
-            setIsAnnual(false);
-          }, 300);
+          // Navigate to pricing page for upgrade
         }}
       />
     </ThemedView>
