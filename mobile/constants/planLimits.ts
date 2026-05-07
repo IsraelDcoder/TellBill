@@ -132,7 +132,7 @@ export const PRICING_TIERS = [
   {
     id: "professional",
     name: "Professional",
-    price: "$79",
+    price: "$34.99",
     period: "/month",
     badge: "⭐ Most Popular",
     description: "TellBill's core money protection tier",

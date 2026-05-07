@@ -73,25 +73,25 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
       {
         identifier: "solo_monthly",
         title: "Solo (Monthly)",
-        priceString: "$4.99/month",
+        priceString: "$29/month",
         currencyCode: "USD",
       },
       {
         identifier: "solo_annual",
         title: "Solo (Annual)",
-        priceString: "$49.99/year",
+        priceString: "$289/year",
         currencyCode: "USD",
       },
       {
         identifier: "professional_monthly",
         title: "Professional (Monthly)",
-        priceString: "$9.99/month",
+        priceString: "$34.99/month",
         currencyCode: "USD",
       },
       {
         identifier: "professional_annual",
         title: "Professional (Annual)",
-        priceString: "$99.99/year",
+        priceString: "$348/year",
         currencyCode: "USD",
       },
     ];
