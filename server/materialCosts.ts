@@ -115,8 +115,8 @@ Return ONLY valid JSON, no markdown or explanation.`;
       throw new Error(`Vision API failed: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = (data.choices?.[0]?.message?.content) as string | undefined;
 
     if (!content) {
       throw new Error("No content in Vision API response");

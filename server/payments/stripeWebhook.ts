@@ -5,6 +5,7 @@ import { db } from "../db";
 import { users, webhookProcessed, invoices as invoicesSchema } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "../utils/logger";
+// @ts-ignore - Stripe has built-in types but TypeScript can't find them
 import type Stripe from "stripe";
 import { randomUUID } from "crypto";
 

@@ -65,7 +65,7 @@ export async function getCustomerSubscription(
       throw new Error(`RevenueCat API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as RevenueCatCustomer;
     console.log(`[RevenueCat] ✅ Retrieved customer ${userId}`);
     return data;
   } catch (error) {

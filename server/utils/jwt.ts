@@ -1,7 +1,7 @@
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key-change-in-production";
-const JWT_EXPIRY = process.env.JWT_EXPIRY || "30d"; // 30 days (increased from 7d for debugging)
+const JWT_SECRET: string = process.env.JWT_SECRET || "your-super-secret-key-change-in-production";
+const JWT_EXPIRY: string = process.env.JWT_EXPIRY || "30d"; // 30 days (increased from 7d for debugging)
 
 /**
  * JWT Token Payload Interface
@@ -33,7 +33,7 @@ export function generateToken(userId: string, email: string): string {
     {
       expiresIn: JWT_EXPIRY,
       algorithm: "HS256",
-    }
+    } as SignOptions
   );
 
   console.log(`[JWT] Generated token for user: ${email}`);

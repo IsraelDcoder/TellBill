@@ -191,7 +191,7 @@ export function registerRevenueCatRoutes(app: Express) {
         });
       }
 
-      const customerData: RevenueCatCustomerInfo = await revenuecatResponse.json();
+      const customerData: RevenueCatCustomerInfo = await revenuecatResponse.json() as RevenueCatCustomerInfo;
       const subscriber = customerData.subscriber;
 
       // Get active entitlement
@@ -301,7 +301,7 @@ export function registerRevenueCatRoutes(app: Express) {
         });
       }
 
-      const customerData: RevenueCatCustomerInfo = await revenuecatResponse.json();
+      const customerData: RevenueCatCustomerInfo = await revenuecatResponse.json() as RevenueCatCustomerInfo;
       const subscriber = customerData.subscriber;
 
       // Get active entitlement

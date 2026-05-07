@@ -53,7 +53,7 @@ export function initializeSentry(): void {
       
       // Remove cookies containing auth data
       if (event.request?.cookies) {
-        event.request.cookies = "***REDACTED***";
+        event.request.cookies = { redacted: "***REDACTED***" };
       }
       
       // Remove Authorization header

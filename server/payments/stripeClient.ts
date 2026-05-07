@@ -1,3 +1,4 @@
+// @ts-ignore - Stripe has built-in types but TypeScript can't find them
 import Stripe from "stripe";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
