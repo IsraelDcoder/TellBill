@@ -2,8 +2,8 @@ services:
   - type: web
     name: tellbill-backend
     runtime: node
-    buildCommand: npm ci --include=dev && npm run build
-    startCommand: node server_dist/index.js
+    buildCommand: bash render-build.sh
+    startCommand: npm start
     region: oregon
     envVars:
       - key: NODE_ENV
