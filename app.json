@@ -25,7 +25,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tellbill.v2",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "This app needs microphone access to record voice notes for invoices"
+        "NSMicrophoneUsageDescription": "This app needs microphone access to record voice notes for invoices",
+        "SKAdNetworkItems": []
       }
     },
     "android": {
@@ -38,7 +39,8 @@
       "package": "com.tellbill.v2",
       "versionCode": 2,
       "permissions": [
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "BILLING"
       ],
       "intentFilters": [
         {

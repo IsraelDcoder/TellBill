@@ -12,10 +12,10 @@
 
 import { Router, Request, Response, Express } from "express";
 import crypto from "crypto";
-import { db } from "../db";
-import { users, referralConversions } from "../../shared/schema";
+import { db } from "../db.js";
+import { users, referralConversions } from "../../shared/schema.js";
 import { eq, and } from "drizzle-orm";
-import { logger } from "../utils/logger";
+import { logger } from "../utils/logger.js";
 
 interface RevenueCatWebhookEvent {
   event: {

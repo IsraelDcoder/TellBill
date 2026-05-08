@@ -113,7 +113,7 @@ export default function PricingScreen({ route, navigation }: any) {
         
         if (result) {
           // Purchase successful, update entitlements
-          const activeEntitlements = Object.keys(result.entitlements || {});
+          const activeEntitlements = result.activeEntitlements || [];
           
           if (activeEntitlements.length > 0) {
             // Map entitlements to our tier system

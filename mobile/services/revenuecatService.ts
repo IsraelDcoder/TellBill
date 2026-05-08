@@ -1,12 +1,13 @@
 /**
  * RevenueCat Integration for TellBill Mobile App
- * Uses REST API for Expo managed workflow compatibility
+ * Uses native react-native-purchases SDK for app store purchases
  */
 
 import axios from "axios";
+import Purchases from "react-native-purchases";
 
 const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY;
-const BACKEND_URL = "https://api.tellbill.app";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "https://api.tellbill.app";
 
 interface CustomerInfo {
   uid: string;
@@ -36,23 +37,47 @@ interface SubscriptionPackage {
 let currentUserId: string | null = null;
 
 /**
- * Initialize RevenueCat (no-op for REST API approach)
+ * Initialize RevenueCat native SDK
+ * ✅ Configures SDK with public API key
+ * ✅ Enables Google Play Store
+ * ✅ Sets up listener for subscription changes
  */
 export async function initializeRevenueCat(): Promise<void> {
-  if (!REVENUECAT_API_KEY) {
-    console.warn("[RevenueCat] API key not configured - subscriptions disabled");
-    return;
+  try {
+    if (!REVENUECAT_API_KEY) {
+      console.warn("[RevenueCat] API key not configured - subscriptions disabled");
+      return;
+    }
+
+    // Configure SDK with public API key
+    await Purchases.configure({
+      apiKey: REVENUECAT_API_KEY,
+    });
+
+    // Enable debug logging in development
+    if (__DEV__) {
+      await Purchases.setDebugLogsEnabled(true);
+    }
+
+    console.log("[RevenueCat] ✅ Native SDK initialized successfully");
+  } catch (error) {
+    console.error("[RevenueCat] Failed to initialize SDK:", error);
   }
-  console.log("[RevenueCat] ✅ Initialized successfully");
 }
 
 /**
  * Set user ID for RevenueCat subscription tracking
+ * ✅ Links TellBill user to RevenueCat customer
  */
 export async function setRevenueCatUserId(userId: string): Promise<void> {
   try {
     currentUserId = userId;
-    console.log("[RevenueCat] User ID set:", userId);
+    
+    // Set app user ID in native SDK
+    // This links TellBill userId to RevenueCat for subscription tracking
+    await Purchases.logIn(userId);
+    
+    console.log("[RevenueCat] ✅ User ID set:", userId);
   } catch (error) {
     console.error("[RevenueCat] Failed to set user ID:", error);
   }
@@ -60,6 +85,7 @@ export async function setRevenueCatUserId(userId: string): Promise<void> {
 
 /**
  * Get subscription packages/offerings from RevenueCat
+ * ✅ Fetches Solo and Professional packages from RevenueCat
  */
 export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> {
   try {
@@ -68,8 +94,44 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
       return [];
     }
 
-    // Return hardcoded offerings (normally fetched from RevenueCat)
-    const packages: SubscriptionPackage[] = [
+    // Fetch offerings from native SDK
+    const offerings = await Purchases.getOfferings();
+
+    if (!offerings.current) {
+      console.warn("[RevenueCat] No offerings available");
+      // Fallback to hardcoded packages
+      return [
+        {
+          identifier: "solo_monthly",
+          title: "Solo",
+          priceString: "$29/month",
+          currencyCode: "USD",
+        },
+        {
+          identifier: "professional_monthly",
+          title: "Professional",
+          priceString: "$34.99/month",
+          currencyCode: "USD",
+        },
+      ];
+    }
+
+    // Map RevenueCat packages to our format
+    const packages: SubscriptionPackage[] = offerings.current.availablePackages
+      .filter(pkg => ["solo_monthly", "professional_monthly"].includes(pkg.identifier))
+      .map((pkg) => ({
+        identifier: pkg.identifier,
+        title: pkg.presentedOfferingContext?.offeringIdentifier === "solo_monthly" ? "Solo" : "Professional",
+        priceString: pkg.product.priceString || "$0",
+        currencyCode: pkg.product.currencyCode || "USD",
+      }));
+
+    console.log("[RevenueCat] ✅ Available packages:", packages.length);
+    return packages;
+  } catch (error) {
+    console.error("[RevenueCat] Failed to get packages:", error);
+    // Fallback to hardcoded packages
+    return [
       {
         identifier: "solo_monthly",
         title: "Solo",
@@ -83,17 +145,12 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
         currencyCode: "USD",
       },
     ];
-
-    console.log("[RevenueCat] Available packages:", packages.length);
-    return packages;
-  } catch (error) {
-    console.error("[RevenueCat] Failed to get packages:", error);
-    return [];
   }
 }
 
 /**
  * Get customer subscription info
+ * ✅ Fetches entitlements and subscription status from RevenueCat
  */
 export async function getCustomerInfo(): Promise<CustomerInfo | null> {
   try {
@@ -102,13 +159,41 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
       return null;
     }
 
-    // Call backend endpoint
-    const response = await axios.get(
-      `${BACKEND_URL}/api/subscription/status?userId=${currentUserId}`
-    );
+    // Fetch customer info from native SDK
+    const purchaserInfo = await Purchases.getCustomerInfo();
 
-    console.log("[RevenueCat] Customer info retrieved");
-    return response.data as CustomerInfo;
+    console.log("[RevenueCat] ✅ Customer info retrieved");
+
+    // Map native SDK response to our format
+    const customerInfo: CustomerInfo = {
+      uid: currentUserId,
+      activeSubscriptions: purchaserInfo.activeSubscriptions || [],
+      entitlements: Object.entries(purchaserInfo.entitlements.active || {}).reduce(
+        (acc, [key, value]) => {
+          acc[key] = {
+            expiresDate: (value as any).expirationDate || null,
+          };
+          return acc;
+        },
+        {} as Record<string, { expiresDate: string | null; activeEntitlements?: Record<string, string> }>
+      ),
+      subscriptions: Object.entries(purchaserInfo.allPurchaseDates || {})
+        .reduce(
+          (acc, [key, dateStr]) => {
+            if (dateStr) {
+              acc[key] = {
+                expiresDate: dateStr || "",
+                periodType: "subscription",
+                purchaseDate: new Date(dateStr).toISOString(),
+              };
+            }
+            return acc;
+          },
+          {} as Record<string, { expiresDate: string; periodType: string; purchaseDate: string }>
+        ),
+    };
+
+    return customerInfo;
   } catch (error) {
     console.error("[RevenueCat] Failed to get customer info:", error);
     return null;

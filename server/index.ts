@@ -1,24 +1,24 @@
 import "dotenv/config";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 import * as fs from "fs";
 import * as path from "path";
 import {
   initializeSentry,
   attachSentryMiddleware,
   attachSentryErrorHandler,
-} from "./utils/sentry";
-import { initializeBackupSystem } from "./utils/backup";
-import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
-import { initLatePaymentScheduler } from "./utils/latePaymentScheduler";
-import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
-import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob";
-import { securityHeaders } from "./utils/sanitize";
-import { setupCorsSecurely } from "./utils/cors";
-import { logger, attachRequestLogging } from "./utils/logger";
-import { createRateLimiter } from "./utils/rateLimiter";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+} from "./utils/sentry.js";
+import { initializeBackupSystem } from "./utils/backup.js";
+import { initScopeProofScheduler } from "./utils/scopeProofScheduler.js";
+import { initLatePaymentScheduler } from "./utils/latePaymentScheduler.js";
+import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob.js";
+import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob.js";
+import { securityHeaders } from "./utils/sanitize.js";
+import { setupCorsSecurely } from "./utils/cors.js";
+import { logger, attachRequestLogging } from "./utils/logger.js";
+import { createRateLimiter } from "./utils/rateLimiter.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -228,16 +228,16 @@ function setupErrorHandler(app: express.Application) {
     const apiLimiter = createRateLimiter({
       windowMs: 15 * 60 * 1000, // 15 minutes
       maxRequests: 1000, // 1000 requests per 15 minutes (≈ 1.1 req/sec)
-      keyGenerator: (req) => {
+      keyGenerator: (req: Request) => {
         // Rate limit by IP address or user ID if authenticated
         const userId = (req as any).user?.id;
         return userId || req.ip || req.socket.remoteAddress || "unknown";
       },
-      skip: (req) => {
+      skip: (req: Request) => {
         // Skip rate limiting for health checks and non-API routes
         return req.path === "/api/health" || !req.path.startsWith("/api");
       },
-      onLimitReached: (req, key) => {
+      onLimitReached: (req: Request, key: string) => {
         logger.warn(
           { clientId: key, path: req.path, method: req.method },
           "⚠️  API rate limit reached - possible abuse attempt"

@@ -1,15 +1,15 @@
 import type { Express, Request, Response } from "express";
-import { db } from "./db";
-import * as schema from "../shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-import { resolvePaymentInfo } from "./lib/paymentResolver";
+import { resolvePaymentInfo } from "./lib/paymentResolver.js";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
   sendInvoiceWhatsApp,
-} from "./emailService";
+} from "./emailService.js";
 import {
   validateInvoice,
   validateUUID,
@@ -18,11 +18,11 @@ import {
   validateEnum,
   isRequired,
   respondWithValidationErrors,
-} from "./utils/validation";
-import { checkUsageLimit } from "./utils/subscriptionMiddleware";
-import { authMiddleware } from "./utils/authMiddleware";
-import { MoneyAlertsEngine } from "./moneyAlertsEngine";
-import { applyTax, getDefaultTaxProfile } from "./taxService";
+} from "./utils/validation.js";
+import { checkUsageLimit } from "./utils/subscriptionMiddleware.js";
+import { authMiddleware } from "./utils/authMiddleware.js";
+import { MoneyAlertsEngine } from "./moneyAlertsEngine.js";
+import { applyTax, getDefaultTaxProfile } from "./taxService.js";
 
 /**
  * ✅ CRITICAL: Convert numeric fields from dollars (decimal) to cents (integer)
@@ -318,7 +318,7 @@ export function registerInvoiceRoutes(app: Express) {
               const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
-                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                  (err: any) => console.error("[Invoice] Error in Money Alerts detection:", err)
                 );
               }
               
@@ -364,7 +364,7 @@ export function registerInvoiceRoutes(app: Express) {
               const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
-                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                  (err: any) => console.error("[Invoice] Error in Money Alerts detection:", err)
                 );
               }
               
@@ -403,7 +403,7 @@ export function registerInvoiceRoutes(app: Express) {
               const userId = (req as any).user?.userId;
               if (userId) {
                 MoneyAlertsEngine.processEvent(userId, "INVOICE_SENT", invoiceId).catch(
-                  (err) => console.error("[Invoice] Error in Money Alerts detection:", err)
+                  (err: any) => console.error("[Invoice] Error in Money Alerts detection:", err)
                 );
               }
               
@@ -726,7 +726,7 @@ export function registerInvoiceRoutes(app: Express) {
       if (!taxProfile) {
         console.log("[Invoice] No tax profile found, creating default for user:", userId);
         try {
-          const { taxProfiles } = await import("../shared/schema");
+          const { taxProfiles } = await import("../shared/schema.js");
           const newProfile = await db
             .insert(taxProfiles)
             .values({
@@ -1110,7 +1110,7 @@ export function registerInvoiceRoutes(app: Express) {
 
       // ✅ SEND REMINDER EMAIL USING EXISTING SEND FUNCTION
       // Import sendDay1OverdueNotification if available, otherwise send via email
-      const { sendDay1OverdueNotification } = await import("./emailService");
+      const { sendDay1OverdueNotification } = await import("./emailService.js");
       
       await sendDay1OverdueNotification(invoice);
 
