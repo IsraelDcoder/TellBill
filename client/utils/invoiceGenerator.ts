@@ -14,7 +14,7 @@
  */
 
 export interface PaymentInfo {
-  methodType?: "bank_transfer" | "paypal" | "stripe" | "square" | "mobile_money" | "custom";
+  methodType?: "bank_transfer" | "paypal" | "square" | "mobile_money" | "custom";
   accountNumber?: string;
   bankName?: string;
   accountName?: string;
@@ -569,14 +569,6 @@ const PaymentInfoSection = (invoice: InvoiceData): string => {
         <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
           <div><strong>PayPal</strong></div>
           ${payment.link ? `<div>Email/Link: ${payment.link}</div>` : ""}
-        </div>
-      `;
-      break;
-    case "stripe":
-      paymentDisplay = `
-        <div style="font-size: 12px; color: ${COLORS.primaryText}; line-height: 1.8;">
-          <div><strong>Stripe Payment Link</strong></div>
-          ${payment.link ? `<div>${payment.link}</div>` : ""}
         </div>
       `;
       break;

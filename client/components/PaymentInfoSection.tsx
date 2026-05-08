@@ -192,8 +192,8 @@ export function PaymentInfoSection({
         </View>
       )}
 
-      {/* PayPal / Stripe / Square Link Fields */}
-      {["paypal", "stripe", "square"].includes(formData.paymentMethodType) && (
+      {/* PayPal / Square Link Fields */}
+      {["paypal", "square"].includes(formData.paymentMethodType) && (
         <View>
           <ThemedText type="body" style={{ marginBottom: Spacing.sm }}>
             Payment Link *

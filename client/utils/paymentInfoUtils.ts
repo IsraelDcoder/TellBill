@@ -40,10 +40,6 @@ Name: ${payment.accountName || "N/A"}`;
       return `PayPal Payment Link:
 ${payment.link || "No PayPal link provided"}`;
 
-    case "stripe":
-      return `Stripe Payment Link:
-${payment.link || "No Stripe link provided"}`;
-
     case "square":
       return `Square Payment Link:
 ${payment.link || "No Square link provided"}`;
@@ -63,9 +59,6 @@ ${payment.instructions ? `\nInstructions: ${payment.instructions}` : ""}`;
  */
 export function getPaymentQRData(payment: PaymentInfo): string | null {
   if (payment.methodType === "paypal" && payment.link) {
-    return payment.link;
-  }
-  if (payment.methodType === "stripe" && payment.link) {
     return payment.link;
   }
   if (payment.methodType === "square" && payment.link) {
@@ -93,10 +86,6 @@ export function getPaymentInfoForWhatsApp(payment: PaymentInfo): string {
 
     case "paypal":
       lines.push(`PayPal: ${payment.link || "Payment link not available"}`);
-      break;
-
-    case "stripe":
-      lines.push(`Pay via Stripe: ${payment.link || "Payment link not available"}`);
       break;
 
     case "square":
@@ -144,7 +133,6 @@ export function validatePaymentInfo(payment: PaymentInfoFormData): {
       break;
 
     case "paypal":
-    case "stripe":
     case "square":
       if (!payment.paymentLink) {
         errors.push(`Payment link is required for ${payment.paymentMethodType}`);
@@ -176,7 +164,6 @@ export function validatePaymentInfo(payment: PaymentInfoFormData): {
 export const PAYMENT_METHOD_TYPES = [
   { id: "bank_transfer", label: "Bank Transfer", icon: "building" },
   { id: "paypal", label: "PayPal", icon: "dollar-sign" },
-  { id: "stripe", label: "Stripe", icon: "credit-card" },
   { id: "square", label: "Square", icon: "credit-card" },
   { id: "mobile_money", label: "Mobile Money", icon: "phone" },
   { id: "custom", label: "Custom Instructions", icon: "edit" },

@@ -43,12 +43,8 @@ export const users = pgTable("users", {
   subscriptionCancellationDate: timestamp("subscription_cancellation_date", { withTimezone: true }),
   isTrialing: boolean("is_trialing").default(false),
   subscriptionUpdatedAt: timestamp("subscription_updated_at", { withTimezone: true }).defaultNow(),
-  // Stripe subscription fields
-  stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
-  stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
-  stripePriceId: text("stripe_price_id"), // Current Stripe price ID (solo, professional)
   // ✅ Payment info for non-payment-processor model (user's own payment instructions)
-  paymentMethodType: text("payment_method_type").default("custom"), // bank_transfer, paypal, stripe, square, mobile_money, custom
+  paymentMethodType: text("payment_method_type").default("custom"), // bank_transfer, paypal, square, mobile_money, custom
   paymentAccountNumber: text("payment_account_number"), // Bank account or mobile money
   paymentBankName: text("payment_bank_name"), // Bank name
   paymentAccountName: text("payment_account_name"), // Account holder name
@@ -63,14 +59,13 @@ export const users = pgTable("users", {
 
 /**
  * Webhook Processing Tracking Table
- * Used to prevent duplicate webhook processing from Stripe
- * (Stripe retries webhooks if they timeout, this prevents double-charging)
+ * Used to prevent duplicate webhook processing
  */
 export const webhookProcessed = pgTable("webhook_processed", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => randomUUID()),
-  stripeEventId: text("stripe_event_id").notNull().unique(), // Unique Stripe event ID
+  stripeEventId: text("stripe_event_id").notNull().unique(), // Unique event ID for webhook tracking
   eventType: text("event_type").notNull(), // checkout.session.completed, invoice.payment_succeeded, etc
   processedAt: timestamp("processed_at", { withTimezone: true })
     .notNull()
@@ -253,11 +248,6 @@ export const invoices = pgTable("invoices", {
   paymentAccountNameOverride: text("payment_account_name_override"),
   paymentLinkOverride: text("payment_link_override"),
   paymentInstructionsOverride: text("payment_instructions_override"),
-  
-  // Payment tracking (Stripe)
-  paymentLinkUrl: text("payment_link_url"), // Stripe checkout URL for this invoice
-  stripeCheckoutSessionId: text("stripe_checkout_session_id"), // Stripe session ID
-  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
 });
 
 export type Invoice = typeof invoices.$inferSelect;
