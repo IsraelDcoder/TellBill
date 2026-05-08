@@ -12,7 +12,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "rootDir": "server",
+    "rootDir": ".",
     "outDir": "server_dist",
     "paths": {
       "@/*": ["./server/*"],
@@ -21,7 +21,8 @@
     "types": ["node"]
   },
   "include": [
-    "server/**/*"
+    "server/**/*",
+    "shared/**/*"
   ],
   "exclude": [
     "node_modules",
