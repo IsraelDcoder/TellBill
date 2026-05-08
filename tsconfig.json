@@ -12,6 +12,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "rootDir": "server",
+    "outDir": "server_dist",
     "paths": {
       "@/*": ["./server/*"],
       "@shared/*": ["./shared/*"]
