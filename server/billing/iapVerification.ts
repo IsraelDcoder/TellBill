@@ -181,7 +181,6 @@ export function registerBillingRoutes(app: Express) {
             subscriptionTier: verification.plan,
             subscriptionUpdatedAt: new Date(),
             subscriptionExpiryDate: new Date(verification.expiresAt),
-            stripeCustomerId: customerId, // Store RevenueCat customer ID here for tracking
           })
           .where(eq(users.id, userId));
 

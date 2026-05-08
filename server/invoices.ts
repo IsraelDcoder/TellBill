@@ -1183,29 +1183,14 @@ export function registerInvoiceRoutes(app: Express) {
         });
       }
 
-      // ✅ CHECK IF PAYMENT LINK ALREADY EXISTS
-      if (invoice.paymentLinkUrl && invoice.stripeCheckoutSessionId) {
-        console.log("[Invoice] ✅ Payment link already exists for invoice", invoiceId);
-        return res.status(200).json({
-          success: true,
-          message: "Payment link already generated",
-          paymentLinkUrl: invoice.paymentLinkUrl,
-        });
-      }
-
-      // ✅ PAYMENT: Using Google IAP only
-      // Contractors manage subscriptions via mobile app (iOS / Android)
-      // Not using payment links for web invoices
-      const paymentLinkUrl = null;
-      const stripeCheckoutSessionId = null;
-
-      console.log(`[Invoice] ✅ Generated payment link for invoice ${invoiceId}`);
-      console.log(`[Invoice] Payment URL: ${paymentLinkUrl}`);
+      // ✅ Payment info is managed through invoicePaymentInfo (bank transfer, PayPal, etc)
+      // Subscriptions are managed via RevenueCat (mobile app)
+      // No external payment link generation needed
+      console.log(`[Invoice] ✅ Invoice ${invoiceId} retrieved with payment info`);
 
       return res.status(200).json({
         success: true,
-        message: "Payment link generated successfully",
-        paymentLinkUrl,
+        message: "Invoice retrieved successfully",
         invoiceId,
       });
     } catch (error: any) {
