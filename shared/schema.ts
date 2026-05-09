@@ -75,10 +75,10 @@ export const webhookProcessed = pgTable("webhook_processed", {
 
 export type WebhookProcessed = typeof webhookProcessed.$inferSelect;
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
-  password: true,
-  name: true,
+export const insertUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().optional().nullable(),
 });
 
 /**

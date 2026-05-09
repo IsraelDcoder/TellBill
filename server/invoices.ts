@@ -698,10 +698,9 @@ export function registerInvoiceRoutes(app: Express) {
             .values({
               userId,
               name: "General",
-              clientName: "General Client",
               address: "",
               status: "active",
-            })
+            } as any)
             .returning();
           
           projectId = newProject[0]?.id;
@@ -1110,7 +1109,7 @@ export function registerInvoiceRoutes(app: Express) {
 
       // ✅ SEND REMINDER EMAIL USING EXISTING SEND FUNCTION
       // Import sendDay1OverdueNotification if available, otherwise send via email
-      const { sendDay1OverdueNotification } = await import("./emailService.ts");
+      const { sendDay1OverdueNotification } = await import("./emailService");
       
       await sendDay1OverdueNotification(invoice);
 
@@ -1255,9 +1254,22 @@ export function registerInvoiceRoutes(app: Express) {
    * Update invoice with payment info overrides
    * Allows per-invoice override of company payment info
    */
-  app.patch("/api/invoices/:id", async (req: Request, res: Response) => {
+  app.patch("/api/invoices/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const invoiceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const userId = (req as any).user?.userId || (req as any).user?.id;
+
+      console.log("[Invoice] PATCH /api/invoices/:id - Update payment overrides");
+      console.log("[Invoice] invoiceId:", invoiceId);
+      console.log("[Invoice] userId:", userId);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: "Unauthorized",
+        });
+      }
+
       const {
         paymentMethodTypeOverride,
         paymentAccountNumberOverride,
@@ -1277,17 +1289,29 @@ export function registerInvoiceRoutes(app: Express) {
         return res.status(404).json({ success: false, error: "Invoice not found" });
       }
 
+      // ✅ CRITICAL: Verify ownership BEFORE updating payment info
+      if (invoice[0].userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: "Unauthorized - you don't own this invoice",
+        });
+      }
+
+      // ✅ Build update object only with provided fields
+      const updateData: any = {};
+      if (paymentMethodTypeOverride !== undefined) updateData.paymentMethodTypeOverride = paymentMethodTypeOverride || null;
+      if (paymentAccountNumberOverride !== undefined) updateData.paymentAccountNumberOverride = paymentAccountNumberOverride || null;
+      if (paymentBankNameOverride !== undefined) updateData.paymentBankNameOverride = paymentBankNameOverride || null;
+      if (paymentAccountNameOverride !== undefined) updateData.paymentAccountNameOverride = paymentAccountNameOverride || null;
+      if (paymentLinkOverride !== undefined) updateData.paymentLinkOverride = paymentLinkOverride || null;
+      if (paymentInstructionsOverride !== undefined) updateData.paymentInstructionsOverride = paymentInstructionsOverride || null;
+
+      console.log("[Invoice] Update payment data:", updateData);
+
       // ✅ Update with payment overrides
       const updated = await db
         .update(schema.invoices)
-        .set({
-          paymentMethodTypeOverride,
-          paymentAccountNumberOverride,
-          paymentBankNameOverride,
-          paymentAccountNameOverride,
-          paymentLinkOverride,
-          paymentInstructionsOverride,
-        })
+        .set(updateData)
         .where(eq(schema.invoices.id, invoiceId))
         .returning();
 
@@ -1305,6 +1329,8 @@ export function registerInvoiceRoutes(app: Express) {
 
       // ✅ Resolve payment info
       const paymentInfo = resolvePaymentInfo(updated[0], user[0]);
+
+      console.log("[Invoice] ✅ Payment overrides updated successfully");
 
       return res.json({
         success: true,
