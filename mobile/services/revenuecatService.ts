@@ -98,7 +98,7 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
     const offerings = await Purchases.getOfferings();
 
     if (!offerings.current) {
-      console.warn("[RevenueCat] No offerings available");
+      console.warn("[RevenueCat] No offerings available - using fallback");
       // Fallback to hardcoded packages
       return [
         {
@@ -116,17 +116,34 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
       ];
     }
 
-    // Map RevenueCat packages to our format
-    const packages: SubscriptionPackage[] = offerings.current.availablePackages
-      .filter(pkg => ["solo_monthly", "professional_monthly"].includes(pkg.identifier))
-      .map((pkg) => ({
-        identifier: pkg.identifier,
-        title: pkg.presentedOfferingContext?.offeringIdentifier === "solo_monthly" ? "Solo" : "Professional",
-        priceString: pkg.product.priceString || "$0",
-        currencyCode: pkg.product.currencyCode || "USD",
-      }));
+    // Get all available packages from current offering
+    const allPackages = offerings.current.availablePackages || [];
+    console.log("[RevenueCat] Total packages available:", allPackages.length);
+    
+    // Log available package identifiers for debugging
+    allPackages.forEach(pkg => {
+      console.log(`[RevenueCat] Package: ${pkg.identifier} - ${pkg.product?.priceString || 'N/A'}`);
+    });
 
-    console.log("[RevenueCat] ✅ Available packages:", packages.length);
+    // Map RevenueCat packages to our format
+    // Accept both underscore and colon formats for identifiers
+    const packages: SubscriptionPackage[] = allPackages
+      .filter(pkg => {
+        const id = pkg.identifier.toLowerCase();
+        return id.includes('solo') || id.includes('professional');
+      })
+      .map((pkg) => {
+        const id = pkg.identifier.toLowerCase();
+        const isSolo = id.includes('solo');
+        return {
+          identifier: pkg.identifier,
+          title: isSolo ? "Solo" : "Professional",
+          priceString: pkg.product?.priceString || "$0",
+          currencyCode: pkg.product?.currencyCode || "USD",
+        };
+      });
+
+    console.log("[RevenueCat] ✅ Filtered packages:", packages.length, packages.map(p => p.identifier));
     return packages;
   } catch (error) {
     console.error("[RevenueCat] Failed to get packages:", error);
@@ -201,37 +218,54 @@ export async function getCustomerInfo(): Promise<CustomerInfo | null> {
 }
 
 /**
- * Purchase a subscription package
+ * Purchase a subscription package via native app store
  */
 export async function purchasePackage(
   packageIdentifier: string
 ): Promise<CustomerInfo | null> {
   try {
     if (!currentUserId) {
-      console.warn("[RevenueCat] Cannot purchase - no user ID set");
+      console.error("[RevenueCat] Cannot purchase - no user ID set");
       return null;
     }
 
-    console.log(`[RevenueCat] Starting purchase: ${packageIdentifier}`);
+    console.log(`[RevenueCat] 🛒 Starting native purchase: ${packageIdentifier}`);
 
-    // In production, native purchases would be handled via app stores
-    console.log(
-      "[RevenueCat] Purchase requires native handling via app store"
+    // Get offerings to find the package
+    const offerings = await Purchases.getOfferings();
+    if (!offerings.current) {
+      throw new Error("No offerings available");
+    }
+
+    // Find package in offerings
+    const pkg = offerings.current.availablePackages.find(
+      (p) => p.identifier === packageIdentifier
     );
 
+    if (!pkg) {
+      throw new Error(`Package not found: ${packageIdentifier}`);
+    }
+
+    // Initiate purchase via native SDK (iOS/Android app store)
+    console.log(`[RevenueCat] 💳 Opening native purchase flow for ${pkg.identifier}`);
+    const purchaserInfo = await Purchases.purchasePackage(pkg);
+
+    console.log("[RevenueCat] ✅ Purchase successful");
+    
+    // Get updated customer info with new entitlements
     return await getCustomerInfo();
   } catch (error: any) {
     if (error.userCancelled) {
-      console.log("[RevenueCat] User cancelled purchase");
+      console.log("[RevenueCat] ℹ️  User cancelled purchase");
     } else {
-      console.error("[RevenueCat] Purchase failed:", error);
+      console.error("[RevenueCat] ❌ Purchase failed:", error);
     }
     return null;
   }
 }
 
 /**
- * Restore purchases
+ * Restore purchases from app store
  */
 export async function restorePurchases(): Promise<CustomerInfo | null> {
   try {
@@ -240,19 +274,19 @@ export async function restorePurchases(): Promise<CustomerInfo | null> {
       return null;
     }
 
-    console.log("[RevenueCat] Restoring purchases");
+    console.log("[RevenueCat] 🔄 Restoring purchases from app store");
 
-    const response = await axios.post(`${BACKEND_URL}/api/subscription/restore`, {
-      userId: currentUserId,
-    });
+    // Sync with RevenueCat to get latest purchase info
+    const purchaserInfo = await Purchases.restorePurchases();
+    console.log("[RevenueCat] ✅ Purchases restored from app store");
 
-    console.log("[RevenueCat] ✅ Purchases restored");
-    return response.data as CustomerInfo;
+    // Get customer info with restored entitlements
+    return await getCustomerInfo();
   } catch (error) {
     console.error("[RevenueCat] Failed to restore purchases:", error);
     return null;
   }
-}
+
 
 /**
  * Check if user has active subscription
