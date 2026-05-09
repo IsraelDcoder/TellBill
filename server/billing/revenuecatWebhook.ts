@@ -12,10 +12,10 @@
 
 import { Router, Request, Response, Express } from "express";
 import crypto from "crypto";
-import { db } from "../db.js";
-import { users, referralConversions } from "../../shared/schema.js";
+import { db } from "../db";
+import { users, referralConversions } from "../../shared/schema";
 import { eq, and } from "drizzle-orm";
-import { logger } from "../utils/logger.js";
+import { logger } from "../utils/logger";
 
 interface RevenueCatWebhookEvent {
   event: {
@@ -141,7 +141,7 @@ export function registerRevenueCatWebhook(app: Express) {
               subscriptionTier: plan,
               subscriptionUpdatedAt: new Date(),
               subscriptionExpiryDate: new Date(expiresAt),
-            })
+            } as any)
             .where(eq(users.id, app_user_id));
 
           // 🎯 Mark referral as converted if user was referred
@@ -159,7 +159,7 @@ export function registerRevenueCatWebhook(app: Express) {
                 .set({
                   status: "converted",
                   convertedAt: new Date(),
-                })
+                } as any)
                 .where(eq(referralConversions.id, pendingReferral.id));
 
               logger.info(
@@ -191,7 +191,7 @@ export function registerRevenueCatWebhook(app: Express) {
               subscriptionTier: plan,
               subscriptionUpdatedAt: new Date(),
               subscriptionExpiryDate: new Date(expiresAt),
-            })
+            } as any)
             .where(eq(users.id, app_user_id));
 
           break;
@@ -206,7 +206,7 @@ export function registerRevenueCatWebhook(app: Express) {
               subscriptionStatus: "canceled",
               subscriptionTier: "free",
               subscriptionUpdatedAt: new Date(),
-            })
+            } as any)
             .where(eq(users.id, app_user_id));
 
           break;
@@ -222,7 +222,7 @@ export function registerRevenueCatWebhook(app: Express) {
               subscriptionTier: "free",
               subscriptionUpdatedAt: new Date(),
               subscriptionExpiryDate: new Date(),
-            })
+            } as any)
             .where(eq(users.id, app_user_id));
 
           break;

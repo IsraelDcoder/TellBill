@@ -286,7 +286,7 @@ export async function restorePurchases(): Promise<CustomerInfo | null> {
     console.error("[RevenueCat] Failed to restore purchases:", error);
     return null;
   }
-
+}
 
 /**
  * Check if user has active subscription

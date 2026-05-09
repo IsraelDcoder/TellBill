@@ -14,11 +14,11 @@
 
 import { Router, Request, Response, Express } from "express";
 import axios from "axios";
-import { db } from "../db.js";
-import { users } from "../../shared/schema.js";
+import { db } from "../db";
+import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { logger } from "../utils/logger.js";
-import { authMiddleware } from "../utils/authMiddleware.js";
+import { logger } from "../utils/logger";
+import { authMiddleware } from "../utils/authMiddleware";
 
 // ============================================
 // TYPES
@@ -181,7 +181,7 @@ export function registerBillingRoutes(app: Express) {
             subscriptionTier: verification.plan,
             subscriptionUpdatedAt: new Date(),
             subscriptionExpiryDate: new Date(verification.expiresAt),
-          })
+          } as any)
           .where(eq(users.id, userId));
 
         logger.info(
@@ -291,7 +291,7 @@ export function registerBillingRoutes(app: Express) {
             subscriptionTier: activePlan,
             subscriptionUpdatedAt: new Date(),
             subscriptionExpiryDate: expiresAt,
-          })
+          } as any)
           .where(eq(users.id, userId));
 
         logger.info({ userId, plan: activePlan }, "Purchases restored");

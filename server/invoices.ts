@@ -1,15 +1,15 @@
 import type { Express, Request, Response } from "express";
-import { db } from "./db.js";
-import * as schema from "../shared/schema.js";
+import { db } from "./db";
+import * as schema from "../shared/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-import { resolvePaymentInfo } from "./lib/paymentResolver.js";
+import { resolvePaymentInfo } from "./lib/paymentResolver";
 import {
   sendInvoiceEmail,
   sendInvoiceSMS,
   sendInvoiceWhatsApp,
-} from "./emailService.js";
+} from "./emailService";
 import {
   validateInvoice,
   validateUUID,
@@ -18,11 +18,11 @@ import {
   validateEnum,
   isRequired,
   respondWithValidationErrors,
-} from "./utils/validation.js";
-import { checkUsageLimit } from "./utils/subscriptionMiddleware.js";
-import { authMiddleware } from "./utils/authMiddleware.js";
-import { MoneyAlertsEngine } from "./moneyAlertsEngine.js";
-import { applyTax, getDefaultTaxProfile } from "./taxService.js";
+} from "./utils/validation";
+import { checkUsageLimit } from "./utils/subscriptionMiddleware";
+import { authMiddleware } from "./utils/authMiddleware";
+import { MoneyAlertsEngine } from "./moneyAlertsEngine";
+import { applyTax, getDefaultTaxProfile } from "./taxService";
 
 /**
  * ✅ CRITICAL: Convert numeric fields from dollars (decimal) to cents (integer)
@@ -309,7 +309,7 @@ export function registerInvoiceRoutes(app: Express) {
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
               await db
                 .update(schema.invoices)
-                .set({ status: "sent" })
+                .set({ status: "sent" } as any)
                 .where(eq(schema.invoices.id, invoiceId));
               
               console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
@@ -355,7 +355,7 @@ export function registerInvoiceRoutes(app: Express) {
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
               await db
                 .update(schema.invoices)
-                .set({ status: "sent" })
+                .set({ status: "sent" } as any)
                 .where(eq(schema.invoices.id, invoiceId));
               
               console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
@@ -394,7 +394,7 @@ export function registerInvoiceRoutes(app: Express) {
               // ✅ UPDATE INVOICE STATUS TO "SENT" in database
               await db
                 .update(schema.invoices)
-                .set({ status: "sent" })
+                .set({ status: "sent" } as any)
                 .where(eq(schema.invoices.id, invoiceId));
               
               console.log(`[Invoice] ✅ Updated invoice ${invoiceId} status to "sent"`);
@@ -726,7 +726,7 @@ export function registerInvoiceRoutes(app: Express) {
       if (!taxProfile) {
         console.log("[Invoice] No tax profile found, creating default for user:", userId);
         try {
-          const { taxProfiles } = await import("../shared/schema.js");
+          const { taxProfiles } = await import("../shared/schema");
           const newProfile = await db
             .insert(taxProfiles)
             .values({
@@ -736,7 +736,7 @@ export function registerInvoiceRoutes(app: Express) {
               appliesto: "labor_and_materials",
               enabled: true,
               isDefault: true,
-            })
+            } as any)
             .returning();
           
           taxProfile = newProfile[0];
@@ -804,7 +804,7 @@ export function registerInvoiceRoutes(app: Express) {
 
       const newInvoice = await db
         .insert(schema.invoices)
-        .values(invoiceData)
+        .values(invoiceData as any)
         .returning();
 
       const invoiceId = newInvoice[0]?.id;
@@ -1110,7 +1110,7 @@ export function registerInvoiceRoutes(app: Express) {
 
       // ✅ SEND REMINDER EMAIL USING EXISTING SEND FUNCTION
       // Import sendDay1OverdueNotification if available, otherwise send via email
-      const { sendDay1OverdueNotification } = await import("./emailService.js");
+      const { sendDay1OverdueNotification } = await import("./emailService.ts");
       
       await sendDay1OverdueNotification(invoice);
 

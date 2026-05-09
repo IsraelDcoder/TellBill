@@ -1,25 +1,25 @@
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
-import { registerTranscriptionRoutes } from "./transcription.js";
-import { registerAuthRoutes } from "./auth.js";
-import { registerRevenueCatRoutes } from "./revenuecat.js";
+import { registerTranscriptionRoutes } from "./transcription";
+import { registerAuthRoutes } from "./auth";
+import { registerRevenueCatRoutes } from "./revenuecat";
 
-import { registerInvoiceRoutes } from "./invoices.js";
-import { registerDataLoadingRoutes } from "./dataLoading.js";
-import { registerActivityLogRoutes } from "./activityLog.js";
-import { registerScopeProofRoutes } from "./scopeProof.js";
-import { registerTaxRoutes } from "./tax.js";
-import { registerMaterialCostRoutes } from "./materialCosts.js";
-import { registerMoneyAlertRoutes } from "./moneyAlerts.js";
-import { registerTemplateRoutes } from "./templates.js";
-import { registerBillingRoutes } from "./billing/iapVerification.js";
-import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook.js";
-import { registerEarlyAccessRoutes } from "./early-access.js";
-import { registerReferralRoutes } from "./referral.js";
-import { registerIntercomRoutes } from "./intercom.js";
-import { registerAdminRoutes } from "./admin.js";
-import { authMiddleware } from "./utils/authMiddleware.js";
-import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard.js";
+import { registerInvoiceRoutes } from "./invoices";
+import { registerDataLoadingRoutes } from "./dataLoading";
+import { registerActivityLogRoutes } from "./activityLog";
+import { registerScopeProofRoutes } from "./scopeProof";
+import { registerTaxRoutes } from "./tax";
+import { registerMaterialCostRoutes } from "./materialCosts";
+import { registerMoneyAlertRoutes } from "./moneyAlerts";
+import { registerTemplateRoutes } from "./templates";
+import { registerBillingRoutes } from "./billing/iapVerification";
+import { registerRevenueCatWebhook } from "./billing/revenuecatWebhook";
+import { registerEarlyAccessRoutes } from "./early-access";
+import { registerReferralRoutes } from "./referral";
+import { registerIntercomRoutes } from "./intercom";
+import { registerAdminRoutes } from "./admin";
+import { authMiddleware } from "./utils/authMiddleware";
+import { attachSubscriptionMiddleware, requirePaidPlan, requirePlan } from "./utils/subscriptionGuard";
 
 /**
  * ✅ Public HTML Pages for Google OAuth Consent Screen

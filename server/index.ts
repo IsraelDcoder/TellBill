@@ -1,24 +1,24 @@
 import "dotenv/config";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
+import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
 import {
   initializeSentry,
   attachSentryMiddleware,
   attachSentryErrorHandler,
-} from "./utils/sentry.js";
-import { initializeBackupSystem } from "./utils/backup.js";
-import { initScopeProofScheduler } from "./utils/scopeProofScheduler.js";
-import { initLatePaymentScheduler } from "./utils/latePaymentScheduler.js";
-import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob.js";
-import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob.js";
-import { securityHeaders } from "./utils/sanitize.js";
-import { setupCorsSecurely } from "./utils/cors.js";
-import { logger, attachRequestLogging } from "./utils/logger.js";
-import { createRateLimiter } from "./utils/rateLimiter.js";
-import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+} from "./utils/sentry";
+import { initializeBackupSystem } from "./utils/backup";
+import { initScopeProofScheduler } from "./utils/scopeProofScheduler";
+import { initLatePaymentScheduler } from "./utils/latePaymentScheduler";
+import { startMoneyAlertsJobs, stopMoneyAlertsJobs } from "./jobs/moneyAlertsJob";
+import { startInvoiceRemindersJob, stopInvoiceRemindersJob } from "./jobs/invoiceRemindersJob";
+import { securityHeaders } from "./utils/sanitize";
+import { setupCorsSecurely } from "./utils/cors";
+import { logger, attachRequestLogging } from "./utils/logger";
+import { createRateLimiter } from "./utils/rateLimiter";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
 
