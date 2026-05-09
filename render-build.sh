@@ -15,3 +15,10 @@ npm run build
 
 echo "✅ Build complete!"
 echo "📂 Compiled output in dist/"
+
+echo ""
+echo "🗄️  Applying database migrations..."
+# Push schema changes to production database (creates missing tables/columns)
+npx drizzle-kit push --config drizzle.config.ts
+
+echo "✅ Migrations applied!"
