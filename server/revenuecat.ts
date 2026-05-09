@@ -233,7 +233,7 @@ export function registerRevenueCatRoutes(app: Express) {
             subscriptionStatus: "active",
             subscriptionExpiryDate: expiryDate,
             subscriptionPlatform: detectPlatform(latestProductId || ""),
-          })
+          } as any)
           .where(eq(users.id, userId));
 
         capturePaymentEvent(true, appUserId, 0, userId, activePlan);
@@ -341,7 +341,7 @@ export function registerRevenueCatRoutes(app: Express) {
             subscriptionExpiryDate: expiryDate,
             subscriptionPlatform: null, // Will be set by webhook
             subscriptionUpdatedAt: new Date(),
-          })
+          } as any)
           .where(eq(users.id, userId));
       }
 
@@ -411,7 +411,7 @@ export function registerRevenueCatRoutes(app: Express) {
               currentPlan: tier,
               subscriptionUpdatedAt: new Date(),
               subscriptionExpiryDate: event.expiration_at_ms ? new Date(event.expiration_at_ms) : null,
-            })
+            } as any)
             .where(eq(users.id, userData.id));
           
           console.log(`[RevenueCat] User ${userData.id} upgraded to ${tier}`);
@@ -427,7 +427,7 @@ export function registerRevenueCatRoutes(app: Express) {
               subscriptionTier: "free",
               currentPlan: "free",
               subscriptionUpdatedAt: new Date(),
-            })
+            } as any)
             .where(eq(users.id, userData.id));
           break;
 
@@ -440,7 +440,7 @@ export function registerRevenueCatRoutes(app: Express) {
               currentPlan: "free",
               subscriptionCancellationDate: new Date(),
               subscriptionUpdatedAt: new Date(),
-            })
+            } as any)
             .where(eq(users.id, userData.id));
           break;
 
@@ -458,7 +458,7 @@ export function registerRevenueCatRoutes(app: Express) {
                 subscriptionRenewalDate: new Date(),
                 subscriptionUpdatedAt: new Date(),
                 subscriptionExpiryDate: new Date(event.expiration_at_ms),
-              })
+              } as any)
               .where(eq(users.id, userData.id));
           }
           break;

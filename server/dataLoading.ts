@@ -152,7 +152,7 @@ export function registerDataLoadingRoutes(app: Express) {
             invoiceTemplate: invoiceTemplate || existingPrefs[0].invoiceTemplate,
             defaultPaymentTerms: defaultPaymentTerms || existingPrefs[0].defaultPaymentTerms,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(preferences.userId, userId))
           .returning();
       } else {
@@ -166,7 +166,7 @@ export function registerDataLoadingRoutes(app: Express) {
             theme: theme || "light",
             invoiceTemplate: invoiceTemplate || "default",
             defaultPaymentTerms: defaultPaymentTerms || "Due upon receipt",
-          })
+          } as any)
           .returning();
       }
 
@@ -178,7 +178,7 @@ export function registerDataLoadingRoutes(app: Express) {
             preferredCurrency: currency || undefined,
             invoiceTemplate: invoiceTemplate || undefined,
             defaultPaymentTerms: defaultPaymentTerms || undefined,
-          })
+          } as any)
           .where(eq(users.id, userId));
       }
 

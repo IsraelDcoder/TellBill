@@ -174,7 +174,7 @@ export function registerReferralRoutes(app: Express) {
           referredUserId: userId,
           referralCode: referralCode,
           status: "pending",
-        })
+        } as any)
         .returning();
 
       console.log(`[Referral] ✅ New signup with referral code: ${referralCode} (Referred by: ${referrerId})`);
@@ -214,7 +214,7 @@ export function registerReferralRoutes(app: Express) {
       // Update conversion status
       const updated = await db
         .update(referralConversions)
-        .set({ status: 'converted', convertedAt: new Date() })
+        .set({ status: 'converted', convertedAt: new Date() } as any)
         .where(eq(referralConversions.id, referralId))
         .returning();
 
@@ -252,14 +252,14 @@ export function registerReferralRoutes(app: Express) {
             successfulReferrals: conversion_count,
             bonusEarnedAt: new Date(),
             bonusExpiresAt: bonusExpiry,
-          })
+          } as any)
           .onConflictDoUpdate({
             target: referralBonuses.userId,
             set: {
               successfulReferrals: conversion_count,
               bonusEarnedAt: new Date(),
               bonusExpiresAt: bonusExpiry,
-            },
+            } as any,
           });
 
         console.log(`[Referral] 🎉 User ${referrerId} earned 1-month bonus! (3 referrals)`);
@@ -384,7 +384,7 @@ export function registerReferralRoutes(app: Express) {
       // Mark as redeemed
       await db
         .update(referralBonuses)
-        .set({ bonusRedeemedAt: new Date() })
+        .set({ bonusRedeemedAt: new Date() } as any)
         .where(eq(referralBonuses.userId, userId));
 
       console.log(`[Referral] ✅ User ${userId} redeemed 1-month bonus`);

@@ -142,7 +142,7 @@ export function registerScopeProofRoutes(app: Express) {
           approvalToken,
           tokenExpiresAt,
           status: "pending",
-        })
+        } as any)
         .returning();
 
       console.log(`[ScopeProof] Created for user ${userId}: ${newScopeProof[0]?.id}`);
@@ -231,7 +231,7 @@ export function registerScopeProofRoutes(app: Express) {
         notificationType: "initial",
         sentVia: "email",
         sentAt: new Date(),
-      });
+      } as any);
       console.log(`[ScopeProof] Notification recorded for ${id}`);
 
       console.log(`[ScopeProof] Approval requested for ${id}`);
@@ -285,7 +285,7 @@ export function registerScopeProofRoutes(app: Express) {
           status: "approved",
           approvedAt: new Date(),
           approvedBy: clientEmail,
-        })
+        } as any)
         .where(eq(scopeProofs.id, scopeProof.id));
 
       console.log(`[ScopeProof] Approved: ${scopeProof.id}`);
@@ -583,7 +583,7 @@ export function registerScopeProofRoutes(app: Express) {
           feedback: feedback,
           feedbackFrom: clientEmail,
           feedbackAt: new Date(),
-        })
+        } as any)
         .where(eq(scopeProofs.id, scopeProof.id));
 
       console.log(`[ScopeProof] Feedback received: ${scopeProof.id}`);

@@ -1328,7 +1328,7 @@ export async function sendLatePaymentDay2Reminders(): Promise<{ sent: number; sk
         // Mark as sent
         await db
           .update(invoices)
-          .set({ reminderSentAt: new Date() })
+          .set({ reminderSentAt: new Date() } as any)
           .where(eq(invoices.id, invoice.id));
         
         sent++;
@@ -1393,7 +1393,7 @@ export async function sendLatePaymentDay6Reminders(): Promise<{ sent: number; sk
         // Mark as sent
         await db
           .update(invoices)
-          .set({ day6ReminderSentAt: new Date() })
+          .set({ day6ReminderSentAt: new Date() } as any)
           .where(eq(invoices.id, invoice.id));
         
         sent++;

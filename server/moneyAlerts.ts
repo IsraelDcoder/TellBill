@@ -274,7 +274,7 @@ export function registerMoneyAlertRoutes(app: Express) {
               .update(receipts)
               .set({
                 linkedInvoiceId: targetInvoiceId,
-              })
+              } as any)
               .where(eq(receipts.id, alert.sourceId));
 
             result.action = "attached_to_invoice";
@@ -318,7 +318,7 @@ export function registerMoneyAlertRoutes(app: Express) {
           .set({
             status: "fixed",
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(moneyAlerts.id, id));
 
         // Log event
@@ -382,7 +382,7 @@ export function registerMoneyAlertRoutes(app: Express) {
             reasonResolved: `${reason}${note ? ": " + note : ""}`,
             resolvedAt: new Date(),
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(moneyAlerts.id, id));
 
         // Log event

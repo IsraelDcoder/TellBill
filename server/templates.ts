@@ -138,7 +138,7 @@ export function registerTemplateRoutes(app: Express) {
           customField2Name: customField2Name || null,
           customField2Value: customField2Value || null,
           fontFamily: fontFamily || "system",
-        })
+        } as any)
         .returning();
 
       console.log("[Templates] ✅ Template created:", name);
@@ -427,7 +427,7 @@ export function registerTemplateRoutes(app: Express) {
           customField2Name: template.customField2Name,
           customField2Value: template.customField2Value,
           fontFamily: template.fontFamily,
-        })
+        } as any)
         .returning();
 
       console.log("[Templates] ✅ User selected template:", template.name, "- Created copy:", newTemplate[0].id);

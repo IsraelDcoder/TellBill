@@ -90,7 +90,7 @@ export async function checkScopeProofReminders() {
     if (expiredProofs.length > 0) {
       await db
         .update(scopeProofs)
-        .set({ status: "expired" })
+        .set({ status: "expired" } as any)
         .where(and(eq(scopeProofs.status, "pending"), lte(scopeProofs.tokenExpiresAt, now)));
 
       console.log(`[ScopeProof] Marked ${expiredProofs.length} approvals as expired`);

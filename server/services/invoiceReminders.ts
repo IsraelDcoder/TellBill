@@ -133,7 +133,7 @@ export async function sendDueInvoiceReminders(
         // Update the invoice to mark reminder as sent
         await db
           .update(invoices)
-          .set({ reminderSentAt: new Date() })
+          .set({ reminderSentAt: new Date() } as any)
           .where(eq(invoices.id, invoice.id));
 
         sentCount++;
@@ -244,7 +244,7 @@ export async function sendOverdueInvoiceReminders(): Promise<{
 
           await db
             .update(invoices)
-            .set({ reminderSentAt: new Date() })
+            .set({ reminderSentAt: new Date() } as any)
             .where(eq(invoices.id, invoice.id));
 
           sentCount++;

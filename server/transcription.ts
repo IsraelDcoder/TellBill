@@ -330,7 +330,7 @@ export function registerTranscriptionRoutes(app: Express): void {
                   estimatedCost,
                   approvalToken,
                   status: "draft",
-                })
+                } as any)
                 .returning();
 
               console.log("[Extract] 📋 Auto-created scope proof:", newScopeProof[0]?.id);

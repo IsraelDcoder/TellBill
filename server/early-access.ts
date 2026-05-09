@@ -65,7 +65,7 @@ export function registerEarlyAccessRoutes(app: Express) {
         name: name.trim(),
         email: normalizedEmail,
         trade: trade || null,
-      });
+      } as any);
 
       // ✅ Send confirmation email
       try {

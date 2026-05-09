@@ -250,7 +250,7 @@ export function registerMaterialCostRoutes(app: Express) {
             imageUrl,
             billable: false, // Default to false until user makes decision
             items: JSON.stringify(extractedData.items),
-          })
+          } as any)
           .returning();
 
         if (!receipt || receipt.length === 0) {
@@ -268,7 +268,7 @@ export function registerMaterialCostRoutes(app: Express) {
             vendor: extractedData.vendor,
             amount: extractedData.total,
           }),
-        });
+        } as any);
 
         // Trigger Money Alerts detection for unbilled receipts (paid users only)
         MoneyAlertsEngine.processEvent(userId, "RECEIPT_CREATED", createdReceipt.id).catch(
@@ -341,7 +341,7 @@ export function registerMaterialCostRoutes(app: Express) {
             clientName: clientName || null,
             clientEmail: clientEmail || null,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(receipts.id, receiptId));
 
         // Log event
@@ -353,7 +353,7 @@ export function registerMaterialCostRoutes(app: Express) {
             clientName,
             clientEmail,
           }),
-        });
+        } as any);
 
         // Create money alert for unbilled material
         const updatedReceipt = receipt[0];
@@ -418,7 +418,7 @@ export function registerMaterialCostRoutes(app: Express) {
             billable: false,
             notBillableReason: reason,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(receipts.id, receiptId));
 
         // Log event
@@ -427,7 +427,7 @@ export function registerMaterialCostRoutes(app: Express) {
           userId,
           action: "MARKED_NON_BILLABLE",
           metadata: JSON.stringify({ reason }),
-        });
+        } as any);
 
         return res.status(200).json({
           success: true,
@@ -499,7 +499,7 @@ export function registerMaterialCostRoutes(app: Express) {
           .set({
             linkedInvoiceId: invoiceId,
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(receipts.id, receiptId));
 
         // Log event
@@ -508,7 +508,7 @@ export function registerMaterialCostRoutes(app: Express) {
           userId,
           action: "ATTACHED_TO_INVOICE",
           metadata: JSON.stringify({ invoiceId }),
-        });
+        } as any);
 
         return res.status(200).json({
           success: true,

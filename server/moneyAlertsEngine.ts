@@ -204,7 +204,7 @@ export class MoneyAlertsEngine {
         estimatedAmount: scope.estimatedCost,
         currency: "USD",
         confidence: 85, // High confidence: scope approved but no invoice
-      });
+      } as any);
 
       console.log(`[MoneyAlertsEngine] Created SCOPE_APPROVED_NO_INVOICE alert for ${scopeId}`);
     } catch (error) {
@@ -284,7 +284,7 @@ export class MoneyAlertsEngine {
           .set({
             status: "fixed",
             updatedAt: new Date(),
-          })
+          } as any)
           .where(eq(moneyAlerts.id, alertToClose.id));
 
         console.log(`[MoneyAlertsEngine] Closed INVOICE_NOT_SENT alert ${alertToClose.id}`);
@@ -342,7 +342,7 @@ export class MoneyAlertsEngine {
               estimatedAmount: invoice.total,
               currency: "USD",
               confidence: 80,
-            });
+            } as any);
 
             console.log(
               `[MoneyAlertsEngine] Created INVOICE_NOT_SENT alert for invoice ${invoice.id}`

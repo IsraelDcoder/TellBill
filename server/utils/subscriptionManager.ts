@@ -243,7 +243,7 @@ export async function upgradeSubscription(
         currentPlan: newPlan,
         subscriptionStatus: status,
         isSubscribed: status === "active" && newPlan !== "free",
-      })
+      } as any)
       .where(eq(users.id, userId));
 
     console.log(`[Subscription] User ${userId} upgraded to ${newPlan}`);
@@ -268,7 +268,7 @@ export async function downgradeSubscription(
         currentPlan: newPlan,
         subscriptionStatus: newPlan === "free" ? "inactive" : "active",
         isSubscribed: false,
-      })
+      } as any)
       .where(eq(users.id, userId));
 
     console.log(`[Subscription] User ${userId} downgraded to ${newPlan}`);
@@ -291,7 +291,7 @@ export async function cancelSubscription(
       .set({
         subscriptionStatus: "cancelled",
         isSubscribed: false,
-      })
+      } as any)
       .where(eq(users.id, userId));
 
     console.log(`[Subscription] User ${userId} cancelled subscription`);
