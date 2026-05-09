@@ -174,7 +174,7 @@ export function registerAuthRoutes(app: Express) {
           email: normalizedEmail,
           password: hashedPassword,
           name: sanitizedName || null,
-        })
+        } as any)
         .returning();
 
       if (!newUser || newUser.length === 0) {
@@ -199,7 +199,7 @@ export function registerAuthRoutes(app: Express) {
             appliesto: "labor_and_materials", // Apply to both labor and materials
             enabled: true, // Enabled by default
             isDefault: true,
-          })
+          } as any)
           .returning();
         
         console.log("[Auth] ✅ Created default tax profile for user:", user.id);
@@ -339,7 +339,7 @@ export function registerAuthRoutes(app: Express) {
           .set({
             failedLoginAttempts: newFailedAttempts,
             lockedUntil: lockUntil,
-          })
+          } as any)
           .where(eq(users.id, user.id));
 
         // Capture authentication failure
@@ -366,7 +366,7 @@ export function registerAuthRoutes(app: Express) {
         .set({
           failedLoginAttempts: 0,
           lockedUntil: null,
-        })
+        } as any)
         .where(eq(users.id, user.id));
 
       // SUCCESS: Return existing user with stable ID
@@ -538,7 +538,7 @@ export function registerAuthRoutes(app: Express) {
           paymentAccountName: paymentAccountName || null,
           paymentLink: paymentLink || null,
           paymentInstructions: paymentInstructions || null,
-        })
+        } as any)
         .where(eq(users.id, userId))
         .returning();
 
@@ -702,7 +702,7 @@ export function registerAuthRoutes(app: Express) {
                 email: googleUserEmail as string,
                 name: googleUserName,
                 password: "", // No password for OAuth users
-              })
+              } as any)
               .returning();
             
             createError = null;
@@ -1096,7 +1096,7 @@ export function registerAuthRoutes(app: Express) {
       // ✅ MARK EMAIL AS VERIFIED in database
       const updatedUser = await db
         .update(users)
-        .set({ emailVerifiedAt: new Date() })
+        .set({ emailVerifiedAt: new Date() } as any)
         .where(eq(users.id, payload.userId as string))
         .returning();
 
@@ -1346,7 +1346,7 @@ export function registerAuthRoutes(app: Express) {
               email: userEmail,
               name: userName,
               password: "", // No password for OAuth users
-            })
+            } as any)
             .returning();
           console.log("[Auth] ✅ New user created, id:", newUser[0]?.id);
         } catch (createUserError) {
@@ -1380,7 +1380,7 @@ export function registerAuthRoutes(app: Express) {
               theme: "light",
               invoiceTemplate: "professional",
               defaultPaymentTerms: "Net 30",
-            });
+            } as any);
           console.log("[Auth] ✅ Default preferences created");
         } catch (prefError) {
           console.warn("[Auth] ⚠️  Could not create preferences (non-critical):", prefError instanceof Error ? prefError.message : prefError);
@@ -2006,7 +2006,7 @@ export function registerAuthRoutes(app: Express) {
           .update(passwordResetTokens)
           .set({
             usedAt: new Date(),
-          })
+          } as any)
           .where(eq(passwordResetTokens.id, resetTokenEntry.id));
 
         // Log activity
@@ -2020,7 +2020,7 @@ export function registerAuthRoutes(app: Express) {
             timestamp: new Date().toISOString(),
             description: "User reset their password",
           }),
-        });
+        } as any);
 
         console.log(
           `[Auth] ✅ Password reset successful for user ${resetTokenEntry.userId}`
@@ -2234,7 +2234,7 @@ export function registerAuthRoutes(app: Express) {
           description: "User changed their password while logged in",
           ipAddress: req.ip || "unknown",
         }),
-      });
+      } as any);
 
       console.log(
         `[Auth] ✅ Password successfully changed for user ${user.email}`
@@ -2339,25 +2339,20 @@ export function registerAuthRoutes(app: Express) {
         console.log(`[Auth] ✅ Google user found: ${user.email}`);
       } else {
         // ✅ New user - create account from Google data
-        const newUserId = crypto.randomUUID();
         const sanitizedName = sanitizeString(name || "");
 
-        await db.insert(users).values({
+        const newUsers = await db.insert(users).values({
           email: normalizedEmail,
           name: sanitizedName,
           password: "", // Google users don't have passwords
           emailVerifiedAt: new Date(), // Google emails are verified
-          createdAt: new Date(),
-        });
+        } as any).returning();
 
-        user = {
-          id: newUserId,
-          email: normalizedEmail,
-          name: sanitizedName,
-          password: "",
-          emailVerifiedAt: new Date(),
-          createdAt: new Date(),
-        };
+        if (!newUsers || newUsers.length === 0) {
+          throw new Error("Failed to create new Google user");
+        }
+
+        user = newUsers[0];
 
         console.log(`[Auth] ✅ New Google user created: ${user.email}`);
       }

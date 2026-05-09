@@ -29,7 +29,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = {
+    const user = {
       ...insertUser,
       id,
       name: insertUser.name || null,
@@ -64,7 +64,7 @@ export class MemStorage implements IStorage {
       emailVerifiedAt: null,
       failedLoginAttempts: 0,
       lockedUntil: null,
-    };
+    } as User;
     this.users.set(id, user);
     return user;
   }

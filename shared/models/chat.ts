@@ -1,5 +1,4 @@
 import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
@@ -17,14 +16,14 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({
-  id: true,
-  createdAt: true,
+export const insertConversationSchema = z.object({
+  title: z.string().min(1),
 });
 
-export const insertMessageSchema = createInsertSchema(messages).omit({
-  id: true,
-  createdAt: true,
+export const insertMessageSchema = z.object({
+  conversationId: z.number().int().positive(),
+  role: z.string().min(1),
+  content: z.string().min(1),
 });
 
 export type Conversation = typeof conversations.$inferSelect;

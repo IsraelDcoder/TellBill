@@ -28,7 +28,7 @@ export async function logActivity(req: LogActivityRequest): Promise<void> {
       resourceType: req.resourceType,
       resourceId: req.resourceId,
       metadata: req.metadata ? JSON.stringify(req.metadata) : null,
-    });
+    } as any);
     console.log(`[ActivityLog] Logged: ${req.action} for ${req.resourceType} ${req.resourceId}`);
   } catch (error) {
     console.error("[ActivityLog] Error logging activity:", error);

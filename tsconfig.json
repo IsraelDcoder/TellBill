@@ -5,6 +5,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,15 +15,17 @@
     "sourceMap": true,
     "rootDir": ".",
     "outDir": "dist",
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
       "@shared/*": ["shared/*"]
     },
     "types": ["node"],
-    "noImplicitAny": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "suppressImplicitAnyIndexErrors": false
   },
   "include": [
     "server/**/*",
