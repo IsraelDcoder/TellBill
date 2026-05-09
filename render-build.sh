@@ -19,6 +19,7 @@ echo "📂 Compiled output in dist/"
 echo ""
 echo "🗄️  Applying database migrations..."
 # Push schema changes to production database (creates missing tables/columns)
-npx drizzle-kit push --config drizzle.config.ts
+# Using --force to handle non-interactive deployment environment (no TTY prompts)
+npx drizzle-kit push --force --config drizzle.config.ts
 
 echo "✅ Migrations applied!"
