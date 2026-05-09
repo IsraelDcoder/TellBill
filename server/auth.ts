@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, sql, and, gt, isNull } from "drizzle-orm";
-import { users, invoices, projects, activityLog, passwordResetTokens, preferences } from "@shared/schema";
+import { users, invoices, projects, activityLog, passwordResetTokens, preferences } from "../shared/schema";
 import { db } from "./db";
 import {
   hashPassword,

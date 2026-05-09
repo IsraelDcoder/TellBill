@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { eq, and, sql, count } from "drizzle-orm";
 import { db } from "./db";
-import { referralCodes, referralConversions, referralBonuses, users } from "@shared/schema";
+import { referralCodes, referralConversions, referralBonuses, users } from "../shared/schema";
 import { authMiddleware } from "./utils/authMiddleware";
 import { randomBytes } from "crypto";
 

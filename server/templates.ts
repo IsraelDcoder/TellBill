@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "./db";
-import { customInvoiceTemplates } from "@shared/schema";
+import { customInvoiceTemplates } from "../shared/schema";
 import { authMiddleware } from "./utils/authMiddleware";
 
 /**

@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import fetch from "node-fetch";
 import { checkUsageLimit } from "./utils/subscriptionMiddleware";
 import { db } from "./db";
-import { users, scopeProofs, activityLog } from "@shared/schema";
+import { users, scopeProofs, activityLog } from "../shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { analyzeScopeDrift } from "./utils/scopeDriftDetection";
 import { notifyApprovalRequest } from "./services/notificationService";

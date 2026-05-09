@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { receipts, materialCostEvents, invoices, users } from "@shared/schema";
+import { receipts, materialCostEvents, invoices, users } from "../shared/schema";
 import { db } from "./db";
 import { authMiddleware } from "./utils/authMiddleware";
 import { MoneyAlertsEngine } from "./moneyAlertsEngine";

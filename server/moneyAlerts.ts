@@ -8,7 +8,7 @@
 
 import type { Express, Request, Response } from "express";
 import { eq, and, isNull } from "drizzle-orm";
-import { receipts, moneyAlerts, moneyAlertEvents } from "@shared/schema";
+import { receipts, moneyAlerts, moneyAlertEvents } from "../shared/schema";
 import { db } from "./db";
 import { authMiddleware } from "./utils/authMiddleware";
 import { requirePaidPlan } from "./utils/subscriptionGuard";

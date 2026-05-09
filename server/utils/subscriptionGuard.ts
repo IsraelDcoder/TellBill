@@ -9,7 +9,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
-import { users, invoices, activityLog, projects } from "@shared/schema";
+import { users, invoices, activityLog, projects } from "../../shared/schema";
 import { eq, sql } from "drizzle-orm";
 
 export interface SubscriptionInfo {

@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { activityLog } from "@shared/schema";
+import { activityLog } from "../shared/schema";
 import { db } from "./db";
 
 /**

@@ -1,7 +1,7 @@
 ﻿import type { Express, Request, Response } from "express";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { db } from "./db";
-import { scopeProofs, scopeProofNotifications, users as usersTable } from "@shared/schema";
+import { scopeProofs, scopeProofNotifications, users as usersTable } from "../shared/schema";
 import { randomUUID } from "crypto";
 import { sendEmail } from "./emailService";
 import { requirePlan } from "./utils/subscriptionGuard";

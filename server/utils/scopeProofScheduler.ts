@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { scopeProofs, scopeProofNotifications, users as usersTable } from "@shared/schema";
+import { scopeProofs, scopeProofNotifications, users as usersTable } from "../../shared/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { sendEmail } from "../emailService";
 

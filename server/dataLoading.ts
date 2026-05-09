@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
-import { invoices, preferences, users, activityLog } from "@shared/schema";
+import { invoices, preferences, users, activityLog } from "../shared/schema";
 import { db } from "./db";
 import { authMiddleware } from "./utils/authMiddleware";
 

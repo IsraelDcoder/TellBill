@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { invoices, users } from "@shared/schema";
+import { invoices, users } from "../../shared/schema";
 import { eq, and, isNull, lte, gte, ne } from "drizzle-orm";
 import { sendReminderEmail } from "../emailService";
 
