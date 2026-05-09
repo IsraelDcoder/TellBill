@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev": "set NODE_ENV=development && tsx server/index.ts",
-    "build": "tsc || true",
+    "build": "tsc",
     "start": "node dist/server/index.js",
     "db:push": "drizzle-kit push",
     "db:reset": "set NODE_ENV=development && tsx scripts/reset-db.ts",
@@ -72,7 +72,7 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.14",
     "@types/react-native": "^0.72.8",
-    "drizzle-kit": "^0.31.4",
+    "drizzle-kit": "^0.31.10",
     "esbuild": "^0.21.0",
     "eslint": "^9.25.0",
     "eslint-config-prettier": "^10.1.8",
