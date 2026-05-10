@@ -90,8 +90,22 @@ export async function setRevenueCatUserId(userId: string): Promise<void> {
 export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> {
   try {
     if (!REVENUECAT_API_KEY) {
-      console.warn("[RevenueCat] API key not configured");
-      return [];
+      console.warn("[RevenueCat] API key not configured - using hardcoded packages");
+      // ✅ FALLBACK: Return hardcoded packages if API key missing
+      return [
+        {
+          identifier: "solo_monthly",
+          title: "Solo",
+          priceString: "$29/month",
+          currencyCode: "USD",
+        },
+        {
+          identifier: "professional_monthly",
+          title: "Professional",
+          priceString: "$34.99/month",
+          currencyCode: "USD",
+        },
+      ];
     }
 
     // Fetch offerings from native SDK
@@ -144,6 +158,26 @@ export async function getSubscriptionPackages(): Promise<SubscriptionPackage[]> 
       });
 
     console.log("[RevenueCat] ✅ Filtered packages:", packages.length, packages.map(p => p.identifier));
+    
+    // ✅ If no packages found, fall back to hardcoded
+    if (packages.length === 0) {
+      console.warn("[RevenueCat] ⚠️ No packages found after filtering, using hardcoded fallback");
+      return [
+        {
+          identifier: "solo_monthly",
+          title: "Solo",
+          priceString: "$29/month",
+          currencyCode: "USD",
+        },
+        {
+          identifier: "professional_monthly",
+          title: "Professional",
+          priceString: "$34.99/month",
+          currencyCode: "USD",
+        },
+      ];
+    }
+    
     return packages;
   } catch (error) {
     console.error("[RevenueCat] Failed to get packages:", error);

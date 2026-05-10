@@ -346,16 +346,24 @@ export default function TranscriptReviewScreen() {
         items = parseItems(formData.materials);
       }
 
-      // ✅ PRODUCTION SUBTOTAL: Use computed totals (AI not trusted for money)
-      const laborTotal = Math.round(computedTotals.laborTotal * 100); // Convert to cents
-      const materialsTotal = Math.round(computedTotals.materialsTotal * 100); // Convert to cents
-      const subtotal = laborTotal + materialsTotal; // Both now in cents
+      // ✅ PRODUCTION SUBTOTAL: Pass values in DOLLARS (InvoiceDraft will convert to cents)
+      // DO NOT convert to cents here - InvoiceDraft's calculateInvoiceTotals expects dollars
+      const laborRateInDollars = safeNumber(parseFloat(formData.laborRate));
+      const laborTotalInDollars = computedTotals.laborTotal; // Already in dollars
+      const materialsTotalInDollars = computedTotals.materialsTotal; // Already in dollars
+      const subtotalInDollars = laborTotalInDollars + materialsTotalInDollars;
       const taxRate = 0.08;
-      const taxAmount = Math.round(subtotal * taxRate); // Calculate tax in cents
-      const total = subtotal + taxAmount; // Total in cents
-
-      // ✅ FIXED: Convert labor rate to cents (store as integer cents, not dollars)
-      const laborRateInCents = Math.round(safeNumber(parseFloat(formData.laborRate)) * 100);
+      const taxAmountInDollars = subtotalInDollars * taxRate;
+      const totalInDollars = subtotalInDollars + taxAmountInDollars;
+      
+      console.log("[TranscriptReview] ✅ Invoice data (in DOLLARS):", {
+        laborRateInDollars,
+        laborTotalInDollars,
+        materialsTotalInDollars,
+        subtotalInDollars,
+        taxAmountInDollars,
+        totalInDollars,
+      });
 
       navigation.navigate("InvoiceDraft", {
         invoiceData: {
@@ -367,13 +375,13 @@ export default function TranscriptReviewScreen() {
           jobDescription: safeText(formData.jobDescription),
           items,
           laborHours: safeNumber(parseFloat(formData.laborHours)),
-          laborRate: laborRateInCents,
-          laborTotal,
-          materialsTotal,
-          subtotal,
+          laborRate: laborRateInDollars,
+          laborTotal: laborTotalInDollars,
+          materialsTotal: materialsTotalInDollars,
+          subtotal: subtotalInDollars,
           taxRate,
-          taxAmount,
-          total,
+          taxAmount: taxAmountInDollars,
+          total: totalInDollars,
           notes: safeText(formData.notes),
           status: "draft",
         },

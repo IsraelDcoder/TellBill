@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
@@ -48,12 +49,81 @@ export default function InvoicePreviewScreen() {
   const { theme, isDark } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
-  const { getInvoice } = useInvoiceStore();
+  const { getInvoice, addInvoice } = useInvoiceStore();
   const [isDownloading, setIsDownloading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [backendInvoice, setBackendInvoice] = React.useState<any>(null);
 
-  const invoice = getInvoice(route.params.invoiceId);
+  let invoice = getInvoice(route.params.invoiceId);
 
-  if (!invoice) {
+  // ✅ FIX: If invoice not found in store, try fetching from backend
+  React.useEffect(() => {
+    if (!invoice && !backendInvoice) {
+      fetchInvoiceFromBackend();
+    }
+  }, [route.params.invoiceId, invoice]);
+
+  const fetchInvoiceFromBackend = async () => {
+    try {
+      setIsLoading(true);
+      const token = await AsyncStorage.getItem("authToken");
+      if (!token) {
+        console.error("[InvoicePreview] No auth token found");
+        return;
+      }
+
+      const backendUrl = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000";
+      const response = await fetch(`${backendUrl}/api/invoices/${route.params.invoiceId}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("[InvoicePreview] Failed to fetch invoice from backend");
+        return;
+      }
+
+      const data = await response.json();
+      if (data.invoice) {
+        // ✅ Add fetched invoice to store so it's available for future use
+        addInvoice(data.invoice);
+        setBackendInvoice(data.invoice);
+        console.log("[InvoicePreview] ✅ Fetched invoice from backend:", data.invoice.id);
+      }
+    } catch (error) {
+      console.error("[InvoicePreview] Error fetching invoice:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Use backend invoice as fallback if store invoice not found
+  const displayInvoice = invoice || backendInvoice;
+
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.backgroundRoot,
+            paddingTop: Spacing.xl,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={BrandColors.constructionGold} />
+        <ThemedText type="small" style={{ marginTop: Spacing.md, color: theme.textSecondary }}>
+          Loading invoice...
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (!displayInvoice) {
     return (
       <View
         style={[
@@ -111,7 +181,7 @@ export default function InvoicePreviewScreen() {
   };
 
   // ✅ Ensure invoice has calculated totals
-  const calculatedInvoice = ensureCalculatedTotals(invoice);
+  const calculatedInvoice = ensureCalculatedTotals(displayInvoice);
 
   const handleDownloadPDF = async () => {
     try {
@@ -223,10 +293,10 @@ export default function InvoicePreviewScreen() {
                 BILL TO
               </ThemedText>
               <ThemedText type="body" style={{ color: BrandColors.slateGrey }}>
-                {invoice.clientName}
+                {displayInvoice.clientName}
               </ThemedText>
               <ThemedText type="small" style={{ color: "#6B7280" }}>
-                {invoice.clientAddress}
+                {displayInvoice.clientAddress}
               </ThemedText>
             </View>
             <View style={[styles.addressBlock, { alignItems: "flex-end" }]}>
@@ -237,10 +307,10 @@ export default function InvoicePreviewScreen() {
                 DATE
               </ThemedText>
               <ThemedText type="body" style={{ color: BrandColors.slateGrey }}>
-                {new Date(invoice.createdAt).toLocaleDateString()}
+                {new Date(displayInvoice.createdAt).toLocaleDateString()}
               </ThemedText>
               <ThemedText type="small" style={{ color: "#6B7280" }}>
-                Terms: {invoice.paymentTerms}
+                Terms: {displayInvoice.paymentTerms}
               </ThemedText>
             </View>
           </View>
@@ -266,7 +336,7 @@ export default function InvoicePreviewScreen() {
                 Amount
               </ThemedText>
             </View>
-            {invoice.items.map((item) => (
+            {safeArray(calculatedInvoice.items).map((item: any) => (
               <View key={item.id} style={styles.tableRow}>
                 <ThemedText
                   type="small"
@@ -288,7 +358,7 @@ export default function InvoicePreviewScreen() {
                 </ThemedText>
               </View>
             ))}
-            {invoice.laborHours > 0 ? (
+            {calculatedInvoice.laborHours > 0 ? (
               <View style={styles.tableRow}>
                 <ThemedText
                   type="small"
@@ -297,16 +367,16 @@ export default function InvoicePreviewScreen() {
                   Labor
                 </ThemedText>
                 <ThemedText type="small" style={[styles.tableCell, { color: "#374151" }]}>
-                  {invoice.laborHours}h
+                  {calculatedInvoice.laborHours}h
                 </ThemedText>
                 <ThemedText type="small" style={[styles.tableCell, { color: "#374151" }]}>
-                  {formatCurrency(invoice.laborRate)}/hr
+                  {formatCurrency(calculatedInvoice.laborRate)}/hr
                 </ThemedText>
                 <ThemedText
                   type="small"
                   style={[styles.tableCell, { textAlign: "right", color: "#374151" }]}
                 >
-                  {formatCurrency(invoice.laborTotal)}
+                  {formatCurrency(calculatedInvoice.laborTotal)}
                 </ThemedText>
               </View>
             ) : null}
@@ -348,7 +418,7 @@ export default function InvoicePreviewScreen() {
             </View>
           </View>
 
-          {safeText(invoice.safetyNotes) ? (
+          {safeText(displayInvoice.safetyNotes) ? (
             <View style={styles.pdfNotes}>
               <ThemedText
                 type="small"
@@ -357,7 +427,7 @@ export default function InvoicePreviewScreen() {
                 SAFETY NOTES
               </ThemedText>
               <ThemedText type="small" style={{ color: "#374151" }}>
-                {safeText(invoice.safetyNotes)}
+                {safeText(displayInvoice.safetyNotes)}
               </ThemedText>
             </View>
           ) : null}
@@ -392,7 +462,7 @@ export default function InvoicePreviewScreen() {
           </View>
         </Button>
         <Button
-          onPress={() => navigation.navigate("SendInvoice", { invoiceId: invoice.id })}
+          onPress={() => navigation.navigate("SendInvoice", { invoiceId: displayInvoice.id })}
           style={styles.footerButton}
         >
           <View style={styles.buttonContent}>
